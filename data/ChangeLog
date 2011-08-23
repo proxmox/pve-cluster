@@ -1,0 +1,278 @@
+2011-08-22  Proxmox Support Team  <support@proxmox.com>
+
+	* PVE/Cluster.pm (create_rrd_graph): only use daemon if socket
+	exists.
+
+	* PVE/pvecm (delnode): test if we have quorum. 
+
+	* src/cfs-plug-link.c (cfs_plug_link_getattr): set read-only if we
+	do not have quorum.
+
+2011-08-19  Proxmox Support Team  <support@proxmox.com>
+
+	* PVE/pvecm (create): removed section (rm) from cluster.conf (do
+	not start rgmanager by default).
+
+	* PVE/Cluster.pm (check_cfs_quorum): use 'local' instead of
+	'prv/lock', because this link always exists on the file system.
+	(ipcc_send_rec_json, ipcc_send_rec): fix error check 
+
+2011-08-18  Proxmox Support Team  <support@proxmox.com>
+
+	* PVE/Cluster.pm (ssh_merge_keys): add check if
+	/etc/pve/priv/authorized_keys exists
+
+2011-08-16  Proxmox Support Team  <support@proxmox.com>
+
+	* PVE/Cluster.pm (parse_datacenter_config)
+	(write_datacenter_config): register reader/writer for
+	datacenter.cfg
+
+2011-08-15  Proxmox Support Team  <support@proxmox.com>
+
+	* PVE/Cluster.pm: add 'datacenter.cfg' to observed files.
+
+2011-08-10  Proxmox Support Team  <support@proxmox.com>
+
+	* PVE/pvecert: removed binray (use pvecm instead)
+
+	* PVE/pvecm (lsnode): remove verifyapi handling code.
+	(updatecerts): new method (replacement for pvecert binary) 
+
+	* PVE/pvecert: also update ssh related files.
+
+	* PVE/Cluster.pm (ssh_merge_known_hosts): replace entries with
+	wrong key. new parameter createLink.
+
+2011-08-09  Proxmox Support Team  <support@proxmox.com>
+
+	* PVE/Cluster.pm (ssh_merge_known_hosts): also manage known_hosts
+	file.
+
+	* PVE/pvecm (backup_database): revert pervious change - do not
+	pass IP to addnode. Instead we run gen_pve_node_files in 'add'
+	after we get quorum.
+
+2011-08-08  Proxmox Support Team  <support@proxmox.com>
+
+	* PVE/Cluster.pm (check_cfs_quorum): check for undefined $st (no
+	such file).
+
+	* PVE/pvecm: try to create all files/dirs in 'addnode', because that
+	node has quorum. 
+	(create): Add id_rsa.pub to authorized_keys.
+	(create): Wait for quorum and restart apache2 
+
+	* src/cfs-plug-func.c (cfs_plug_func_new): add write callback (to
+	trigger actions).
+
+	* src/pmxcfs.c (write_debug_setting_cb): implement callback to
+	enable/disable debug mode (.debug file)
+
+2011-08-05  Proxmox Support Team  <support@proxmox.com>
+
+	* PVE/pvecm (create): call keygen with parameter hash
+
+2011-08-04  Proxmox Support Team  <support@proxmox.com>
+
+	* src/pmxcfs.c (create_symlinks): remove status dir and link
+
+	* src/*: remove syslog_cache (not needed)
+
+2011-08-03  Proxmox Support Team  <support@proxmox.com>
+
+	* src/cfs-plug-func.c: simple plugin to view data returned by
+	function. We use that to display status inside the filesystem
+	(.version, .members, .vmlist, .rrd, .clusterlog)
+
+2011-08-02  Proxmox Support Team  <support@proxmox.com>
+
+	* src/dfsm.c (dfsm_set_mode): call new callback dfsm_synced_fn()
+
+	* src/status.c: add 'iphash' to store ip adresses of all
+	nodes.
+	(nodeip_hash_set): helper to update iphash
+	(dfsm_synced): send ip address when we are in sync
+
+	* src/pmxcfs.c (main): set cfs.ip to local ip address.
+
+2011-08-01  Proxmox Support Team  <support@proxmox.com>
+
+	* PVE/Cluster.pm (check_cfs_quorum): helper to check quorum
+	(cfs_lock_file): remove $text parameter
+	(cfs_lock_storage): remove $text parameter
+
+2011-06-29  Proxmox Support Team  <support@proxmox.com>
+
+	* PVE/Cluster.pm (run_silent_cmd): supress output when running
+	openssl.
+
+2011-05-04  Proxmox Support Team  <support@proxmox.com>
+
+	* src/status.c (kvstore_send_update_message): use correct data
+	pointer (data instead of &data)
+
+2011-03-17  Proxmox Support Team  <support@proxmox.com>
+
+	* perl/Cluster.pm (get_nodelist): simply return an array of node
+	names.
+	(get_tasklist): get cluster wide task list
+	(broadcast_tasklist): send tasklist to cluster nodes
+
+2011-03-10  Proxmox Support Team  <support@proxmox.com>
+
+	* perl/Cluster.pm (rrd_dump): cache RRD data for one second (avoid
+	to many reads from API server)
+	(rrd_dump): parse RRD data
+
+	* src/status.c (update_rrd_data): add RRD definition for VMs 
+	(update_rrd_data): use thread safe API, connect to rrdcached
+
+	* src/dfsm.c (dfsm_send_message_full): limit to 100 retries (max
+	10 seconds delay).
+
+2011-03-07  Proxmox Support Team  <support@proxmox.com>
+
+	* perl/Cluster.pm (ipcc_send_rec*): allow to return 'undef'
+
+	* src/status.c (cfs_rrd_dump): impl. rrd dump
+
+	* perl/Cluster.pm (broadcast_rrd): start rrd integration
+
+2011-02-25  Proxmox Support Team  <support@proxmox.com>
+
+	* perl/Cluster.pm (cfs_lock_storage): impl.
+
+2011-02-22  Proxmox Support Team  <support@proxmox.com>
+
+	* src/cfs-utils.c (path_is_private): skip '/'
+
+2011-02-16  Proxmox Support Team  <support@proxmox.com>
+
+	* perl/pvecm: do not use PVE::RPCEnvironment
+	(add): refuse to join cluster if there are existing vms.
+
+	* perl/pvecert: do not use PVE::RPCEnvironment
+
+2011-02-15  Proxmox Support Team  <support@proxmox.com>
+
+	* perl/Cluster.pm (cfs_file_version): A way to get the actual
+	version of a file. Can be used to detect file modifications.
+
+2011-02-02  Proxmox Support Team  <support@proxmox.com>
+
+	* perl/Cluster.pm (remote_node_ip): implement stub
+
+2011-02-01  Proxmox Support Team  <support@proxmox.com>
+
+	* perl/Cluster.pm (cfs_lock_file): first try.
+
+2011-01-31  Proxmox Support Team  <support@proxmox.com>
+
+	* src/dcdb.c (dcdb_deliver): implement a simple distributed lock
+	manager for short lived locks (no fencing, see README).
+
+2011-01-19  root  <root@maui.maurer-it.com>
+
+	* perl/Cluster.pm (log_msg): fixes for taint mode (untaint $0)
+	(log_msg): allow to use 'symbolic' priority names
+
+2010-11-17  Proxmox Support Team  <support@proxmox.com>
+
+	* src/cpg.c (dcdb_main_loop): use CPG_DISPATCH_ONE instead of
+	CPG_DISPATCH_ALL - which can hang for very long time if there is
+	much traffic.
+
+	* src/cfs-plug-memdb.c (cfs_plug_memdb_readdir): correctly fill
+	stat buffer (avoid extra call to getattr (race condition))
+
+2010-11-16  Proxmox Support Team  <support@proxmox.com>
+
+	(atomic_write_file): implement our own because
+	g_file_set_contents() is clumsy (forks subprocess, can't set mode/owner).
+
+2010-11-15  Proxmox Support Team  <support@proxmox.com>
+
+	* src/memdb.c: replace g_hash_table_insert with
+	g_hash_table_replace (insert does not replace keys!)
+
+	* src/memdb-backend-bdb.c (bdb_backend_open): open with DB_THREAD
+	(just to be sure - we only access from one thread)
+
+2010-11-05  Proxmox Support Team  <support@proxmox.com>
+
+	* src/memdb.c (memdb_encode_index): use g_checksum instead of NSS
+
+	* src/cfs-plug-memdb.c (heartbeat): touch pid file each 5
+	seconds. We can use this to test if the filesysten is up and
+	running using inotify.
+
+	* src/pmxcfs.c (cfs_fuse_statfs): implemented
+
+	* src/cfs-plug.c (cfs_plug_base_*): check for correct plug type
+	(plug->ops == &cfs_ops)
+
+2010-11-02  Proxmox Support Team  <support@proxmox.com>
+
+	* src/memdb.c: implement vmlist magic, add check for duplicate VMIDs
+
+2010-10-15  Proxmox Support Team  <support@proxmox.com>
+
+	* src/cfs-plug-memdb.c: implement cluster/local mode 
+
+2010-02-26  Proxmox Support Team  <support@proxmox.com>
+
+	* src/cfs-plug-memdb.c (dcdb_worker_thread): handle
+	CS_ERR_TRY_AGAIN in cpg_join
+
+2010-02-23  Proxmox Support Team  <support@proxmox.com>
+
+	* src/cfs-plug-memdb.c (dcdb_worker_thread): cpg_group_name.length
+	should include trailing zero.
+
+	* src/Makefile.am (CFLAGS): use -std=gnu99 
+
+	* src/pmxcfs.c (main): wait up to 10 seconds to aquire lock.
+
+	* src/cfs-plug-memdb.c (dcdb_sync_cluster_conf): only write
+	cluster config when there are changes.
+
+2010-02-19  Proxmox Support Team  <support@proxmox.com>
+
+	* src/pmxcfs.c (main): use LOCK_NB to avoid blocking
+	(main): write pid to /var/run/pve-cluster.pid
+
+2010-02-18  Proxmox Support Team  <support@proxmox.com>
+
+	* src/pvecm: add 'keygen' command to create corosync keys 
+
+	* src/pvecm: set authkey to "/var/lib/pve-cluster/corosync.authkey"
+
+2010-02-11  Proxmox Support Team  <support@proxmox.com>
+
+	* src/cfs-plug-memdb.c (dcdb_sync_cluster_conf): only overwrite
+	local cluster.conf if version is newer.
+
+2010-02-10  Proxmox Support Team  <support@proxmox.com>
+
+	* src/cfs-plug-memdb.c (dcdb_sync_cluster_conf): sync cluster.conf
+	to /etc/cluster/cluster.conf
+
+	* src/pmxcfs.c (main): add new '-d' option for debugging (don't
+	fork and log to console)
+
+2010-02-08  Proxmox Support Team  <support@proxmox.com>
+
+	* src/memdb-backend-bdb.c (bdb_backend_checkpoint): checkpoint DB
+	every minute.
+
+2010-02-03  Proxmox Support Team  <support@proxmox.com>
+
+	* src/cfs-plug-memdb.c (quorum_notification_fn): use libquorum
+	instead of libvotequorum. This should work with any quorum
+	provider (for example cman)
+
+	* src/cfs-plug-memdb.c (cpg_deliver_callback): always sync state,
+	even if we have no quorum. Only reject writes when we are not
+	quorate.
+

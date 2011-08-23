@@ -1,0 +1,24 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# This has to be exported to make some magic below work.
+export DH_OPTIONS
+
+BUILDROOT := $(shell pwd)
+
+%:
+	dh $@
+
+
+override_dh_auto_configure:
+
+	./autogen.sh
+
+	./configure --prefix=/usr
+
+
+override_dh_installinit:
+	dh_installinit --no-start --no-restart-on-upgrade -- start 60 S . start 5 0 6 .

@@ -1,0 +1,370 @@
+Enable/Disable debugging
+========================
+
+# echo "1" >/etc/pve/.debug 
+# echo "0" >/etc/pve/.debug 
+
+Memory leak debugging (valgrind)
+================================
+
+export G_SLICE=always-malloc 
+export G_DEBUG=gc-friendly
+valgrind --leak-check=full ./pmxcfs -f
+
+# pmap <PID>
+# cat /proc/<PID>/maps
+
+Profiling (google-perftools)
+============================
+
+compile with: -lprofiler
+CPUPROFILE=./profile ./pmxcfs -f
+google-pprof --text ./pmxcfs profile 
+google-pprof --gv ./pmxcfs profile 
+
+Proposed file system layout
+============================
+
+The file system is mounted at:
+
+/etc/pve
+
+Files:
+
+cluster.conf
+storage.cfg
+user.cfg
+domains.cfg
+authkey.pub
+
+priv/shadow.cfg
+priv/authkey.key
+
+nodes/${NAME}/pve-ssl.pem
+nodes/${NAME}/priv/pve-ssl.key
+nodes/${NAME}/qemu-server/${VMID}.conf
+nodes/${NAME}/openvz/${VMID}.conf
+
+Symbolic links:
+
+local => nodes/${LOCALNAME}
+qemu-server => nodes/${LOCALNAME}/qemu-server/
+openvz => nodes/${LOCALNAME}/openvz/
+
+Special status files for debugging (JSON):
+.version    => file versions (to detect file modifications)
+.members    => Info about cluster members
+.vmlist     => List of all VMs
+.clusterlog => Cluster log (last 50 entries)
+.rrd        => RRD data (most recent entries)
+
+POSIX Compatibility
+===================
+
+The file system is based on fuse, so the behavior is POSIX like. But
+many feature are simply not implemented, because we do not need them:
+
+    - just normal files, no symbolic links, ...
+    - you can't rename non-empty directories (because this makes it easier 
+      to guarantee that VMIDs are unique).
+    - you can't change file permissions (permissions are based on path)
+    - O_EXCL creates were not atomic (like old NFS)
+    - O_TRUNC creates are not atomic (fuse restriction)
+    - ...
+
+File access rights
+==================
+
+All files/dirs are owned by user 'root' and have group
+'www-data'. Only root has write permissions, but group 'www-data' can
+read most files. Files below the following paths:
+
+ priv/
+ nodes/${NAME}/priv/
+
+are only accessible by root.
+
+SOURCE FILES
+============
+
+src/pmxcfs.c
+
+The final fuse binary which mounts the file system at '/etc/pve' is
+called 'pmxcfs'.
+
+
+src/cfs-plug.c
+src/cfs-plug.h
+
+That files implement some kind of fuse plugins - we can assemble our
+file system using several plugins (like bind mounts).
+
+
+src/cfs-plug-memdb.h
+src/cfs-plug-memdb.c
+src/dcdb.c
+src/dcdb.h
+
+This plugin implements the distributed, replicated file system. All
+file system operations are sent over the wire.
+
+
+src/cfs-plug-link.c
+
+Plugin for symbolic links.
+
+src/cfs-plug-func.c
+
+Plugin to dump data returned from a function. We use this to provide
+status information (for example the .version or .vmlist files)
+
+
+src/cfs-utils.c
+src/cfs-utils.h
+
+Some helper function.
+
+
+src/memdb.c
+src/memdb.h
+
+In memory file system, which writes data back to the disk.
+
+
+src/database.c 
+
+This implements the sqlite backend for memdb.c 
+
+src/server.c
+src/server.h
+
+A simple IPC server based on libqb. Provides fast access to
+configuration and status.
+
+src/status.c
+src/status.h
+
+A simple key/value store. Values are copied to all cluster members.
+
+src/dfsm.c
+src/dfsm.h
+
+Helper to simplify the implementation of a distributed finite state
+machine on top of corosync CPG.
+
+src/loop.c
+src/loop.h
+
+A simple event loop for corosync services.
+
+HOW TO COMPILE AND TEST
+=======================
+
+# ./autogen.sh
+# ./configure
+# make
+
+To test, you need a working corosync installation. First create
+the mount point with:
+
+# mkdir /etc/pve
+
+and create the directory to store the database:
+
+# mkdir /var/lib/pve-cluster/
+
+Then start the fuse file system with:
+
+# ./src/pmxcfs
+
+The distributed file system is accessible under /etc/pve
+
+There is a small test program to dump the database (and the index used
+to compare database contents).
+
+# ./src/testmemdb
+
+To build the Debian package use:
+
+# dpkg-buildpackage -rfakeroot -b -us -uc
+
+Distributed Configuration Database (DCDB)
+===========================================
+
+We want to implement a simple way to distribute small configuration
+files among the cluster on top of corosync CPG.
+
+The set of all configuration files defines the 'state'. That state is
+stored persistently on all members using a backend
+database. Configuration files are usually quite small, and we can even
+set a limit for the file size.
+
+* Backend Database
+
+Each node stores the state using a backend database. That database
+need to have transaction support, because we want to do atomic
+updates. It must also be possible to get a copy/snapshot of the
+current state.
+
+** File Based Backend (not implemented)
+
+Seems possible, but its hard to implement atomic update and snapshots.
+
+** Berkeley Database Backend (not implemented)
+
+The Berkeley DB provides full featured transaction support, including
+atomic commits and snapshot isolation. 
+
+** SQLite Database Backend (currently in use)
+
+This is simpler than BDB. All data is inside a single file. And there
+is a defined way to access that data (SQL). It is also very stable.
+
+We can use the following simple database table:
+
+  INODE PARENT NAME WRITER VERSION SIZE VALUE
+
+We use a global 'version' number (64bit) to uniquely identify the
+current version. This 'version' is incremented on any database
+modification. We also use it as 'inode' number when we create a new
+entry. The 'inode' is the primary key.
+
+** RAM/File Based Backend
+
+If the state is small enough we can hold all data in RAM. Then a
+'snapshot' is a simple copy of the state in RAM. Although all data is
+in RAM, a copy is written to the disk. The idea is that the state in
+RAM is the 'correct' one. If any file/database operations fails the
+saved state can become inconsistent, and the node must trigger a state
+resync operation if that happens.
+
+We can use the DB design from above to store data on disk.
+
+* Comparing States
+
+We need an effective way to compare states and test if they are
+equal. The easiest way is to assign a version number which increase on
+every change. States are equal if they have the same version. Also,
+the version provides a way to determine which state is newer. We can
+gain additional safety by 
+
+  - adding the ID of the last writer for each value
+  - computing a hash for each value
+
+And on partition merge we use that info to compare the version of each
+entry.
+
+* Quorum
+
+Quorum is necessary to modify state. Else we allow read-only access.
+
+* State Transfer to a Joining Process ([Ban], [Bir96, ch. 15.3.2])
+
+We adopt the general mechanism described in [Ban] to avoid making
+copies of the state. This can be achieved by initiating a state
+transfer immediately after a configuration change. We implemented this
+protocol in 'dfsm.c'. It is used by the DCDB implementation 'dcdb.c'.
+
+There are to types of messages:
+
+  - normal: only delivered when the state is synchronized. We queue
+    them until the state is in sync.
+
+  - state transfer: used to implement the state transfer
+
+The following example assumes that 'P' joins, 'Q' and 'R' share the
+same state.
+
+init:
+	P	Q 	R
+        c-------c-------c new configuration
+	*       *       * change mode: DFSM_MODE_START_SYNC
+	*   	*	* start queuing
+	*       *       * $state[X] = dfsm_get_state_fn()
+	|------->-------> send(DFSM_MESSAGE_STATE, $state[P]) 
+	|<------|------>| send(DFSM_MESSAGE_STATE, $state[Q]) 
+	<-------<-------| send(DFSM_MESSAGE_STATE, $state[R]) 
+	w-------w-------w wait until we have received all states
+	*       *       * dfsm_process_state_update($state[P,Q,R])
+	*       |       | change mode: DFSM_MODE_UPDATE
+	|       *       * change mode: DFSM_MODE_SYNCED
+	|   	*	* stop queuing (deliver queue)
+	|       *       | selected Q as leader: send updates 
+	|<------*       | send(DFSM_MESSAGE_UPDATE, $updates) 
+	|<------*       | send(DFSM_MESSAGE_UPDATE_COMPLETE) 
+
+update:
+	P	Q 	R
+	*<------|       | record updates: dfsm_process_update_fn() 
+	*<------|-------| queue normal messages 
+	w       |       | wait for DFSM_MESSAGE_UPDATE_COMPLETE
+	*       |       | commit new state: dfsm_commit_fn()
+	*       |       | change mode: DFSM_MODE_SYNCED
+	*       |       | stop queuing (deliver queue)
+
+
+While the general algorithm seems quite easy, there are some pitfalls
+when implementing it using corosync CPG (extended virtual synchrony):
+
+Messages sent in one configuration can be received in a later
+configuration. This is perfect for normal messages, but must not
+happen for state transfer message. We add an unique epoch to all state
+transfer messages, and simply discard messages from other
+configurations.
+
+Configuration change may happen before the protocol finish. This is
+particularly bad when we have already queued messages. Those queued
+messages needs to be considered part of the state (and thus we need
+to make sure that all nodes have exactly the same queue).
+
+A simple solution is to resend all queued messages. We just need to
+make sure that we still have a reasonable order (resend changes the
+order). A sender expects that sent messages are received in the same
+order. We include a 'msg_count' (local to each member) in all 'normal'
+messages, and so we can use that to sort the queue.
+
+A second problem arrives from the fact that we allow synced member to
+continue operation while other members doing state updates. We
+basically use 2 different queues:
+
+  queue 1: Contain messages from 'unsynced' members. This queue is
+  sorted and resent on configuration change. We commit those messages
+  when we get the DFSM_MESSAGE_UPDATE_COMPLETE message.
+
+  queue 2: Contain messages from 'synced' members. This queue is only
+  used by 'unsynced' members, because 'synced' members commits those
+  messages immediately. We can safely discard this queue at
+  configuration change.
+
+File Locking
+============
+
+We implement a simple lock-file based locking mechanism on top of the
+distributed file system. You can create/acquire a lock with:
+
+  $filename = "/etc/pve/priv/lock/<A-LOCK-NAME>";
+  while(!(mkdir $filename)) {
+      (utime 0, 0, $filename); # cfs unlock request
+      sleep(1);
+  }
+  /* got the lock */
+
+If above command succeed, you got the lock for 120 seconds (hard coded
+time limit). The 'mkdir' command is atomic and only succeed if the
+directory does not exist. The 'utime 0 0' triggers a cluster wide
+test, and removes $filename if it is older than 120 seconds. This test
+does not use the mtime stored inside the file system, because there can
+be a time drift between nodes. Instead each node stores the local time when
+it first see a lock file. This time is used to calculate the age of
+the lock.
+
+
+References
+==========
+
+[Bir96]	Kenneth P. Birman, Building Secure and Reliable Network Applications,
+	Manning Publications Co., 1996 
+
+[Ban]   Bela Ban, Flexible API for State Transfer in the JavaGroups Toolkit,
+ 	http://www.jgroups.org/papers/state.ps.gz
+

@@ -1,0 +1,44 @@
+pve-cluster (1.0-7) unstable; urgency=low
+
+  * fixes for rrdcached
+  
+  * fix cfs_plug_link_getattr
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 22 Aug 2011 08:15:16 +0200
+
+pve-cluster (1.0-6) unstable; urgency=low
+
+  * removed pvecert binray (use pvecm instead)
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 10 Aug 2011 07:55:41 +0200
+
+pve-cluster (1.0-5) unstable; urgency=low
+
+  * fix known_hosts handling (use /etc/ssh/ssh_known_hosts)
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 09 Aug 2011 14:32:20 +0200
+
+pve-cluster (1.0-4) unstable; urgency=low
+
+  * also handle ssh known_hosts file
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 09 Aug 2011 08:21:12 +0200
+
+pve-cluster (1.0-3) unstable; urgency=low
+
+  * new virtual file to enabe/disable debugging
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 08 Aug 2011 08:54:06 +0200
+
+pve-cluster (1.0-2) unstable; urgency=low
+
+  * fix 'pvecm create'
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 05 Aug 2011 12:31:44 +0200
+
+pve-cluster (1.0-1) unstable; urgency=low
+
+  * Initial release
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 03 Feb 2010 13:51:39 +0100
+
