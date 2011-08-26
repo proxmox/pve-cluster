@@ -1068,7 +1068,7 @@ dfsm_deliver_queue(dfsm_t *dfsm)
 	
 		dfsm_node_info_t *ni = dfsm_node_info_lookup(dfsm, qm->nodeid, qm->pid);
 		if (!ni) {
-			cfs_dom_message(dfsm->log_domain, "remove mesage from non-member %d/%d", 
+			cfs_dom_message(dfsm->log_domain, "remove message from non-member %d/%d", 
 					qm->nodeid, qm->pid);
 			dfsm_free_queue_entry(qm);
 			g_sequence_remove(cur);
