@@ -2,10 +2,11 @@
 #
 ### BEGIN INIT INFO
 # Provides:          pve-cluster
-# Required-Start:    $network $time fuse
-# Required-Stop:     $network $time fuse
-# Default-Start:     S
-# Default-Stop:      0 6
+# Required-Start:    $remote_fs $network $syslog $time fuse
+# Required-Stop:     $remote_fs $network $syslog $time fuse
+# X-Start-Before:    apache2
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
 # Short-Description: Starts the pve cluster filesystem
 # Description:       Starts and stops the pve cluster filesystem
 ### END INIT INFO

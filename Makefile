@@ -25,6 +25,7 @@ ${DEB}:
 	cp -a debian build/debian
 	cd build; ./autogen.sh
 	cd build; dpkg-buildpackage -rfakeroot -b -us -uc
+	lintian ${DEB}
 
 
 .PHONY: upload
