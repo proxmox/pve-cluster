@@ -84,10 +84,16 @@ sub run_silent_cmd {
 }
 
 sub check_cfs_quorum {
+    my ($noerr) = @_;
+
     # note: -w filename always return 1 for root, so wee need
     # to use File::lstat here
     my $st = File::stat::lstat("$basedir/local");
-    return ($st && (($st->mode & 0200) != 0));
+    my $quorate = ($st && (($st->mode & 0200) != 0));
+
+    die "cluster not ready - no quorum?\n" if !$quorate && !$noerr;
+
+    return $quorate;
 }
 
 sub check_cfs_is_mounted {

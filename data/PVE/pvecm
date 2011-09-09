@@ -242,8 +242,7 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	die "cluster not ready - no quorum?\n"
-	    if !PVE::Cluster::check_cfs_quorum();
+	PVE::Cluster::check_cfs_quorum();
 
 	my $lst = lsnode();
 
