@@ -904,6 +904,17 @@ sub log_msg {
    syslog("err", "writing cluster log failed: $@") if $@;
 }
 
+sub check_node_exists {
+    my ($nodename, $noerr) = @_;
+
+    my $nodelist = $clinfo->{nodelist};
+    return 1 if $nodelist && $nodelist->{$nodename};
+
+    return undef if $noerr;
+
+    die "no such cluster node '$nodename'\n";
+}
+
 # this is also used to get the IP of the local node
 sub remote_node_ip {
     my ($nodename, $noerr) = @_;
