@@ -238,7 +238,7 @@ static int32_t s1_msg_process_fn(
 			} else {
 				gpointer tmp = NULL;
 				result = memdb_read(memdb, path, &tmp);
-				if (result >= 0) {
+				if (result > 0) {
 					g_string_append_len(outbuf, tmp, result);
 					g_free(tmp);
 				}
