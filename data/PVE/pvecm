@@ -144,7 +144,7 @@ __PACKAGE__->register_method ({
 	    clustername => {
 		description => "The name of the cluster.",
 		type => 'string', format => 'pve-node',
-
+		maxLength => 15,
 	    },
 	    nodeid => {
 		type => 'integer',
