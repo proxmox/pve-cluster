@@ -443,6 +443,10 @@ sub get_clinfo {
     return $clinfo;
 }
 
+sub get_members {
+    return $clinfo->{nodelist};
+}
+
 sub get_nodelist {
 
     my $nodelist = $clinfo->{nodelist};
