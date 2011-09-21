@@ -595,7 +595,7 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	if (!PVE::Cluster::check_cfs_quorum()) {
+	if (!PVE::Cluster::check_cfs_quorum(1)) {
 	    return undef if $param->{silent};
 	    die "no quorum - unable to update files\n";
 	}
