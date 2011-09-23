@@ -205,6 +205,9 @@ _EOD
 
 	# that cman init script returns strange values - simply ignore for now
 	system('/etc/init.d/cman start');
+
+	# also start clvm
+	system('/etc/init.d/clvm start');
 	
 	return undef;
 }});
@@ -452,6 +455,8 @@ __PACKAGE__->register_method ({
 		sleep(1);
 	    }
 	    print "OK\n" if !$printqmsg;
+
+	    system("/etc/init.d/clvm start");
 
 	    print "generating node certificates\n";
 	    PVE::Cluster::gen_pve_node_files($nodename, $local_ip_address); 
