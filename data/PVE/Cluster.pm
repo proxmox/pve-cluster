@@ -116,6 +116,8 @@ sub gen_local_dirs {
 	"$basedir/priv",
 	"$basedir/nodes", 
 	"$basedir/nodes/$nodename",
+	"$basedir/nodes/$nodename/qemu-server",
+	"$basedir/nodes/$nodename/openvz",
 	"$basedir/nodes/$nodename/priv");
 	       
     foreach my $dir (@required_dirs) {
