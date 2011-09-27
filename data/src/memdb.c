@@ -1110,7 +1110,7 @@ memdb_rename(
 	if (from_te->type == DT_REG && (nodename = path_contain_vm_config(to, &vmtype, &vmid))) {
 		if (vmlist_vm_exists(vmid)) {
 			int from_vmtype = 0;
-			char *from_node = path_contain_vm_config(to, &from_vmtype, &from_vmid);
+			char *from_node = path_contain_vm_config(from, &from_vmtype, &from_vmid);
 			if (from_node) {
 				g_free(from_node);
 				if (!(vmid == from_vmid)) {
