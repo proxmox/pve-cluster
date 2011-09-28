@@ -1104,21 +1104,17 @@ memdb_rename(
 	}
 
 	guint32 vmid = 0;
-	int vmtype = 0;
 	guint32 from_vmid = 0;
+	int vmtype = 0;
+	int from_vmtype = 0;
+	char *from_node = path_contain_vm_config(from, &from_vmtype, &from_vmid);
 
 	if (from_te->type == DT_REG && (nodename = path_contain_vm_config(to, &vmtype, &vmid))) {
 		if (vmlist_vm_exists(vmid)) {
-			int from_vmtype = 0;
-			char *from_node = path_contain_vm_config(from, &from_vmtype, &from_vmid);
-			if (from_node) {
-				g_free(from_node);
-				if (!(vmid == from_vmid)) {
-					ret = -EEXIST;
-					goto ret;
-				}
-
-			}
+			if (from_node && (vmid != from_vmid)) {
+				ret = -EEXIST;
+				goto ret;
+			}	
 		}
 	}
 
@@ -1210,6 +1206,7 @@ memdb_rename(
  ret:
 	g_mutex_unlock (memdb->mutex);
 
+	if (from_node) g_free(from_node);
 	if (nodename) g_free (nodename);
 	if (dirname) g_free (dirname);
 	if (base) g_free (base);
