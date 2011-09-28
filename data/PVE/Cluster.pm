@@ -57,6 +57,7 @@ my $observed = {
     'domains.cfg' => 1,
     'priv/shadow.cfg' => 1,
     '/qemu-server/' => 1,
+    '/openvz/' => 1,
 };
 
 # only write output if something fails
@@ -731,12 +732,12 @@ sub cfs_file_version {
 
     my $version;
     my $infotag;
-    if ($filename =~ m|^nodes/[^/]+/qemu-server/(\d+)\.conf$|) {
-	my $vmid = $1;
+    if ($filename =~ m!^nodes/[^/]+/(openvz|qemu-server)/(\d+)\.conf$!) {
+	my ($type, $vmid) = ($1, $2);
 	if ($vmlist && $vmlist->{ids} && $vmlist->{ids}->{$vmid}) {
 	    $version = $vmlist->{ids}->{$vmid}->{version};
 	}
-	$infotag = "/qemu-server/";
+	$infotag = "/$type/";
     } else {
 	$infotag = $filename;
 	$version = $versions->{$filename};
