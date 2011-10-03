@@ -1,3 +1,9 @@
+pve-cluster (1.0-8) unstable; urgency=low
+
+  * set exec permission on openvz action scripts
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 03 Oct 2011 07:58:05 +0200
+
 pve-cluster (1.0-7) unstable; urgency=low
 
   * fixes for rrdcached

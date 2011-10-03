@@ -42,6 +42,54 @@
 
 static struct cfs_operations cfs_ops;
 
+static gboolean 
+name_is_openvz_script(
+	const char *name, 
+	guint32 *vmid_ret)
+{
+	if (!name)
+		return FALSE;
+
+	guint32 vmid = 0;
+	char *end = NULL;
+
+	if (name[0] == 'v' && name[1] == 'p' && name[2] == 's') {
+		end = (char *)name + 3;
+	} else {
+		if (name[0] < '1' || name[0] > '9')
+			return FALSE;
+
+		vmid = strtoul(name, &end, 10);
+	}
+
+	if (!end || end[0] != '.')
+		return FALSE;
+
+	end++;
+
+	gboolean res = FALSE;
+
+	if (end[0] == 'm' && strcmp(end, "mount") == 0)
+		res = TRUE;
+
+	if (end[0] == 'u' && strcmp(end, "umount") == 0)
+		res = TRUE;
+
+	if (end[0] == 's' && 
+	    (strcmp(end, "start") == 0 || strcmp(end, "stop") == 0))
+		res = TRUE;
+
+	if (end[0] == 'p' && 
+	    (strcmp(end, "premount") == 0 || strcmp(end, "postumount") == 0))
+		res = TRUE;
+
+
+	if (res && vmid_ret)
+		*vmid_ret = vmid;
+
+	return res;
+}
+
 static void tree_entry_stat(memdb_tree_entry_t *te, struct stat *stbuf, gboolean quorate)
 {
 	g_return_if_fail(te != NULL);
@@ -53,6 +101,9 @@ static void tree_entry_stat(memdb_tree_entry_t *te, struct stat *stbuf, gboolean
 	} else {
 		stbuf->st_mode = S_IFREG | (quorate ? 0666 : 0444);
 		stbuf->st_nlink = 1;
+		if (name_is_openvz_script(te->name, NULL)) {
+			stbuf->st_mode |= S_IXUSR;
+		}
 	} 
 		
 	stbuf->st_size = te->size;
