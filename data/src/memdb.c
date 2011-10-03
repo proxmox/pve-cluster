@@ -1080,6 +1080,12 @@ memdb_rename(
 	char *dirname = NULL;
 	char *base = NULL;
 
+	guint32 vmid = 0;
+	guint32 from_vmid = 0;
+	int vmtype = 0;
+	int from_vmtype = 0;
+	char *from_node = NULL;
+
 	g_mutex_lock (memdb->mutex);
 
 	if (memdb->errors) {
@@ -1103,11 +1109,7 @@ memdb_rename(
 		goto ret;
 	}
 
-	guint32 vmid = 0;
-	guint32 from_vmid = 0;
-	int vmtype = 0;
-	int from_vmtype = 0;
-	char *from_node = path_contain_vm_config(from, &from_vmtype, &from_vmid);
+	from_node = path_contain_vm_config(from, &from_vmtype, &from_vmid);
 
 	if (from_te->type == DT_REG && (nodename = path_contain_vm_config(to, &vmtype, &vmid))) {
 		if (vmlist_vm_exists(vmid)) {
