@@ -1,3 +1,9 @@
+pve-cluster (1.0-9) unstable; urgency=low
+
+  * restart filesystem after update asap
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 04 Oct 2011 07:28:02 +0200
+
 pve-cluster (1.0-8) unstable; urgency=low
 
   * set exec permission on openvz action scripts
