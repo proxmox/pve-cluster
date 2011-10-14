@@ -44,12 +44,8 @@ PVE::IPCC - Perl extension to access the PVE IPC Server
 
   use PVE::IPCC;
   
-  PVE::IPCC::ipcc_open();
-
   my $res = PVE::IPCC::ipcc_send_rec(1, "hello");
  
-  PVE::IPCC::ipcc_close();
-
 =head1 DESCRIPTION
 
 Send/receive RAW data packets from the PVE IPC Server.

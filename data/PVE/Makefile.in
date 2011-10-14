@@ -212,7 +212,7 @@ man5_MANS = datacenter.cfg.5.gz
 IPCC_so_SOURCES = IPCC.c ppport.h
 pvelib_DATA = IPCC.pm Cluster.pm
 pvelibdir = /usr/share/perl5/PVE
-CLEANFILES = IPCC.c *~ *.1.gz *.pod
+CLEANFILES = IPCC.c *~ *.1.gz *.5.gz *.pod
 all: all-am
 
 .SUFFIXES:
@@ -683,13 +683,13 @@ IPCC.c: IPCC.xs
 	cat $<|pod2man -n $* -s 1 -r ${VERSION} -c "Proxmox Documentation"|gzip -c9 >$@
 
 %.5.gz: %.5.pod
-	cat $<|pod2man -n $* -s 1 -r ${VERSION} -c "Proxmox Documentation"|gzip -c9 >$@
+	cat $<|pod2man -n $* -s 5 -r ${VERSION} -c "Proxmox Documentation"|gzip -c9 >$@
 
 %.1.pod: %
 	perl -I.. ./$* printmanpod > $@
 
 datacenter.cfg.5.pod: Cluster.pm gen-datacenter-pod.pl
-	./gen-datacenter-pod.pl > $@
+	perl -I.. ./gen-datacenter-pod.pl > $@
 
 install-exec-hook:
 	perl -I.. ./pvecm verifyapi
