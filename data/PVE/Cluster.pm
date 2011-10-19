@@ -348,7 +348,13 @@ my $ipcc_get_config = sub {
     my ($path) = @_;
 
     my $bindata = pack "Z*", $path;
-    return PVE::IPCC::ipcc_send_rec(6, $bindata);
+    my $res = PVE::IPCC::ipcc_send_rec(6, $bindata);
+    if (!defined($res)) {
+	return undef if ($! != 0);
+	return '';
+    }
+
+    return $res;
 };
 
 my $ipcc_get_status = sub {
@@ -717,7 +723,6 @@ my $ccache_read = sub {
     if (!$ci->{version} || $ci->{version} != $version) {
 
 	my $data = get_config($filename);
-
 	$ci->{data} = &$parser("/etc/pve/$filename", $data);
 	$ci->{version} = $version;
     }
