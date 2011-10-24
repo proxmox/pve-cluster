@@ -19,6 +19,8 @@
 #define MAX_MSG_SIZE (8192*128)
 
 static qb_ipcc_connection_t *conn;
+static pid_t *conn_pid;
+
 static char ipcbuffer[MAX_MSG_SIZE];
 
 static void libqb_log_writer(const char *file_name,
@@ -40,12 +42,23 @@ SV * data;
 PROTOTYPE: $;$
 CODE:
 {
+	pid_t cpid = getpid();
+
+	/* Each process needs its own ipcc connection,
+	 * else the shared memory buffer gets corrupted.
+	 */ 
+	if (conn && conn_pid != cpid) {
+		conn = NULL;
+	}
+
 	if (conn == NULL) {
 		qb_util_set_log_function(libqb_log_writer);
 		conn = qb_ipcc_connect(PCS_SOCKET_NAME, MAX_MSG_SIZE);
 
 		if (!conn)
 			XSRETURN_UNDEF;
+
+		conn_pid = cpid;
 	}
 
 	size_t len = 0;
