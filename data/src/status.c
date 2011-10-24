@@ -81,6 +81,7 @@ static memdb_change_t memdb_change_array[] = {
 	{ .path = "domains.cfg" },
 	{ .path = "priv/shadow.cfg" },
 	{ .path = "datacenter.cfg" },
+	{ .path = "vzdump" },
 };
 
 static GStaticMutex mutex = G_STATIC_MUTEX_INIT;

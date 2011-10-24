@@ -50,6 +50,7 @@ my $sshauthkeys = "/etc/pve/priv/authorized_keys";
 my $rootsshauthkeys = "/root/.ssh/authorized_keys";
 
 my $observed = {
+    'vzdump' => 1,
     'storage.cfg' => 1,
     'datacenter.cfg' => 1,
     'cluster.cfg' => 1,
