@@ -19,7 +19,7 @@
 #define MAX_MSG_SIZE (8192*128)
 
 static qb_ipcc_connection_t *conn;
-static pid_t *conn_pid;
+static pid_t conn_pid;
 
 static char ipcbuffer[MAX_MSG_SIZE];
 
