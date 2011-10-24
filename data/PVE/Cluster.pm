@@ -320,6 +320,36 @@ sub gen_pve_node_files {
     gen_pve_ssl_cert($force, $nodename, $ip);
 }
 
+my $vzdump_cron_dummy = <<__EOD;
+# cluster wide vzdump cron schedule
+# Atomatically generated file - do not edit
+
+PATH="/usr/sbin:/usr/bin:/sbin:/bin"
+
+__EOD
+
+sub gen_pve_vzdump_symlink {
+
+    my $filename = "/etc/pve/vzdump";
+
+    my $link_fn = "/etc/cron.d/vzdump";
+
+    if ((-f $filename) && (! -l $link_fn)) {
+	rename($link_fn, "/root/etc_cron_vzdump.org"); # make backup if file exists
+	symlink($filename, $link_fn);
+    }
+}
+
+sub gen_pve_vzdump_files {
+
+    my $filename = "/etc/pve/vzdump";
+
+    PVE::Tools::file_set_contents($filename, $vzdump_cron_dummy)
+	if ! -f $filename;
+
+    gen_pve_vzdump_symlink();
+};
+
 my $versions = {};
 my $vmlist = {};
 my $clinfo = {};
