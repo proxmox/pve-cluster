@@ -50,7 +50,7 @@ my $sshauthkeys = "/etc/pve/priv/authorized_keys";
 my $rootsshauthkeys = "/root/.ssh/authorized_keys";
 
 my $observed = {
-    'vzdump' => 1,
+    'vzdump.cron' => 1,
     'storage.cfg' => 1,
     'datacenter.cfg' => 1,
     'cluster.cfg' => 1,
@@ -331,7 +331,7 @@ __EOD
 
 sub gen_pve_vzdump_symlink {
 
-    my $filename = "/etc/pve/vzdump";
+    my $filename = "/etc/pve/vzdump.cron";
 
     my $link_fn = "/etc/cron.d/vzdump";
 
@@ -343,7 +343,7 @@ sub gen_pve_vzdump_symlink {
 
 sub gen_pve_vzdump_files {
 
-    my $filename = "/etc/pve/vzdump";
+    my $filename = "/etc/pve/vzdump.cron";
 
     PVE::Tools::file_set_contents($filename, $vzdump_cron_dummy)
 	if ! -f $filename;
