@@ -1,3 +1,17 @@
+pve-cluster (1.0-10) unstable; urgency=low
+
+  * add vzdump backup schedule to observed file list
+
+  * generate vzdump setup file /etc/pve/vzdump
+    
+  * Also create a symlink /etc/cron.d/vzdump to that file.
+
+  * protect IPCC against fork
+  
+  * bug fixes
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 09 Nov 2011 10:11:50 +0100
+
 pve-cluster (1.0-9) unstable; urgency=low
 
   * restart filesystem after update asap
