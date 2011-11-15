@@ -4,7 +4,7 @@
 # Provides:          pve-cluster
 # Required-Start:    $remote_fs $network $syslog $time fuse
 # Required-Stop:     $remote_fs $network $syslog $time fuse
-# X-Start-Before:    apache2
+# X-Start-Before:    apache2 cron
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: Starts the pve cluster filesystem
