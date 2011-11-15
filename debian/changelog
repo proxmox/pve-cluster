@@ -1,8 +1,14 @@
+pve-cluster (1.0-11) unstable; urgency=low
+
+  * restart pvedaemon after cluster 'add'
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 15 Nov 2011 09:14:30 +0100
+
 pve-cluster (1.0-10) unstable; urgency=low
 
   * add vzdump backup schedule to observed file list
 
-  * generate vzdump setup file /etc/pve/vzdump
+  * generate vzdump setup file /etc/pve/vzdump.cron
     
   * Also create a symlink /etc/cron.d/vzdump to that file.
 
