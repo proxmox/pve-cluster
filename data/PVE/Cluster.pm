@@ -720,7 +720,7 @@ sub create_rrd_graph {
 sub get_config {
     my ($path) = @_;
 
-    return  &$ipcc_get_config($path);
+    return &$ipcc_get_config($path);
 }
 
 sub get_cluster_log {
@@ -751,8 +751,9 @@ my $ccache_read = sub {
 
     my $ci = $ccache->{$filename};
 
-    if (!$ci->{version} || $ci->{version} != $version) {
-
+    if (!$ci->{version} || !$version || $ci->{version} != $version) {
+	# we always call the parser, even when the file does not exists
+	# (in that case $data is undef)
 	my $data = get_config($filename);
 	$ci->{data} = &$parser("/etc/pve/$filename", $data);
 	$ci->{version} = $version;
