@@ -708,6 +708,8 @@ sub create_rrd_graph {
 	push @args, "LINE2:${dataid}${col}:${id}";
     }
 
+    push @args, '--full-size-mode';
+
     RRDs::graph($filename, @args);
 
     my $err = RRDs::error;

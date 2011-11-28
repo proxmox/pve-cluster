@@ -1,7 +1,17 @@
+pve-cluster (1.0-12) unstable; urgency=low
+
+  * use full-size-mode for RRD graph
+
+  * depend on libdigest-hmac-perl
+  
+  * start before cron
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 29 Nov 2011 13:28:58 +0100
+
 pve-cluster (1.0-11) unstable; urgency=low
 
   * restart pvedaemon after cluster 'add'
-
+  
  -- Proxmox Support Team <support@proxmox.com>  Tue, 15 Nov 2011 09:14:30 +0100
 
 pve-cluster (1.0-10) unstable; urgency=low
