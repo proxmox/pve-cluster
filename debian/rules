@@ -19,6 +19,14 @@ override_dh_auto_configure:
 
 	./configure --prefix=/usr
 
+override_dh_install:
+
+	dh_install
+
+	# we do not install this, because we don't want to break
+	# existing tools which parse syslog entries
+	#install -m 0644 -D debian/pve-rsyslog.conf debian/pve-cluster/etc/rsyslog.d/pve-rsyslog.conf
+
 override_dh_installinit:
 
 	dh_installinit -R

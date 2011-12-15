@@ -25,7 +25,7 @@ set -e
 case "$1" in
     configure)
 	if test ! -e /proxmox_install_mode; then
-	    invoke-rc.d rsyslog restart
+	    # invoke-rc.d rsyslog restart
 	    pvecm updatecerts --silent 
 	fi
     ;;
