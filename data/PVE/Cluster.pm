@@ -7,6 +7,8 @@ use Socket;
 use Storable qw(dclone);
 use IO::File;
 use MIME::Base64;
+use XML::Parser;
+use Digest::SHA1;
 use Digest::HMAC_SHA1;
 use PVE::Tools;
 use PVE::INotify;
@@ -54,6 +56,7 @@ my $observed = {
     'storage.cfg' => 1,
     'datacenter.cfg' => 1,
     'cluster.conf' => 1,
+    'cluster.conf.new' => 1,
     'user.cfg' => 1,
     'domains.cfg' => 1,
     'priv/shadow.cfg' => 1,
@@ -1224,3 +1227,131 @@ sub write_datacenter_config {
 cfs_register_file('datacenter.cfg', 
 		  \&parse_datacenter_config,  
 		  \&write_datacenter_config);
+
+sub parse_cluster_conf {
+    my ($filename, $raw) = @_;
+
+    my $conf = {};
+
+    my $digest = Digest::SHA1::sha1_hex(defined($raw) ? $raw : '');
+
+    my $createNode = sub {
+	my ($expat, $tag, %attrib) = @_;
+	$expat->{NodeCount}++;
+	return { text => $tag, id => $expat->{NodeCount}, %attrib };
+    }; 
+
+    my $handlers = {
+	Init => sub {
+	    my $expat = shift;
+	    $expat->{NodeCount} = 0;
+	    $expat->{NodeStack} = [];
+	    $expat->{CurNode} = $expat->{Tree} = &$createNode($expat, 'root');
+	},
+	Final => sub {
+	    my $expat = shift;
+	    delete $expat->{CurNode};
+	    delete $expat->{NodeStack};
+	    $expat->{Tree};
+	},
+	Start => sub {
+	    my $expat = shift;
+	    my $tag = shift;
+	    my $parent = $expat->{CurNode};
+	    push @{ $expat->{NodeStack} }, $parent;
+	    my $node = &$createNode($expat, $tag, @_);
+	    push @{$expat->{CurNode}->{children}}, $node;
+	    $expat->{CurNode} = $node;
+	},
+	End => sub {
+	    my $expat = shift;
+	    my $tag = shift;
+	    my $node = pop @{ $expat->{NodeStack} };
+	    $expat->{CurNode} = $node;
+	},
+    };
+ 
+    if ($raw) {
+	my $parser = new XML::Parser(Handlers => $handlers);
+	$conf = $parser->parse($raw);
+    }
+
+    $conf->{digest} = $digest;
+
+    return $conf;
+}
+
+sub cluster_conf_version {
+    my ($conf) = @_;
+
+    return undef if !$conf || !$conf->{children} ||
+	!$conf->{children}->[0];
+
+    my $cluster = $conf->{children}->[0];
+    return undef if $cluster->{text} ne 'cluster';
+
+    return int($cluster->{config_version});
+}
+
+sub xml_escape_attrib {
+    my ($data) = @_;
+
+    return '' if !$data;
+
+    $data =~ s/&/&amp;/sg;
+    $data =~ s/</&lt;/sg;
+    $data =~ s/>/&gt;/sg;
+    $data =~ s/"/&quot;/sg;
+
+    return $data;
+}
+
+sub __cluster_conf_dump_node {
+    my ($node, $indend) = @_;
+
+    my $xml = '';
+
+    $indend = '' if !defined($indend);
+
+    my $attribs = '';
+
+    foreach my $key (sort keys %$node) {
+	my $value = $node->{$key};
+	next if $key eq 'id' || $key eq 'text' || $key eq 'children';
+	$attribs .= " $key=\"" .  xml_escape_attrib($value) . "\"";
+    }
+    
+    my $children = $node->{children};
+
+    if ($children && scalar(@$children)) {
+	$xml .= "$indend<$node->{text}$attribs>\n";
+	my $childindend = "$indend  ";
+	foreach my $child (@$children) {
+	    $xml .= __cluster_conf_dump_node($child, $childindend);
+	}
+	$xml .= "$indend</$node->{text}>\n";
+    } else { 
+	$xml .= "$indend<$node->{text}$attribs/>\n";
+    }
+
+    return $xml;
+}
+
+sub write_cluster_conf {
+    my ($filename, $cfg) = @_;
+
+    my $version = cluster_conf_version($cfg);
+    die "no cluster version specified\n" if !$version;
+
+    my $res = "<?xml version=\"1.0\"?>\n";
+
+    $res .= __cluster_conf_dump_node($cfg->{children}->[0]);
+
+    return $res;
+}
+
+# read only - use "rename cluster.conf.new cluster.conf" to write
+PVE::Cluster::cfs_register_file('cluster.conf', \&parse_cluster_conf);
+# this is read/write
+PVE::Cluster::cfs_register_file('cluster.conf.new', \&parse_cluster_conf, 
+				\&write_cluster_conf);
