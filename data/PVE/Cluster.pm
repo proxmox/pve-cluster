@@ -1296,7 +1296,7 @@ sub cluster_conf_version {
 sub xml_escape_attrib {
     my ($data) = @_;
 
-    return '' if !$data;
+    return '' if !defined($data);
 
     $data =~ s/&/&amp;/sg;
     $data =~ s/</&lt;/sg;
