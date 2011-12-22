@@ -2,12 +2,12 @@ Source: pve-cluster
 Section: admin
 Priority: optional
 Maintainer: Proxmox Support Team <support@proxmox.com>
-Build-Depends: debhelper (>= 7), autotools-dev, libsqlite3-dev, sqlite3, libfuse-dev, libcorosync-pve-dev, libqb-dev, libpve-common-perl, libglib2.0-dev, librrd-dev, librrds-perl, rrdcached, check, libdigest-hmac-perl, libdigest-sha1-perl
+Build-Depends: debhelper (>= 7), autotools-dev, libsqlite3-dev, sqlite3, libfuse-dev, libcorosync-pve-dev, libqb-dev, libpve-common-perl, libglib2.0-dev, librrd-dev, librrds-perl, rrdcached, check, libdigest-hmac-perl, libdigest-sha1-perl, libxml-parser-perl
 Standards-Version: 3.7.3
 
 Package: pve-cluster
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, rsync, libsqlite3-0, sqlite3, libfuse2, fuse-utils, libcorosync4-pve, libqb, libpve-common-perl, libglib2.0-0, rsyslog, openssl, librrd4, librrds-perl, rrdcached, libdigest-hmac-perl, libdigest-sha1-perl
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, rsync, libsqlite3-0, sqlite3, libfuse2, fuse-utils, libcorosync4-pve, libqb, libpve-common-perl, libglib2.0-0, rsyslog, openssl, librrd4, librrds-perl, rrdcached, libdigest-hmac-perl, libdigest-sha1-perl, libxml-parser-perl
 Description: Cluster Infrastructure for Proxmox Virtual Environment
  This package contains the Cluster Infrastructure for the Proxmox
  Virtual Environment, namely a distributed filesystem to store
