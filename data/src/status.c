@@ -462,7 +462,7 @@ void cfs_status_set_clinfo(
 		while (g_hash_table_iter_next (&iter, &key, &value)) {
 			cfs_clnode_t *node = (cfs_clnode_t *)value;
 			cfs_clnode_t *oldnode;
-			if ((oldnode = g_hash_table_lookup(old->nodes_byid, &key))) {
+			if ((oldnode = g_hash_table_lookup(old->nodes_byid, key))) {
 				node->online = oldnode->online;
 				node->kvhash = oldnode->kvhash;
 				oldnode->kvhash = NULL;

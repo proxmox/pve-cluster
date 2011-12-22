@@ -1,3 +1,9 @@
+pve-cluster (1.0-16) unstable; urgency=low
+
+  * fix online status calculation
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 22 Dec 2011 09:21:44 +0100
+
 pve-cluster (1.0-15) unstable; urgency=low
 
   * add interface to read/write cluster.conf
