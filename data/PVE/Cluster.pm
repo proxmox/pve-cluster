@@ -1282,15 +1282,81 @@ sub parse_cluster_conf {
 }
 
 sub cluster_conf_version {
-    my ($conf) = @_;
+    my ($conf, $noerr) = @_;
 
-    return undef if !$conf || !$conf->{children} ||
-	!$conf->{children}->[0];
+    if ($conf && $conf->{children} && $conf->{children}->[0]) {
+	my $cluster = $conf->{children}->[0];
+	if ($cluster && ($cluster->{text} eq 'cluster') && 
+	    $cluster->{config_version}) {
+	    if (my $version = int($cluster->{config_version})) {
+		return wantarray ? ($version, $cluster) : $version;
+	    }
+	}
+    }
 
-    my $cluster = $conf->{children}->[0];
-    return undef if $cluster->{text} ne 'cluster';
+    return undef if $noerr;
 
-    return int($cluster->{config_version});
+    die "no cluster config - unable to read version\n";
+}
+
+sub cluster_conf_lookup_cluster_section {
+    my ($conf, $noerr) = @_;
+
+    my ($version, $cluster) = cluster_conf_version($conf, $noerr);
+
+    return $cluster;
+}
+
+sub cluster_conf_lookup_rm_section {
+    my ($conf, $create, $noerr) = @_;
+
+    my $cluster = cluster_conf_lookup_cluster_section($conf, $noerr);
+    return undef if !$cluster;
+
+    my $rmsec;
+    foreach my $child (@{$cluster->{children}}) {
+	if ($child->{text} eq 'rm') {
+	    $rmsec = $child;
+	}
+    }
+    if (!$rmsec) {
+	if (!$create) {
+	    return undef if $noerr;
+	    die "no resource manager section\n";
+	}
+	$rmsec = { text => 'rm' };
+	push @{$cluster->{children}}, $rmsec;
+    }
+
+    return $rmsec;
+}
+
+sub cluster_conf_lookup_pvevm {
+    my ($conf, $create, $vmid, $noerr) = @_;
+
+    my $rmsec = cluster_conf_lookup_rm_section($conf, $create, $noerr);
+    return undef if !$rmsec;
+
+    my $vmref;
+    foreach my $child (@{$rmsec->{children}}) {
+	if ($child->{text} eq 'pvevm' && $child->{vmid} eq $vmid) {
+	    $vmref = $child;
+	}
+    }
+
+    if (!$vmref) {
+	if (!$create) {
+	    return undef if $noerr;
+	    die "unable to find service 'pvevm:$vmid'\n";
+	}
+	$vmref = { text => 'pvevm', vmid => $vmid };
+	push @{$rmsec->{children}}, $vmref;
+    } elsif ($create) {
+	return undef if $noerr;
+	die "unable to create service 'pvevm:$vmid' - already exists\n";
+    }
+
+    return $vmref;
 }
 
 sub xml_escape_attrib {
@@ -1341,8 +1407,7 @@ sub write_cluster_conf {
     my ($filename, $cfg) = @_;
 
     my $version = cluster_conf_version($cfg);
-    die "no cluster version specified\n" if !$version;
-
+ 
     my $res = "<?xml version=\"1.0\"?>\n";
 
     $res .= __cluster_conf_dump_node($cfg->{children}->[0]);
