@@ -1,3 +1,9 @@
+pve-cluster (1.0-19) unstable; urgency=low
+
+  * use new helper PVE::Tools::kvmkeymaplist()
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 09 Jan 2012 11:39:19 +0100
+
 pve-cluster (1.0-18) unstable; urgency=low
 
   * fix database load bug.

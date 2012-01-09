@@ -1183,7 +1183,6 @@ sub ssh_merge_known_hosts {
 
 }
 
-my $keymaphash = PVE::Tools::kvmkeymaps();
 my $datacenter_schema = {
     type => "object",
     additionalProperties => 0,
@@ -1192,7 +1191,7 @@ my $datacenter_schema = {
 	    optional => 1,
 	    type => 'string',
 	    description => "Default keybord layout for vnc server.",
-	    enum => [ keys %$keymaphash ],
+	    enum => PVE::Tools::kvmkeymaplist(),
 	},
 	language => {
 	    optional => 1,
