@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2010 Proxmox Server Solutions GmbH
+  Copyright (C) 2010-2012 Proxmox Server Solutions GmbH
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU Affero General Public License as published by
@@ -56,14 +56,14 @@ setup(void)
 }
  	
 void
-teardown (void)
+teardown(void)
 {
 	fail_unless (memdb != NULL);	
 
 	memdb_close(memdb);
 }
 
-START_TEST (test_indextest1)
+START_TEST(test_indextest1)
 {
 	char namebuf[100];
 
@@ -170,6 +170,85 @@ START_TEST (test_filetest1)
 }
 END_TEST
 
+/* Nornmaly, parent inode number is always less than contained inode,
+ * but this is not allways the case. A simple move can destroy that 
+ * ordering. This code test the placeholder algorithm in 
+ * bdb_backend_load_index()
+ */
+START_TEST (test_loaddb1)
+{
+	time_t ctime = 1234;
+
+	fail_unless(memdb_mkdir(memdb, "dir1", 0, ctime) == 0);
+
+	fail_unless(memdb_create(memdb, "dir1/file1", 0, ctime) == 0);
+
+	fail_unless(memdb_create(memdb, "dir1/file2", 0, ctime) == 0);
+
+	fail_unless(memdb_mkdir(memdb, "dir2", 0, ctime) == 0);
+
+	fail_unless(memdb_rename(memdb, "dir1/file1", "dir2/file1", 0, ctime) == 0);
+
+	fail_unless(memdb_rename(memdb, "dir1/file2", "dir2/file2", 0, ctime) == 0);
+
+	fail_unless(memdb_create(memdb, "dir2/file1", 0, ctime) == -EEXIST);
+
+	fail_unless(memdb_create(memdb, "dir2/file2", 0, ctime) == -EEXIST);
+
+	//memdb_dump(memdb);
+
+	memdb_close(memdb);
+
+	memdb = memdb_open(TESTDB);	
+	fail_unless (memdb != NULL);
+
+	fail_unless(memdb_create(memdb, "dir2/file1", 0, ctime) == -EEXIST);
+
+	fail_unless(memdb_create(memdb, "dir2/file2", 0, ctime) == -EEXIST);
+
+	//memdb_dump(memdb);
+
+}
+END_TEST
+
+START_TEST (test_loaddb2)
+{
+	time_t ctime = 1234;
+
+	fail_unless(memdb_mkdir(memdb, "dir1", 0, ctime) == 0);
+
+	fail_unless(memdb_mkdir(memdb, "dir1/sd1", 0, ctime) == 0);
+
+	fail_unless(memdb_create(memdb, "dir1/file1", 0, ctime) == 0);
+
+	fail_unless(memdb_create(memdb, "dir1/file2", 0, ctime) == 0);
+
+	fail_unless(memdb_mkdir(memdb, "dir2", 0, ctime) == 0);
+
+	fail_unless(memdb_rename(memdb, "dir1/sd1", "dir2/sd1", 0, ctime) == 0);
+
+	fail_unless(memdb_rename(memdb, "dir1/file1", "dir2/sd1/file1", 0, ctime) == 0);
+
+	fail_unless(memdb_rename(memdb, "dir1/file2", "dir2/sd1/file2", 0, ctime) == 0);
+
+	fail_unless(memdb_create(memdb, "dir2/file3", 0, ctime) == 0);
+
+	fail_unless(memdb_mkdir(memdb, "dir2/sd1", 0, ctime) == -EEXIST);
+
+	//memdb_dump(memdb);
+
+	memdb_close(memdb);
+
+	memdb = memdb_open(TESTDB);	
+	fail_unless (memdb != NULL);
+
+	fail_unless(memdb_mkdir(memdb, "dir2/sd1", 0, ctime) == -EEXIST);
+
+	//memdb_dump(memdb);
+
+}
+END_TEST
+
 static void
 add_test(
 	Suite *s,
@@ -192,6 +271,10 @@ memdb_suite(void)
 	add_test(s, test_filetest1, "filetest1");
  
 	add_test(s, test_indextest1, "indextest1");
+ 
+	add_test(s, test_loaddb1, "loaddb1");
+ 
+	add_test(s, test_loaddb2, "loaddb2");
  
 	return s;
 }
