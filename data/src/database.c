@@ -385,8 +385,7 @@ static gboolean bdb_backend_load_index(
 		} else {
 			memdb_tree_entry_t *pte;
 
-			if (!(pte = g_hash_table_lookup(index, &te->parent))) {
-
+			if (!(pte = g_hash_table_lookup(index, &te->parent))) {		
 				/* allocate placeholder (type == 0) 
 				 * this is simply replaced if we find a real inode later
  				 */
@@ -395,7 +394,7 @@ static gboolean bdb_backend_load_index(
 				pte->data.entries = g_hash_table_new(g_str_hash, g_str_equal);
 				g_hash_table_replace(index, &pte->inode, pte);
 
-			} else if (pte->type != DT_DIR) {
+			} else if (!(pte->type == DT_DIR || pte->type == 0)) {
 				cfs_critical("parent is not a directory "
 					     "(inode = %016zX, parent = %016zX, name = '%s')", 
 					     te->inode, te->parent, te->name);
@@ -404,7 +403,22 @@ static gboolean bdb_backend_load_index(
 			}
 
 			if (te->type == DT_DIR) {
-				te->data.entries = g_hash_table_new(g_str_hash, g_str_equal);
+				memdb_tree_entry_t *tmpte;
+				/* test if there is a placeholder entry */
+				if ((tmpte = g_hash_table_lookup(index, &te->inode))) {
+					if (tmpte->type != 0) {
+						cfs_critical("found strange placeholder for "
+							     "(inode = %016zX, parent = %016zX, name = '%s', type = '%d')", 
+							     te->inode, te->parent, te->name, tmpte->type);
+						memdb_tree_entry_free(te);
+						goto fail;
+					}
+					/* copy entries from placeholder */
+					te->data.entries = tmpte->data.entries;
+					tmpte->data.entries = NULL;
+				} else {
+					te->data.entries = g_hash_table_new(g_str_hash, g_str_equal);
+				}
 			}
 				
 			if (g_hash_table_lookup(pte->data.entries, te->name)) {
@@ -423,7 +437,7 @@ static gboolean bdb_backend_load_index(
 		goto fail;
 	}
 
-	/* no, check if all inodes have parents (there must be no placeholders) */
+	/* check if all inodes have parents (there must be no placeholders) */
 	GHashTableIter iter;
 	gpointer key, value;
 	g_hash_table_iter_init (&iter, index);
