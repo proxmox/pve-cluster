@@ -59,7 +59,7 @@ running() {
 
 start_server() {
 
-    start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON -- -q $DAEMON_OPTS
+    start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON -- $DAEMON_OPTS
     errcode=$?
     return $errcode
 }

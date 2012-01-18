@@ -1,3 +1,11 @@
+pve-cluster (1.0-20) unstable; urgency=low
+
+  * new helper: create_pmxcfs_db
+  
+  * show error messages in init.d script (remove -q daemon option)
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 18 Jan 2012 10:59:41 +0100
+
 pve-cluster (1.0-19) unstable; urgency=low
 
   * use new helper PVE::Tools::kvmkeymaplist()

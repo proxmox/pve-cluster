@@ -1,8 +1,9 @@
 noinst_PROGRAMS = logtest
 logtest_SOURCES = logtest.c
 
-bin_PROGRAMS = pmxcfs
+bin_PROGRAMS = pmxcfs create_pmxcfs_db
 pmxcfs_SOURCES = pmxcfs.c
+create_pmxcfs_db_SOURCES = create_pmxcfs_db.c
 
 TESTS = check_memdb
 check_PROGRAMS = ${TESTS}

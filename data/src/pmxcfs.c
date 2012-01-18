@@ -825,9 +825,6 @@ int main(int argc, char *argv[])
 
 	fuse_set_signal_handlers(fuse_get_session(fuse));
 
-	cfs_message("starting proxmox configuration filesystem (node = %s)", 
-		    cfs.nodename);
-
 	if (!foreground) {
 		pid_t cpid = fork();
 
