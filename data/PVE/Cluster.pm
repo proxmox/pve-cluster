@@ -803,7 +803,7 @@ sub cfs_read_file {
 sub cfs_write_file {
     my ($filename, $data) = @_;
 
-    my $info = $file_info->{$filename} || die "unknown file '$filename'";
+    my ($version, $info) = cfs_file_version($filename); 
 
     my $writer = $info->{writer} || die "no writer defined";
 
