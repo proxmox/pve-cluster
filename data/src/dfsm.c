@@ -102,7 +102,7 @@ typedef struct {
 } dfsm_queued_message_t;
 
 struct dfsm {
-	char *log_domain;
+	const char *log_domain;
 	cpg_callbacks_t *cpg_callbacks;
 	dfsm_callbacks_t *dfsm_callbacks;
 	cpg_handle_t cpg_handle;
@@ -1257,7 +1257,7 @@ dfsm_new(
 	if (!(dfsm->msg_queue = g_sequence_new(NULL))) 
 		goto err;
 		
-	dfsm->log_domain = g_strdup(log_domain);
+	dfsm->log_domain = log_domain;
 	dfsm->data = data;
 	dfsm->mode = DFSM_MODE_START;
 	dfsm->protocol_version = protocol_version;
@@ -1529,9 +1529,6 @@ dfsm_destroy(dfsm_t *dfsm)
 
 	if (dfsm->members)
 		g_hash_table_destroy(dfsm->members);
-
-	if (dfsm->log_domain)
-		g_free(dfsm->log_domain);
 
 	g_free(dfsm);
 }
