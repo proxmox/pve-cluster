@@ -38,7 +38,6 @@
 cfs_t cfs = {
 	.debug = 0,
 	.nodename = "dummy",
-	.print_to_console = 1,
 };
 
 static memdb_t *memdb;

@@ -41,7 +41,6 @@ typedef struct {
 	char *ip;
 	gid_t gid;
 	int debug;
-	int print_to_console;
 } cfs_t;
 
 extern cfs_t cfs;

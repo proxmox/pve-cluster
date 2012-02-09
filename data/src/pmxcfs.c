@@ -27,7 +27,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <glib.h>
-#include <syslog.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mount.h>
@@ -45,6 +44,7 @@
  
 #include <qb/qbdefs.h>
 #include <qb/qbutil.h>
+#include <qb/qblog.h>
 
 #include "cfs-utils.h"
 #include "cfs-plug.h"
@@ -63,7 +63,6 @@
 
 cfs_t cfs = {
 	.debug = 0,
-	.print_to_console = 1,
 };
 
 static struct fuse *fuse = NULL;
@@ -72,8 +71,7 @@ static cfs_plug_t *root_plug;
 
 static void glib_print_handler(const gchar *string)
 {
-	if (cfs.debug || cfs.print_to_console)
-		printf("%s", string);
+	printf("%s", string);
 }
 
 static void glib_log_handler(const gchar *log_domain,
@@ -562,6 +560,22 @@ read_debug_setting_cb(cfs_plug_t *plug)
 	return g_strdup_printf("%d\n", !!cfs.debug); 
 }
 
+static void 
+update_qb_log_settings(void) 
+{
+	if (cfs.debug) {
+		qb_log_format_set(QB_LOG_SYSLOG, "[%g] %p: %b (%f:%l:%n)");
+		qb_log_format_set(QB_LOG_STDERR, "[%g] %p: %b (%f:%l:%n)");
+		qb_log_ctl(QB_LOG_SYSLOG, QB_LOG_CONF_PRIORITY_BUMP, LOG_INFO - LOG_DEBUG);
+		qb_log_ctl(QB_LOG_STDERR, QB_LOG_CONF_PRIORITY_BUMP, LOG_INFO - LOG_DEBUG);
+	} else {
+		qb_log_format_set(QB_LOG_SYSLOG, "[%g] %p: %b");
+		qb_log_format_set(QB_LOG_STDERR, "[%g] %p: %b");
+		qb_log_ctl(QB_LOG_SYSLOG, QB_LOG_CONF_PRIORITY_BUMP, LOG_DEBUG - LOG_INFO);
+		qb_log_ctl(QB_LOG_STDERR, QB_LOG_CONF_PRIORITY_BUMP, LOG_DEBUG - LOG_INFO);
+	}
+}
+
 static int write_debug_setting_cb(
 	cfs_plug_t *plug, 
 	const char *buf,
@@ -576,12 +590,14 @@ static int write_debug_setting_cb(
 		if (cfs.debug) {
 			cfs_message("disable debug mode");
 			cfs.debug = 0;
+			update_qb_log_settings();
 		}
 		return 2;
 	} else if (strncmp(buf, "1\n", 2) == 0) {
 		if (!cfs.debug) {
-			cfs_message("enable debug mode");
 			cfs.debug = 1;
+			update_qb_log_settings();
+			cfs_message("enable debug mode");
 		}
 		return 2;
 	}
@@ -655,6 +671,22 @@ lookup_node_ip(const char *nodename)
 
 	return NULL;
 }
+
+static const char* 
+log_tags_stringify(uint32_t tags) {
+	if (qb_bit_is_set(tags, QB_LOG_TAG_LIBQB_MSG_BIT)) {
+		return "libqb";
+	} else {
+		GQuark quark = tags;
+		const char *domain = g_quark_to_string(quark);
+		if (domain != NULL) {
+			return domain;
+		} else {
+			return "main";
+		}
+ 	}
+}
+
 int main(int argc, char *argv[])
 {
 	int ret = -1;
@@ -667,7 +699,14 @@ int main(int argc, char *argv[])
 	dfsm_t *dcdb = NULL;
 	dfsm_t *status_fsm = NULL;
 
-	openlog("pmxcfs", LOG_PID, LOG_DAEMON);
+	qb_log_init("pmxcfs", LOG_DAEMON, LOG_DEBUG);
+ 	qb_log_tags_stringify_fn_set(log_tags_stringify);
+
+	qb_log_ctl(QB_LOG_STDERR, QB_LOG_CONF_ENABLED, QB_TRUE);
+	qb_log_filter_ctl(QB_LOG_STDERR, QB_LOG_FILTER_ADD,
+			  QB_LOG_FILTER_FILE, "*", LOG_DEBUG);
+
+	update_qb_log_settings();
 
 	g_set_print_handler(glib_print_handler);
 	g_set_printerr_handler(glib_print_handler);
@@ -691,18 +730,25 @@ int main(int argc, char *argv[])
 	{
 		cfs_critical("option parsing failed: %s", err->message);
 		g_error_free (err);
+		qb_log_fini();
 		exit (1);
 	}
 	g_option_context_free(context);
 
 	if (optind < argc) {
 		cfs_critical("too many arguments");
+		qb_log_fini();
 		exit(-1);
 	}
-		
+
+	if (cfs.debug) {
+		update_qb_log_settings();
+	}
+
 	struct utsname utsname;
 	if (uname(&utsname) != 0) {
 		cfs_critical("Unable to read local node name");
+		qb_log_fini();
 		exit (-1);
 	}
 	
@@ -714,19 +760,19 @@ int main(int argc, char *argv[])
 
 	if (!(cfs.ip = lookup_node_ip(cfs.nodename))) { 
 		cfs_critical("Unable to get local IP address");
+		qb_log_fini();
 		exit(-1);
 	}
 
 	struct group *www_data = getgrnam("www-data");
 	if (!www_data) {
 		cfs_critical("Unable to get www-data group ID");
+		qb_log_fini();
 		exit (-1);
 	}
 	cfs.gid = www_data->gr_gid;
 
 	g_thread_init(NULL);
-
-	qb_util_set_log_function(ipc_log_fn);
 
 	umask(027);
 
@@ -828,6 +874,7 @@ int main(int argc, char *argv[])
 			goto err;
 		} else if (cpid) {
 			write_pidfile(cpid);
+			qb_log_fini();
 			_exit (0);
 		} else {
 			int nullfd;
@@ -843,7 +890,8 @@ int main(int argc, char *argv[])
 			}
 
 			// do not print to the console after this point
-			cfs.print_to_console = 0;
+			qb_log_ctl(QB_LOG_STDERR, QB_LOG_CONF_ENABLED, QB_FALSE);
+
 			setsid();
 		}
 	} else {
@@ -933,6 +981,8 @@ int main(int argc, char *argv[])
 	cfs_message("exit proxmox configuration filesystem (%d)", ret);
 
 	cfs_status_cleanup();
+
+	qb_log_fini();
 
 	exit(ret);
 

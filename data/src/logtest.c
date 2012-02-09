@@ -39,7 +39,6 @@
 cfs_t cfs = {
         .debug = 0,
 	.nodename = "testnode",
-        .print_to_console = 1,
 };
 
 

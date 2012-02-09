@@ -31,7 +31,7 @@
 #include <utime.h>
 #include <sys/stat.h>
 #include <glib.h>
-#include <sys/syslog.h>
+#include <qb/qblog.h>
 
 #include "cfs-utils.h"
 
@@ -116,15 +116,6 @@ cfs_log(
 	const gchar    *format,
 	...)
 {
-	va_list args;
-
-	va_start (args, format);
-	char *orgmsg = g_strdup_vprintf (format, args);
-	va_end (args);
-
-	char msg[8192];
-	utf8_to_ascii(msg, sizeof(msg), orgmsg, FALSE);
-
 	gint level; 
 	char *ltxt;
 
@@ -160,80 +151,20 @@ cfs_log(
 		ltxt = "info";
 	} 
 
-	if (!file || (log_level == G_LOG_LEVEL_MESSAGE ||
-		      log_level == G_LOG_LEVEL_INFO)) {
+	va_list args;
 
-		if (log_domain) {
-			syslog(level, "[%s] %s", log_domain, msg); 
+	va_start (args, format);
+	char *orgmsg = g_strdup_vprintf (format, args);
+	va_end (args);
 
-			if (cfs.debug || cfs.print_to_console)
-				printf("%s: [%s] %s\n", ltxt, log_domain, msg);
-		} else {
-			syslog(level, msg); 
+	char msg[8192];
+	utf8_to_ascii(msg, sizeof(msg), orgmsg, FALSE);
 
-			if (cfs.debug || cfs.print_to_console)
-				printf("%s: %s\n", ltxt, msg);
+	uint32_t tag = g_quark_from_string(log_domain);
 
-		}
-
-	} else {
-
-		if (log_domain) {
-			syslog(level, "[%s] %s (%s:%d:%s)", log_domain, msg, file, line, func); 
-
-			if (cfs.debug || cfs.print_to_console)
-				printf("%s: [%s] %s (%s:%d:%s)\n", ltxt, log_domain, msg, file, line, func);
-
-		} else {
-			syslog(level, "%s (%s:%d:%s)", msg, file, line, func); 
-
-			if (cfs.debug || cfs.print_to_console)
-				printf("%s: %s (%s:%d:%s)\n", ltxt, msg, file, line, func);
-		}
-	}
+	qb_log_from_external_source(func, file, "%s", level, line, tag, msg);
 
 	g_free(orgmsg);
-}
-
-void ipc_log_fn(
-	const char *file,
-	int32_t line, 
-	int32_t severity, 
-	const char *msg)
-{
-
-	if (!cfs.debug && 
-	    !(severity == LOG_ERR || severity == LOG_CRIT || severity == LOG_WARNING))
-		return;
-
-	GLogLevelFlags log_level;
-
-	switch (severity) { 
-	case LOG_ERR:
-		log_level = G_LOG_LEVEL_ERROR;
-		break; 
-	case LOG_CRIT:
-		log_level = G_LOG_LEVEL_CRITICAL; 
-		break; 
-	case LOG_WARNING:
-		log_level = G_LOG_LEVEL_WARNING;
-		break; 
-	case LOG_NOTICE:
-		log_level = G_LOG_LEVEL_MESSAGE;
-		break; 
-	case LOG_INFO:
-		log_level = G_LOG_LEVEL_INFO;
-		break; 
-	case LOG_DEBUG:
-		log_level = G_LOG_LEVEL_DEBUG;
-		if (!cfs.debug)
-			return;
-		break; 
-	default:  
-		log_level = G_LOG_LEVEL_INFO;
-	}
-
-	cfs_log(G_LOG_DOMAIN, log_level, file, line, "", msg);
 }
 
 // xml parser for cluster.conf - just good enough to extract version
