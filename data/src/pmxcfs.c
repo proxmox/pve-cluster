@@ -674,14 +674,12 @@ int main(int argc, char *argv[])
 	g_log_set_default_handler(glib_log_handler, NULL);
 
 	GOptionContext *context;
-	gboolean opt_quiet = FALSE;
 
 	GOptionEntry entries[] = {
 		{ "debug", 'd', 0, G_OPTION_ARG_NONE, &cfs.debug, "Turn on debug messages", NULL },
 		{ "foreground", 'f', 0, G_OPTION_ARG_NONE, &foreground, "Do not daemonize server", NULL },
 		{ "local", 'l', 0, G_OPTION_ARG_NONE, &force_local_mode, 
 		  "Force local mode (ignore cluster.conf, force quorum)", NULL },
-		{ "quiet", 'q', 0, G_OPTION_ARG_NONE, &opt_quiet, "Supress console output", NULL },
 		{ NULL },
 	};
 
@@ -701,9 +699,6 @@ int main(int argc, char *argv[])
 		cfs_critical("too many arguments");
 		exit(-1);
 	}
-
-	if (opt_quiet)
-		cfs.print_to_console = 0;
 		
 	struct utsname utsname;
 	if (uname(&utsname) != 0) {
