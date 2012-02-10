@@ -564,17 +564,18 @@ static void
 update_qb_log_settings(void) 
 {
 	qb_log_filter_ctl(QB_LOG_STDERR, QB_LOG_FILTER_REMOVE, QB_LOG_FILTER_FILE, "*", LOG_DEBUG);
+	qb_log_filter_ctl(QB_LOG_SYSLOG, QB_LOG_FILTER_REMOVE, QB_LOG_FILTER_FILE, "*", LOG_DEBUG);
 
 	if (cfs.debug) {
 		qb_log_format_set(QB_LOG_SYSLOG, "[%g] %p: %b (%f:%l:%n)");
 		qb_log_format_set(QB_LOG_STDERR, "[%g] %p: %b (%f:%l:%n)");
-		qb_log_ctl(QB_LOG_SYSLOG, QB_LOG_CONF_PRIORITY_BUMP, LOG_INFO - LOG_DEBUG);
 		qb_log_filter_ctl(QB_LOG_STDERR, QB_LOG_FILTER_ADD, QB_LOG_FILTER_FILE, "*", LOG_DEBUG);
+		qb_log_filter_ctl(QB_LOG_SYSLOG, QB_LOG_FILTER_ADD, QB_LOG_FILTER_FILE, "*", LOG_DEBUG);
 	} else {
 		qb_log_format_set(QB_LOG_SYSLOG, "[%g] %p: %b");
 		qb_log_format_set(QB_LOG_STDERR, "[%g] %p: %b");
-		qb_log_ctl(QB_LOG_SYSLOG, QB_LOG_CONF_PRIORITY_BUMP, LOG_DEBUG - LOG_INFO);
 		qb_log_filter_ctl(QB_LOG_STDERR, QB_LOG_FILTER_ADD, QB_LOG_FILTER_FILE, "*", LOG_INFO);
+		qb_log_filter_ctl(QB_LOG_SYSLOG, QB_LOG_FILTER_ADD, QB_LOG_FILTER_FILE, "*", LOG_INFO);
 	}
 }
 
