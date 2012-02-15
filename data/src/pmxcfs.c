@@ -560,26 +560,49 @@ read_debug_setting_cb(cfs_plug_t *plug)
 	return g_strdup_printf("%d\n", !!cfs.debug); 
 }
 
+static void
+my_qb_log_filter(struct qb_log_callsite *cs)
+{
+	int32_t priority = cfs.debug ? LOG_DEBUG : LOG_INFO;
+
+	if (qb_bit_is_set(cs->tags, QB_LOG_TAG_LIBQB_MSG_BIT)) {
+		if (cs->priority <= (cfs.debug ? priority : LOG_WARNING)) {
+			qb_bit_set(cs->targets, QB_LOG_SYSLOG);
+		} else {
+			qb_bit_clear(cs->targets, QB_LOG_SYSLOG);
+		}
+		if (cs->priority <= priority) {
+			qb_bit_set(cs->targets, QB_LOG_STDERR);
+		} else {
+			qb_bit_clear(cs->targets, QB_LOG_STDERR);
+		}
+	} else {
+		if (cs->priority <= priority) {
+			qb_bit_set(cs->targets, QB_LOG_SYSLOG);
+			qb_bit_set(cs->targets, QB_LOG_STDERR);
+		} else {
+			qb_bit_clear(cs->targets, QB_LOG_SYSLOG);
+			qb_bit_clear(cs->targets, QB_LOG_STDERR);
+		}
+	}
+}
+
 static void 
 update_qb_log_settings(void) 
 {
-	qb_log_filter_ctl(QB_LOG_STDERR, QB_LOG_FILTER_REMOVE, QB_LOG_FILTER_FILE, "*", LOG_DEBUG);
-	qb_log_filter_ctl(QB_LOG_SYSLOG, QB_LOG_FILTER_REMOVE, QB_LOG_FILTER_FILE, "*", LOG_DEBUG);
+	qb_log_filter_fn_set(my_qb_log_filter);
 
 	if (cfs.debug) {
 		qb_log_format_set(QB_LOG_SYSLOG, "[%g] %p: %b (%f:%l:%n)");
 		qb_log_format_set(QB_LOG_STDERR, "[%g] %p: %b (%f:%l:%n)");
-		qb_log_filter_ctl(QB_LOG_STDERR, QB_LOG_FILTER_ADD, QB_LOG_FILTER_FILE, "*", LOG_DEBUG);
-		qb_log_filter_ctl(QB_LOG_SYSLOG, QB_LOG_FILTER_ADD, QB_LOG_FILTER_FILE, "*", LOG_DEBUG);
 	} else {
 		qb_log_format_set(QB_LOG_SYSLOG, "[%g] %p: %b");
 		qb_log_format_set(QB_LOG_STDERR, "[%g] %p: %b");
-		qb_log_filter_ctl(QB_LOG_STDERR, QB_LOG_FILTER_ADD, QB_LOG_FILTER_FILE, "*", LOG_INFO);
-		qb_log_filter_ctl(QB_LOG_SYSLOG, QB_LOG_FILTER_ADD, QB_LOG_FILTER_FILE, "*", LOG_INFO);
 	}
 }
 
-static int write_debug_setting_cb(
+static int 
+write_debug_setting_cb(
 	cfs_plug_t *plug, 
 	const char *buf,
 	size_t size)
@@ -607,7 +630,6 @@ static int write_debug_setting_cb(
 
 	return res;
 }
-
 
 static void 
 create_symlinks(cfs_plug_base_t *bplug, const char *nodename)
@@ -703,6 +725,10 @@ int main(int argc, char *argv[])
 	dfsm_t *status_fsm = NULL;
 
 	qb_log_init("pmxcfs", LOG_DAEMON, LOG_DEBUG);
+	/* remove default filter */
+	qb_log_filter_ctl(QB_LOG_SYSLOG, QB_LOG_FILTER_REMOVE, 
+			  QB_LOG_FILTER_FILE, "*", LOG_DEBUG);
+
  	qb_log_tags_stringify_fn_set(log_tags_stringify);
 
 	qb_log_ctl(QB_LOG_STDERR, QB_LOG_CONF_ENABLED, QB_TRUE);
