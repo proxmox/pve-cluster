@@ -1,3 +1,9 @@
+pve-cluster (1.0-22) unstable; urgency=low
+
+  * depend on insserv (we need dependency based boot)
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 16 Feb 2012 10:51:20 +0100
+
 pve-cluster (1.0-21) unstable; urgency=low
 
   * use new qb_log_filter_fn_set
