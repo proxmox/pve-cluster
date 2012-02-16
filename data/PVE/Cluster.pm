@@ -14,6 +14,7 @@ use PVE::Tools;
 use PVE::INotify;
 use PVE::IPCC;
 use PVE::SafeSyslog;
+use PVE::JSONSchema;
 use JSON;
 use RRDs;
 use Encode;
