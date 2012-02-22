@@ -400,9 +400,9 @@ __PACKAGE__->register_method ({
 	$cmd = ['ssh', $host, '-o', 'BatchMode=yes',
 		'pvecm', 'addnode', $nodename, '--force', 1];
 
-	push @$cmd, '-n', $param->{nodeid} if $param->{nodeid};
+	push @$cmd, '--nodeid', $param->{nodeid} if $param->{nodeid};
 
-	push @$cmd, '-v', $param->{votes} if defined($param->{votes});
+	push @$cmd, '--votes', $param->{votes} if defined($param->{votes});
 
 	if (system (@$cmd) != 0) {
 	    my $cmdtxt = join (' ', @$cmd);
