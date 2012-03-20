@@ -8,7 +8,7 @@ use Storable qw(dclone);
 use IO::File;
 use MIME::Base64;
 use XML::Parser;
-use Digest::SHA1;
+use Digest::SHA;
 use Digest::HMAC_SHA1;
 use PVE::Tools;
 use PVE::INotify;
@@ -1233,7 +1233,7 @@ sub parse_cluster_conf {
 
     my $conf = {};
 
-    my $digest = Digest::SHA1::sha1_hex(defined($raw) ? $raw : '');
+    my $digest = Digest::SHA::sha1_hex(defined($raw) ? $raw : '');
 
     my $createNode = sub {
 	my ($expat, $tag, %attrib) = @_;

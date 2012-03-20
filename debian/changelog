@@ -1,3 +1,9 @@
+pve-cluster (1.0-25) unstable; urgency=low
+
+  * use Digest::SHA instead of Digest::SHA1
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 20 Mar 2012 11:24:21 +0100
+
 pve-cluster (1.0-24) unstable; urgency=low
 
   * avoid dcdb warnings when creating a new cluster
