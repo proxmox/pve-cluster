@@ -374,8 +374,10 @@ dcdb_sync_cluster_conf(
 
 	GError *err = NULL;
 	if (!g_file_get_contents(HOST_CLUSTER_CONF_FN, &old_data, &old_length, &err)) {
-		cfs_critical("unable to read cluster config file '%s' - %s", 
-			   HOST_CLUSTER_CONF_FN, err->message);
+		if (!g_error_matches(err, G_FILE_ERROR, G_FILE_ERROR_NOENT)) {
+			cfs_critical("unable to read cluster config file '%s' - %s", 
+				     HOST_CLUSTER_CONF_FN, err->message);
+		}
 		g_error_free (err);
 	} else {
 		if (old_length)
@@ -397,7 +399,7 @@ dcdb_sync_cluster_conf(
 
 	cfs_message("wrote new cluster config '%s'", HOST_CLUSTER_CONF_FN);
 
-	if (notify_cman) {
+	if (notify_cman && old_version) {
 		/* tell cman that there is a new config file */
 		cfs_debug ("run cman_tool version");
 		int status = system("/usr/sbin/cman_tool version -r -S >/dev/null 2>&1");
