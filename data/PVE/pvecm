@@ -320,8 +320,7 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	die "cluster not ready - no quorum?\n"
-	    if !PVE::Cluster::check_cfs_quorum();
+	PVE::Cluster::check_cfs_quorum();
 
 	my $cmd = ['ccs_tool', 'delnode', '-c', $clusterconf, $param->{node}];
 
@@ -446,7 +445,7 @@ __PACKAGE__->register_method ({
 
 	    # wait for quorum
 	    my $printqmsg = 1;
-	    while (!PVE::Cluster::check_cfs_quorum()) {
+	    while (!PVE::Cluster::check_cfs_quorum(1)) {
 		if ($printqmsg) {
 		    print "waiting for quorum...";
 		    STDOUT->flush();
