@@ -927,7 +927,7 @@ update_rrd_data(
 	if (strncmp(key, "pve2-node/", 10) == 0) {
 		const char *node = key + 10;
 
-		skip = 1;
+		skip = 2;
 
 		if (strchr(node, '/') != NULL)
 			goto keyerror;

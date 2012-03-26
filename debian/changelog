@@ -1,3 +1,9 @@
+pve-cluster (1.0-26) unstable; urgency=low
+
+  * new rrd format for node data (skip 2 entries). 
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 26 Mar 2012 09:46:47 +0200
+
 pve-cluster (1.0-25) unstable; urgency=low
 
   * use Digest::SHA instead of Digest::SHA1
