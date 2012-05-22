@@ -231,11 +231,16 @@ valid_nodename(
 	/* LDH rule (letters, digits, hyphen) */
 
 	int len = strlen(nodename);
+
+	if (len < 1) {
+		return FALSE;
+	}
+
 	for (int i = 0; i < len; i ++) {
 		char c = nodename[i];
 		if ((c >= 'A' && c <= 'Z') ||
 		    (c >= 'a' && c <= 'z') ||
-		    (i != 0 && c >= '0' && c <= '9') ||
+		    (c >= '0' && c <= '9') ||
 		    (i != 0 && i != (len-1) && c == '-'))
 			continue;
 		return FALSE;

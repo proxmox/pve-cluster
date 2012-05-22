@@ -1,3 +1,9 @@
+pve-cluster (1.0-27) unstable; urgency=low
+
+  * fix bug #199: allow node names to start with numbers
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 22 May 2012 11:53:02 +0200
+
 pve-cluster (1.0-26) unstable; urgency=low
 
   * new rrd format for node data (skip 2 entries). 
