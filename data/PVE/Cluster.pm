@@ -1015,16 +1015,14 @@ sub ssh_merge_keys {
 
     my $newdata = "";
     my $vhash = {};
-    while ($data && $data =~ s/^((.*?)(\n|$))//) {
-	my $line = "$2\n";
-	if ($line =~ m/^ssh-rsa\s+\S+\s+(\S+)$/) {
-	    $vhash->{$1} = $line;
-	} else {
-	    $newdata .= $line;
+    my @lines = split(/\n/, $data);
+    foreach my $line (@lines) {
+	if ($line =~ m/^ssh-rsa\s+(\S+)\s+\S+$/) {
+            next if $vhash->{$1};
+            $vhash->{$1} = 1;
 	}
+	$newdata .= "$line\n";
     }
-    
-    $newdata .= join("", values(%$vhash));
 
     PVE::Tools::file_set_contents($sshauthkeys, $newdata, 0600);
 }
