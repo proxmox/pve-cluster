@@ -1,3 +1,9 @@
+pve-cluster (1.0-28) unstable; urgency=low
+
+  * preserve authorized_key key order
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 31 Aug 2012 07:35:32 +0200
+
 pve-cluster (1.0-27) unstable; urgency=low
 
   * fix bug #199: allow node names to start with numbers
