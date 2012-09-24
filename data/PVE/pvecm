@@ -15,6 +15,8 @@ use PVE::CLIHandler;
 use base qw(PVE::CLIHandler);
 
 $ENV{'PATH'} = '/sbin:/bin:/usr/sbin:/usr/bin';
+$ENV{LC_ALL} = 'C';
+$ENV{HOME} = '/root'; # for ssh-copy-id
 
 die "please run as root\n" if $> != 0;
 
