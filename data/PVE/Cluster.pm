@@ -670,7 +670,11 @@ sub create_rrd_graph {
 
     my $rrd = "$rrddir/$rrdname";
 
-    my $filename = "$rrd.png";
+    my @ids = PVE::Tools::split_list($ds);
+
+    my $ds_txt = join('_', @ids);
+
+    my $filename = "${rrd}_${ds_txt}.png";
 
     my $setup = {
 	hour =>  [ 60, 60 ],
@@ -694,8 +698,6 @@ sub create_rrd_graph {
     my $socket = "/var/run/rrdcached.sock";
     push @args, "--daemon" => "unix:$socket" if -S $socket;
 
-    my @ids = PVE::Tools::split_list($ds);
-
     my @coldef = ('#00ddff', '#ff0000');
 
     $cf = "AVERAGE" if !$cf;
@@ -714,12 +716,13 @@ sub create_rrd_graph {
 
     push @args, '--full-size-mode';
 
-    RRDs::graph($filename, @args);
+    # we do not really store data into the file
+    my $res = RRDs::graphv(undef, @args);
 
     my $err = RRDs::error;
     die "RRD error: $err\n" if $err;
 
-    return { filename => $filename };
+    return { filename => $filename, image => $res->{image} };
 }
 
 # a fast way to read files (avoid fuse overhead)
