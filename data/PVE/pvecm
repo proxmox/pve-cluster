@@ -605,6 +605,9 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
+	PVE::Cluster::setup_rootsshconfig();
+	PVE::Cluster::setup_ssh_keys();
+
 	PVE::Cluster::gen_pve_vzdump_symlink();
 
 	if (!PVE::Cluster::check_cfs_quorum(1)) {
