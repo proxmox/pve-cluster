@@ -169,6 +169,7 @@ __PACKAGE__->register_method ({
 
 	-f $clusterconf && die "cluster config '$clusterconf' already exists\n";
 
+	PVE::Cluster::setup_rootsshconfig();
 	PVE::Cluster::setup_ssh_keys();
 
 	-f $authfile || __PACKAGE__->keygen({filename => $authfile});
@@ -367,6 +368,7 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
+	PVE::Cluster::setup_rootsshconfig();
 	PVE::Cluster::setup_ssh_keys();
 
 	my $host = $param->{hostname};

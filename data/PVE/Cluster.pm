@@ -51,6 +51,7 @@ my $sshglobalknownhosts = "/etc/ssh/ssh_known_hosts";
 my $sshknownhosts = "/etc/pve/priv/known_hosts";
 my $sshauthkeys = "/etc/pve/priv/authorized_keys";
 my $rootsshauthkeys = "/root/.ssh/authorized_keys";
+my $rootsshconfig = "/root/.ssh/config";
 
 my $observed = {
     'vzdump.cron' => 1,
@@ -1028,6 +1029,19 @@ sub ssh_merge_keys {
     }
 
     PVE::Tools::file_set_contents($sshauthkeys, $newdata, 0600);
+}
+
+sub setup_rootsshconfig {
+
+    # create ssh config if it does not exist
+    if (! -f $rootsshconfig) {
+        mkdir '/root/.ssh' if ( !-e '/root/.ssh' );
+        if (my $fh = IO::File->new ($rootsshconfig, O_CREAT|O_WRONLY|O_EXCL, 0640)) {
+            # this is the default ciphers list from debian openssl0.9.8 except blowfish is added as prefered
+            print $fh "Ciphers blowfish,aes128-ctr,aes192-ctr,aes256-ctr,arcfour256,arcfour128,aes128-cbc,3des-cbc\n";
+            close($fh);
+        }
+    }
 }
 
 sub setup_ssh_keys {
