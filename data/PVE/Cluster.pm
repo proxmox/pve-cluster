@@ -1035,10 +1035,10 @@ sub setup_rootsshconfig {
 
     # create ssh config if it does not exist
     if (! -f $rootsshconfig) {
-        mkdir '/root/.ssh' if ( !-e '/root/.ssh' );
-        if (my $fh = IO::File->new ($rootsshconfig, O_CREAT|O_WRONLY|O_EXCL, 0640)) {
+        mkdir '/root/.ssh';
+        if (my $fh = IO::File->new($rootsshconfig, O_CREAT|O_WRONLY|O_EXCL, 0640)) {
             # this is the default ciphers list from debian openssl0.9.8 except blowfish is added as prefered
-            print $fh "Ciphers blowfish,aes128-ctr,aes192-ctr,aes256-ctr,arcfour256,arcfour128,aes128-cbc,3des-cbc\n";
+            print $fh "Ciphers blowfish-cbc,aes128-ctr,aes192-ctr,aes256-ctr,arcfour256,arcfour128,aes128-cbc,3des-cbc\n";
             close($fh);
         }
     }
