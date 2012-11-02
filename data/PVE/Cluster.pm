@@ -1021,9 +1021,8 @@ sub ssh_merge_keys {
     my $vhash = {};
     my @lines = split(/\n/, $data);
     foreach my $line (@lines) {
-	if ($line =~ m/^ssh-rsa\s+(\S+)\s+\S+$/) {
-            next if $vhash->{$1};
-            $vhash->{$1} = 1;
+	if ($line !~ /^#/ && $line =~ m/(^|\s)ssh-(rsa|dsa)\s+(\S+)\s+\S+$/) {
+            next if $vhash->{$3}++;
 	}
 	$newdata .= "$line\n";
     }
