@@ -51,6 +51,7 @@ my $sshglobalknownhosts = "/etc/ssh/ssh_known_hosts";
 my $sshknownhosts = "/etc/pve/priv/known_hosts";
 my $sshauthkeys = "/etc/pve/priv/authorized_keys";
 my $rootsshauthkeys = "/root/.ssh/authorized_keys";
+my $rootsshauthkeysbackup = "${rootsshauthkeys}.org";
 my $rootsshconfig = "/root/.ssh/config";
 
 my $observed = {
@@ -1010,6 +1011,13 @@ sub ssh_merge_keys {
 	chomp($data);
     }
 
+    my $found_backup;
+    if (-f $rootsshauthkeysbackup) {
+	$data .= PVE::Tools::file_get_contents($rootsshauthkeysbackup, 128*1024);
+	chomp($data);
+	$found_backup = 1;
+    }
+
     # always add ourself
     if (-f $ssh_rsa_id) {
 	my $pub = PVE::Tools::file_get_contents($ssh_rsa_id);
@@ -1028,6 +1036,11 @@ sub ssh_merge_keys {
     }
 
     PVE::Tools::file_set_contents($sshauthkeys, $newdata, 0600);
+
+    if ($found_backup && -l $rootsshauthkeys) {
+	# everything went well, so we can remove the backup
+	unlink $rootsshauthkeysbackup;
+    }
 }
 
 sub setup_rootsshconfig {
@@ -1053,9 +1066,17 @@ sub setup_ssh_keys {
 
     mkdir $authdir;
 
+    my $import_ok;
+
     if (! -f $sshauthkeys) {
+	my $old;
+	if (-f $rootsshauthkeys) {
+	    $old = PVE::Tools::file_get_contents($rootsshauthkeys, 128*1024);
+	}
 	if (my $fh = IO::File->new ($sshauthkeys, O_CREAT|O_WRONLY|O_EXCL, 0400)) {
+	    PVE::Tools::safe_print($sshauthkeys, $fh, $old) if $old;
 	    close($fh);
+	    $import_ok = 1;
 	}
     }
 
@@ -1063,15 +1084,20 @@ sub setup_ssh_keys {
 	if ! -f $sshauthkeys;
 
     if (-f $rootsshauthkeys) {
-	system("mv '$rootsshauthkeys' '$rootsshauthkeys.org'");
+	if (!rename($rootsshauthkeys , $rootsshauthkeysbackup)) {
+	    warn "rename $rootsshauthkeys failed - $!\n";
+	}
     }
 
     if (! -l $rootsshauthkeys) {
 	symlink $sshauthkeys, $rootsshauthkeys;
     }
-    warn "can't create symlink for ssh keys '$rootsshauthkeys' -> '$sshauthkeys'\n" 
-	if ! -l $rootsshauthkeys;
 
+    if (! -l $rootsshauthkeys) {
+	warn "can't create symlink for ssh keys '$rootsshauthkeys' -> '$sshauthkeys'\n";
+    } else {
+	unlink $rootsshauthkeysbackup if $import_ok;
+    }
 }
 
 sub ssh_unmerge_known_hosts {

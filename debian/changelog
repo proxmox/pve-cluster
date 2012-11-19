@@ -1,3 +1,9 @@
+pve-cluster (1.0-33) unstable; urgency=low
+
+  * import existing /root/.ssh/authorized_keys
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 19 Nov 2012 10:26:05 +0100
+
 pve-cluster (1.0-32) unstable; urgency=low
 
   * do not pass undef tp RRDs::graphv (use '' instead)
