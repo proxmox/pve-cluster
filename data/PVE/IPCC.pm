@@ -34,7 +34,6 @@ XSLoader::load('PVE::IPCC', $VERSION);
 
 1;
 __END__
-# Below is stub documentation for your module. You'd better edit it!
 
 =head1 NAME
 
@@ -46,9 +45,14 @@ PVE::IPCC - Perl extension to access the PVE IPC Server
   
   my $res = PVE::IPCC::ipcc_send_rec(1, "hello");
  
+  my $res = PVE::IPCC::sendfd($socketfd, $fd, $opt_data);
+
 =head1 DESCRIPTION
 
 Send/receive RAW data packets from the PVE IPC Server.
+
+Pass file descriptor over unix domain sockets (used to pass
+file destriptors to qemu fdset). This is use in PVE::QMPClient.
 
 =head2 EXPORT
 

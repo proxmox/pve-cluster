@@ -8,6 +8,18 @@
 
 #include "ppport.h"
 
+/* sendfd: BSD style file descriptor passing over unix domain sockets
+ *  Richard Stevens: Unix Network Programming, Prentice Hall, 1990;
+ */
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/uio.h>
+#include <errno.h>
+
+#ifndef SCM_RIGHTS
+#error "SCM_RIGHTS undefined"
+#endif 
+
 #include <sys/syslog.h>
 #include <qb/qbdefs.h>
 #include <qb/qbutil.h>
@@ -107,3 +119,49 @@ CODE:
 }
 OUTPUT: RETVAL
 
+# helper to pass SCM ACCESS RIGHTS
+
+int
+sendfd(sock_fd, send_me_fd, data=NULL)
+int sock_fd
+int send_me_fd
+SV * data;
+CODE:
+{
+	int ret = 0;
+	struct iovec  iov[1];
+	struct msghdr msg;
+	memset(&msg, 0, sizeof(msg));
+
+	size_t len = 0;
+	char *dataptr = NULL;
+	if (data && SvPOK(data))
+		dataptr = SvPV(data, len);
+	
+	iov[0].iov_base = dataptr;
+	iov[0].iov_len = len;	
+	msg.msg_iov = iov;
+	msg.msg_iovlen = 1;
+	msg.msg_name = 0;
+	msg.msg_namelen = 0;
+
+	char control[CMSG_SPACE(sizeof(int))];
+	memset(control, 0, sizeof(control));
+
+	msg.msg_control = control;
+	msg.msg_controllen = sizeof(control);
+	msg.msg_flags = 0;
+		
+	struct cmsghdr* h = CMSG_FIRSTHDR(&msg);
+	h->cmsg_len = CMSG_LEN(sizeof(int));
+	h->cmsg_level= SOL_SOCKET;
+	h->cmsg_type = SCM_RIGHTS;
+	*((int*)CMSG_DATA(h)) = send_me_fd;
+
+	do {
+		ret = sendmsg(sock_fd, &msg, 0);
+	} while (ret < 0 && errno == EINTR);
+
+	RETVAL = ret;
+}
+OUTPUT: RETVAL
