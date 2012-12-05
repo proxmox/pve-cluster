@@ -1013,6 +1013,7 @@ sub ssh_merge_keys {
 
     my $found_backup;
     if (-f $rootsshauthkeysbackup) {
+	$data .= "\n";
 	$data .= PVE::Tools::file_get_contents($rootsshauthkeysbackup, 128*1024);
 	chomp($data);
 	$found_backup = 1;
@@ -1083,7 +1084,7 @@ sub setup_ssh_keys {
     warn "can't create shared ssh key database '$sshauthkeys'\n" 
 	if ! -f $sshauthkeys;
 
-    if (-f $rootsshauthkeys) {
+    if (-f $rootsshauthkeys && ! -l $rootsshauthkeys) {
 	if (!rename($rootsshauthkeys , $rootsshauthkeysbackup)) {
 	    warn "rename $rootsshauthkeys failed - $!\n";
 	}

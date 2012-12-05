@@ -1,6 +1,8 @@
 pve-cluster (1.0-34) unstable; urgency=low
 
   * implement sendfd to support qemu fdset functionality.
+  
+  * fix ssh_merge_keys
 
  -- Proxmox Support Team <support@proxmox.com>  Wed, 05 Dec 2012 12:02:09 +0100
 
