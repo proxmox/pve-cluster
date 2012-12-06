@@ -20,6 +20,7 @@
 #error "SCM_RIGHTS undefined"
 #endif 
 
+/* interface to pmxcfs (libqb) */
 #include <sys/syslog.h>
 #include <qb/qbdefs.h>
 #include <qb/qbutil.h>
@@ -158,10 +159,20 @@ CODE:
 	h->cmsg_type = SCM_RIGHTS;
 	*((int*)CMSG_DATA(h)) = send_me_fd;
 
+	int repeat;
 	do {
+		repeat = 0;
 		ret = sendmsg(sock_fd, &msg, 0);
-	} while (ret < 0 && errno == EINTR);
-
+		if (ret < 0) {
+			if (errno == EINTR) {
+				repeat = 1;
+			} else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				repeat = 1;
+				usleep(1000);
+			}
+		}
+	} while (repeat);
+	
 	RETVAL = ret;
 }
 OUTPUT: RETVAL
