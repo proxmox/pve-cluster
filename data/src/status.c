@@ -920,7 +920,7 @@ update_rrd_data(
         if (rrdc_connect(rrdcsock) != 0)
 		use_daemon = 0;
 
-	char *filename = g_strdup_printf(RRDDIR "/%s", key);
+	char *filename = NULL;
 
 	int skip = 0;
 
@@ -935,6 +935,8 @@ update_rrd_data(
 		if (strlen(node) < 1)
 			goto keyerror;
 
+		filename = g_strdup_printf(RRDDIR "/%s", key);
+
 		if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
 
 			mkdir(RRDDIR "/pve2-node", 0755);
@@ -942,16 +944,25 @@ update_rrd_data(
 			create_rrd_file(filename, argcount, rrd_def_node);
 		}
 
-	} else if (strncmp(key, "pve2-vm/", 8) == 0) {
-		const char *vmid = key + 8;
+	} else if ((strncmp(key, "pve2-vm/", 8) == 0) ||
+		   (strncmp(key, "pve2.3-vm/", 10) == 0)) {
+		const char *vmid;
 
-		skip = 2;
+		if (strncmp(key, "pve2-vm/", 8) == 0) {
+			vmid = key + 8;
+			skip = 2;
+		} else {
+			vmid = key + 10;
+			skip = 3;
+		}
 
 		if (strchr(vmid, '/') != NULL)
 			goto keyerror;
 
 		if (strlen(vmid) < 1)
 			goto keyerror;
+
+		filename = g_strdup_printf(RRDDIR "/%s/%s", "pve2-vm", vmid);
 
 		if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
 
@@ -977,6 +988,8 @@ update_rrd_data(
 
 		if (strlen(storage) < 1)
 			goto keyerror;
+
+		filename = g_strdup_printf(RRDDIR "/%s", key);
 
 		if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
 
@@ -1017,7 +1030,9 @@ update_rrd_data(
 	}
 
 ret:
-	g_free(filename);
+	if (filename) 
+		g_free(filename);
+
 	return;
 
 keyerror:

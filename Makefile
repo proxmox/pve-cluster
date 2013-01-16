@@ -1,8 +1,8 @@
-RELEASE=2.2
+RELEASE=2.3
 
 PACKAGE=pve-cluster
 PKGVER=1.0
-PKGREL=34
+PKGREL=35
 
 ARCH:=$(shell dpkg-architecture -qDEB_BUILD_ARCH)
 
