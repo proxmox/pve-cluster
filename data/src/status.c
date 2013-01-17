@@ -953,7 +953,7 @@ update_rrd_data(
 			skip = 2;
 		} else {
 			vmid = key + 10;
-			skip = 3;
+			skip = 4;
 		}
 
 		if (strchr(vmid, '/') != NULL)

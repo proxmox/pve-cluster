@@ -1,3 +1,9 @@
+pve-cluster (1.0-36) unstable; urgency=low
+
+  * add another field (status) to new pve2.3-vm rrd format
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 17 Jan 2013 09:27:19 +0100
+
 pve-cluster (1.0-35) unstable; urgency=low
 
   * add new pve2.3-vm rrd stream (include template value)
