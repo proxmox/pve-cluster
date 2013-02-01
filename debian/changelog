@@ -1,3 +1,9 @@
+pve-cluster (1.0-37) unstable; urgency=low
+
+  * ssh-copy-id: never use keys provided by the ssh-agent
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 01 Feb 2013 09:24:47 +0100
+
 pve-cluster (1.0-36) unstable; urgency=low
 
   * add another field (status) to new pve2.3-vm rrd format
