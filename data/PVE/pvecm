@@ -396,7 +396,7 @@ __PACKAGE__->register_method ({
 	# make sure known_hosts is on local filesystem
 	PVE::Cluster::ssh_unmerge_known_hosts();
 
-	my $cmd = "ssh-copy-id 'root\@$host' >/dev/null 2>&1";
+	my $cmd = "ssh-copy-id -i /root/.ssh/id_rsa 'root\@$host' >/dev/null 2>&1";
 	system ($cmd) == 0 ||
 	    die "unable to copy ssh ID\n";
 
