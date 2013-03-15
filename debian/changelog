@@ -1,3 +1,15 @@
+pve-cluster (3.0-1) unstable; urgency=low
+
+  * bump version for wheezy
+  
+  * use libqb0 from wheezy
+  
+  * use new perl version 5.14.2 from wheezy
+  
+  * try to load fuse modules on startup
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 15 Mar 2013 06:58:00 +0100
+
 pve-cluster (1.0-37) unstable; urgency=low
 
   * ssh-copy-id: never use keys provided by the ssh-agent

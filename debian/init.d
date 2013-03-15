@@ -2,8 +2,8 @@
 #
 ### BEGIN INIT INFO
 # Provides:          pve-cluster
-# Required-Start:    $remote_fs $network $syslog $time fuse
-# Required-Stop:     $remote_fs $network $syslog $time fuse
+# Required-Start:    $remote_fs $network $syslog $time
+# Required-Stop:     $remote_fs $network $syslog $time
 # X-Start-Before:    apache2 cron
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
@@ -59,6 +59,10 @@ running() {
 
 start_server() {
 
+    if ! grep -qw fuse /proc/filesystems; then
+        modprobe fuse >/dev/null 2>&1 || true
+    fi
+
     start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON -- $DAEMON_OPTS
     errcode=$?
     return $errcode
@@ -80,6 +84,7 @@ case "$1" in
             log_end_msg 0
             exit 0
         fi
+
 	errcode=0
         start_server || errcode=$?
 	# try to create required directories. This only works

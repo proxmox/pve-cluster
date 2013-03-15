@@ -4,7 +4,7 @@ IPCC.c: IPCC.xs
 	xsubpp IPCC.xs > IPCC.xsc
 	mv IPCC.xsc IPCC.c
 
-CFLAGS = -shared -fPIC -Wall -I/usr/lib/perl/5.10/CORE -DXS_VERSION=VERSION
+CFLAGS = -shared -fPIC -Wall -I/usr/lib/perl/5.14.2/CORE -DXS_VERSION=VERSION
 LDADD = $(QB_LIBS)
 
 perlbin_PROGRAMS = IPCC.so

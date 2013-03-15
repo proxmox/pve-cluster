@@ -7,7 +7,7 @@ Standards-Version: 3.7.3
 
 Package: pve-cluster
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, rsync, libsqlite3-0, sqlite3, libfuse2, fuse-utils, libcorosync4-pve, libqb, libpve-common-perl, libglib2.0-0, rsyslog, openssl, librrd4, librrds-perl, rrdcached, libdigest-hmac-perl, libxml-parser-perl, insserv
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, rsync, libsqlite3-0, sqlite3, libfuse2, fuse-utils, libcorosync4-pve, libqb0, libpve-common-perl, libglib2.0-0, rsyslog, openssl, librrd4, librrds-perl, rrdcached, libdigest-hmac-perl, libxml-parser-perl, insserv
 Description: Cluster Infrastructure for Proxmox Virtual Environment
  This package contains the Cluster Infrastructure for the Proxmox
  Virtual Environment, namely a distributed filesystem to store
