@@ -470,8 +470,8 @@ __PACKAGE__->register_method ({
 	    print "restart services\n";
 	    # restart pvedaemon (changed certs)
 	    system("/etc/init.d/pvedaemon restart");
-	    # restart apache (changed certs)
-	    system("/etc/init.d/apache2 restart");
+	    # restart pveproxy (changed certs)
+	    system("/etc/init.d/pveproxy restart");
 
 	    print "successfully added node '$nodename' to cluster.\n";
 	};

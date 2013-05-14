@@ -1,3 +1,11 @@
+pve-cluster (3.0-2) unstable; urgency=low
+
+  * remove all references to apache2 (no longer required)
+  
+  * fix bug 383: resteart pveproxy instead of apache2
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 14 May 2013 10:50:06 +0200
+
 pve-cluster (3.0-1) unstable; urgency=low
 
   * bump version for wheezy
