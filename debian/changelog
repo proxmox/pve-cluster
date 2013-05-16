@@ -1,3 +1,9 @@
+pve-cluster (3.0-3) unstable; urgency=low
+
+  * remove depencency on fuse-utils (this package is no longer required) 
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 16 May 2013 12:47:03 +0200
+
 pve-cluster (3.0-2) unstable; urgency=low
 
   * remove all references to apache2 (no longer required)
