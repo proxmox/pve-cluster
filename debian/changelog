@@ -1,6 +1,8 @@
 pve-cluster (3.0-3) unstable; urgency=low
 
-  * remove depencency on fuse-utils (this package is no longer required) 
+  * remove depencency on fuse-utils (this package is no longer required)
+  
+  * fix warning about uninitialize value
 
  -- Proxmox Support Team <support@proxmox.com>  Thu, 16 May 2013 12:47:03 +0200
 

@@ -533,7 +533,8 @@ sub get_tasklist {
 	eval {
 	    my $ver = $kvstore->{$node}->{tasklist} if $kvstore->{$node};
 	    my $cd = $tasklistcache->{$node};
-	    if (!$cd || !$ver || ($cd->{version} != $ver)) {
+	    if (!$cd || !$ver || !$cd->{version} || 
+		($cd->{version} != $ver)) {
 		my $raw = &$ipcc_get_status("tasklist", $node) || '[]';
 		my $data = decode_json($raw);
 		push @$res, @$data;
