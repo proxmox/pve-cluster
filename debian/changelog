@@ -1,3 +1,9 @@
+pve-cluster (3.0-5) unstable; urgency=low
+
+  * add migration_unsecure param to datacenter.cfg
+  
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 26 Jul 2013 11:06:30 +0200
+
 pve-cluster (3.0-4) unstable; urgency=low
 
   * depend on fuse (seems most utilities moved from fuse-utils to fuse)
