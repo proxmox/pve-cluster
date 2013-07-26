@@ -1248,6 +1248,11 @@ my $datacenter_schema = {
 	    description => "Specify external http proxy which is used for downloads (example: 'http://username:password\@host:port/')",
 	    pattern => "http://.*",
 	},
+	migration_unsecure => {
+	    optional => 1,
+	    type => 'boolean',
+	    description => "Migration is secure using SSH tunnel by default. For secure private networks you can disable it to speed up migration.",
+	},
     },
 };
 
