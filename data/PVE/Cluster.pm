@@ -589,11 +589,13 @@ sub rrd_dump {
 
     my $res = {};
 
-    while ($raw =~ s/^(.*)\n//) {
-	my ($key, @ela) = split(/:/, $1);
-	next if !$key;
-	next if !(scalar(@ela) > 1);
-	$res->{$key} = \@ela;
+    if ($raw) {
+	while ($raw =~ s/^(.*)\n//) {
+	    my ($key, @ela) = split(/:/, $1);
+	    next if !$key;
+	    next if !(scalar(@ela) > 1);
+	    $res->{$key} = \@ela;
+	}
     }
 
     $last_rrd_dump = $ctime;

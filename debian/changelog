@@ -1,3 +1,9 @@
+pve-cluster (3.0-7) unstable; urgency=low
+
+  * suppress another warning about uninitialized value at boot time
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 20 Aug 2013 10:39:18 +0200
+
 pve-cluster (3.0-6) unstable; urgency=low
 
   * avoid warning when adding a new node (can't create shared ssh key database...)
