@@ -141,7 +141,7 @@ sub gen_auth_key {
 
     check_cfs_is_mounted();
 
-    mkdir $authdir || die "unable to create dir '$authdir' - $!\n";
+    -d $authdir || mkdir $authdir || die "unable to create dir '$authdir' - $!\n";
 
     my $cmd = "openssl genrsa -out '$authprivkeyfn' 2048";
     run_silent_cmd($cmd);
@@ -1047,6 +1047,12 @@ sub ssh_merge_keys {
 
 sub setup_rootsshconfig {
 
+    # create ssh key if it does not exist
+    if (! -f $ssh_rsa_id) {
+	mkdir '/root/.ssh/';
+	system ("echo|ssh-keygen -t rsa -N '' -b 2048 -f ${ssh_rsa_id_priv}");
+    }
+
     # create ssh config if it does not exist
     if (! -f $rootsshconfig) {
         mkdir '/root/.ssh';
@@ -1059,12 +1065,6 @@ sub setup_rootsshconfig {
 }
 
 sub setup_ssh_keys {
-
-    # create ssh key if it does not exist
-    if (! -f $ssh_rsa_id) {
-	mkdir '/root/.ssh/';
-	system ("echo|ssh-keygen -t rsa -N '' -b 2048 -f ${ssh_rsa_id_priv}");
-    }
 
     mkdir $authdir;
 

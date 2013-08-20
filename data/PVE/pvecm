@@ -606,7 +606,6 @@ __PACKAGE__->register_method ({
 	my ($param) = @_;
 
 	PVE::Cluster::setup_rootsshconfig();
-	PVE::Cluster::setup_ssh_keys();
 
 	PVE::Cluster::gen_pve_vzdump_symlink();
 
@@ -614,6 +613,8 @@ __PACKAGE__->register_method ({
 	    return undef if $param->{silent};
 	    die "no quorum - unable to update files\n";
 	}
+
+	PVE::Cluster::setup_ssh_keys();
 
 	PVE::Cluster::gen_pve_node_files($nodename, $local_ip_address, $param->{force});
 	PVE::Cluster::ssh_merge_keys();

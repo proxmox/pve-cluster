@@ -1,3 +1,11 @@
+pve-cluster (3.0-6) unstable; urgency=low
+
+  * avoid warning when adding a new node (can't create shared ssh key database...)
+  
+  * avoid warning if /etc/pve/priv/ already exists
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 20 Aug 2013 08:58:17 +0200
+
 pve-cluster (3.0-5) unstable; urgency=low
 
   * add migration_unsecure param to datacenter.cfg
