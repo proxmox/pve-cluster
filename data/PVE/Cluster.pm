@@ -1,7 +1,7 @@
 package PVE::Cluster;
 
 use strict;
-use POSIX;
+use POSIX qw(EEXIST);
 use File::stat qw();
 use Socket;
 use Storable qw(dclone);
@@ -130,7 +130,7 @@ sub gen_local_dirs {
 	       
     foreach my $dir (@required_dirs) {
 	if (! -d $dir) {
-	    mkdir($dir) || die "unable to create directory '$dir' - $!\n";
+	    mkdir($dir) || $! == EEXIST || die "unable to create directory '$dir' - $!\n";
 	}
     }
 }
@@ -141,7 +141,7 @@ sub gen_auth_key {
 
     check_cfs_is_mounted();
 
-    -d $authdir || mkdir $authdir || die "unable to create dir '$authdir' - $!\n";
+    mkdir $authdir || $! == EEXIST || die "unable to create dir '$authdir' - $!\n";
 
     my $cmd = "openssl genrsa -out '$authprivkeyfn' 2048";
     run_silent_cmd($cmd);
