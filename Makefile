@@ -5,6 +5,7 @@ PKGVER=3.0
 PKGREL=7
 
 ARCH:=$(shell dpkg-architecture -qDEB_BUILD_ARCH)
+GITVERSION:=$(shell cat .git/refs/heads/master)
 
 DEB=${PACKAGE}_${PKGVER}-${PKGREL}_${ARCH}.deb
 
@@ -23,6 +24,7 @@ ${DEB}:
 	rm -rf build
 	rsync -a --exclude .svn data/ build
 	cp -a debian build/debian
+	echo "git clone git://git.proxmox.com/git/pve-cluster.git\\ngit checkout ${GITVERSION}" > build/debian/SOURCE
 	cd build; ./autogen.sh
 	cd build; dpkg-buildpackage -rfakeroot -b -us -uc
 	lintian ${DEB}
