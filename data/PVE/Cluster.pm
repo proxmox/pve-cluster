@@ -1,6 +1,7 @@
 package PVE::Cluster;
 
 use strict;
+use warnings;
 use POSIX qw(EEXIST);
 use File::stat qw();
 use Socket;
