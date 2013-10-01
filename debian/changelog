@@ -1,3 +1,9 @@
+pve-cluster (3.0-8) unstable; urgency=low
+
+  * use warnings instead of global -w flag
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 01 Oct 2013 13:24:54 +0200
+
 pve-cluster (3.0-7) unstable; urgency=low
 
   * suppress another warning about uninitialized value at boot time
