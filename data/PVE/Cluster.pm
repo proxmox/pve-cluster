@@ -1256,6 +1256,12 @@ my $datacenter_schema = {
 	    type => 'boolean',
 	    description => "Migration is secure using SSH tunnel by default. For secure private networks you can disable it to speed up migration.",
 	},
+	console => {
+	    optional => 1,
+	    type => 'string',
+	    description => "Select the default Console viewer. You can either use the builtin java applet (VNC), or an external virt-viewer comtatible application (SPICE).",
+	    enum => ['applet', 'vv'],
+	},
     },
 };
 
