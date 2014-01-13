@@ -1,3 +1,9 @@
+pve-cluster (3.0-11) unstable; urgency=low
+
+  * stop service 'pve-cluster' after stopping 'ceph'
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 13 Jan 2014 07:46:35 +0100
+
 pve-cluster (3.0-10) unstable; urgency=low
 
   * start service 'pve-cluster' before starting 'ceph'
