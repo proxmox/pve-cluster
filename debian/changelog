@@ -1,3 +1,9 @@
+pve-cluster (3.0-12) unstable; urgency=low
+
+  * fix bug #489: debend on libfuse 2.9.2-4 from jessy
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 27 Jan 2014 11:49:27 +0100
+
 pve-cluster (3.0-11) unstable; urgency=low
 
   * stop service 'pve-cluster' after stopping 'ceph'
