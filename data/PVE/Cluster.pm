@@ -870,6 +870,8 @@ my $cfs_lock = sub {
 	alarm(60);
 	local $SIG{ALRM} = sub { die "got lock timeout - aborting command\n"; };
 
+	cfs_update(); # make sure we read latest versions inside code()
+
 	$res = &$code(@param);
 
 	alarm(0);
