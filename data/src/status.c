@@ -807,8 +807,8 @@ static const char *rrd_def_node[] = {
 	"DS:swapused:GAUGE:120:0:U",
 	"DS:roottotal:GAUGE:120:0:U",
 	"DS:rootused:GAUGE:120:0:U",
-	"DS:netin:COUNTER:120:0:U",
-	"DS:netout:COUNTER:120:0:U",
+	"DS:netin:DERIVE:120:0:U",
+	"DS:netout:DERIVE:120:0:U",
 
 	"RRA:AVERAGE:0.5:1:70", // 1 min avg - one hour
 	"RRA:AVERAGE:0.5:30:70", // 30 min avg - one day
@@ -831,10 +831,10 @@ static const char *rrd_def_vm[] = {
 	"DS:mem:GAUGE:120:0:U",
 	"DS:maxdisk:GAUGE:120:0:U",
 	"DS:disk:GAUGE:120:0:U",
-	"DS:netin:COUNTER:120:0:U",
-	"DS:netout:COUNTER:120:0:U",
-	"DS:diskread:COUNTER:120:0:U",
-	"DS:diskwrite:COUNTER:120:0:U",
+	"DS:netin:DERIVE:120:0:U",
+	"DS:netout:DERIVE:120:0:U",
+	"DS:diskread:DERIVE:120:0:U",
+	"DS:diskwrite:DERIVE:120:0:U",
 
 	"RRA:AVERAGE:0.5:1:70", // 1 min avg - one hour
 	"RRA:AVERAGE:0.5:30:70", // 30 min avg - one day
