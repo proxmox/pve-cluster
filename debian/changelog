@@ -1,3 +1,9 @@
+pve-cluster (3.0-13) unstable; urgency=low
+
+  * fix bug 204: use DERIVE instead of COUNTER
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 30 Apr 2014 07:19:50 +0200
+
 pve-cluster (3.0-12) unstable; urgency=low
 
   * fix bug #489: debend on libfuse 2.9.2-4 from jessy
