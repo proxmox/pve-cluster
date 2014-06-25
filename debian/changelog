@@ -1,3 +1,9 @@
+pve-cluster (3.0-14) unstable; urgency=low
+
+  * datacenter.cfg: add new value for console setting (html5)
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 25 Jun 2014 06:22:58 +0200
+
 pve-cluster (3.0-13) unstable; urgency=low
 
   * fix bug 204: use DERIVE instead of COUNTER

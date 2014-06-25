@@ -1261,8 +1261,8 @@ my $datacenter_schema = {
 	console => {
 	    optional => 1,
 	    type => 'string',
-	    description => "Select the default Console viewer. You can either use the builtin java applet (VNC), or an external virt-viewer comtatible application (SPICE).",
-	    enum => ['applet', 'vv'],
+	    description => "Select the default Console viewer. You can either use the builtin java applet (VNC), an external virt-viewer comtatible application (SPICE), or an HTML5 based viewer (noVNC).",
+	    enum => ['applet', 'vv', 'html5'],
 	},
     },
 };
