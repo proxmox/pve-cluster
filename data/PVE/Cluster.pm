@@ -1267,6 +1267,7 @@ my $datacenter_schema = {
 	email_from => {
 	    optional => 1,
 	    type => 'string',
+	    format => 'email-opt',
 	    description => "Specify email address to send notification from (default is root@\$hostname)",
 	},
     },
