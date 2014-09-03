@@ -1264,6 +1264,11 @@ my $datacenter_schema = {
 	    description => "Select the default Console viewer. You can either use the builtin java applet (VNC), an external virt-viewer comtatible application (SPICE), or an HTML5 based viewer (noVNC).",
 	    enum => ['applet', 'vv', 'html5'],
 	},
+	email_from => {
+	    optional => 1,
+	    type => 'string',
+	    description => "Specify email address to send notification from (default is root@\$hostname)",
+	},
     },
 };
 
