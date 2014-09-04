@@ -1,3 +1,9 @@
+pve-cluster (3.0-15) unstable; urgency=low
+
+  * datacenter.cfg: add new email_from option
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 04 Sep 2014 17:31:34 +0200
+
 pve-cluster (3.0-14) unstable; urgency=low
 
   * datacenter.cfg: add new value for console setting (html5)
