@@ -1,3 +1,9 @@
+pve-cluster (3.0-16) unstable; urgency=low
+
+  * recompile, and include new package with debug information
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 09 Feb 2015 17:11:00 +0100
+
 pve-cluster (3.0-15) unstable; urgency=low
 
   * datacenter.cfg: add new email_from option

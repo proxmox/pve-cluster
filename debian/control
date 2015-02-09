@@ -15,5 +15,8 @@ Description: Cluster Infrastructure for Proxmox Virtual Environment
 
 Package: pve-cluster-dbg
 Architecture: any
+Section: debug
+Priority: extra
+Depends: pve-cluster (= ${binary:Version})
 Description: debug Cluster Infrastructure for Proxmox Virtual Environment
-
+ This package contains the debug symbols.
