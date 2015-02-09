@@ -12,3 +12,8 @@ Description: Cluster Infrastructure for Proxmox Virtual Environment
  This package contains the Cluster Infrastructure for the Proxmox
  Virtual Environment, namely a distributed filesystem to store
  configuration data on all nodes.
+
+Package: pve-cluster-dbg
+Architecture: any
+Description: debug Cluster Infrastructure for Proxmox Virtual Environment
+

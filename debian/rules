@@ -12,12 +12,18 @@ BUILDROOT := $(shell pwd)
 %:
 	dh $@
 
+override_dh_strip:
+	dh_strip --dbg-package=pve-cluster-dbg
 
 override_dh_auto_configure:
 
 	./autogen.sh
 
 	./configure --prefix=/usr
+
+override_dh_auto_install:
+
+	make -j1 install DESTDIR=../debian/pve-cluster
 
 override_dh_install:
 
