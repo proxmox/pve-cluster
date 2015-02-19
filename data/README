@@ -358,6 +358,13 @@ be a time drift between nodes. Instead each node stores the local time when
 it first see a lock file. This time is used to calculate the age of
 the lock.
 
+With version 3.0-17, it is possible to update an existing lock using
+
+  utime 0, time();
+
+This succeeds if run from the same node you created the lock, and updates
+the lock lifetime for another 120 seconds. 
+
 
 References
 ==========

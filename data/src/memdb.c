@@ -894,18 +894,26 @@ memdb_mtime(
 		goto ret;
 	}
 
+        int is_lock = (strcmp(dirname, "priv/lock") == 0) && (te->type == DT_DIR);
+
 	/* NOTE: we use utime(0,0) to trigger 'unlock', so we do not
 	 * allow to change mtime for locks (only it mtime is newer).
 	 * See README for details about locks.
 	 */
-	if (mtime < te->mtime && te->type == DT_DIR && 
-	    strcmp(dirname, "priv/lock") == 0) {
+        if (is_lock) {
+            if (mtime < te->mtime) {
 		cfs_debug("dir is locked");
 		ret = -EACCES;		
 		goto ret;
+            } else {
+                /* only allow lock updates if the writer is the same */
+                if (te->writer != writer) { 
+                    ret = -EACCES;		
+                    goto ret;
+                }
+            }
 	}
 	
-
 	memdb->root->version++;
 	memdb->root->mtime = mtime;
 	memdb->root->writer = writer;
@@ -925,6 +933,15 @@ memdb_mtime(
 		ret = -EIO;
 		goto ret;
 	}
+
+        if (is_lock) {
+            cfs_debug("update cfs lock");
+            g_hash_table_remove(memdb->locks, path);
+            guchar csum[32];
+            if (memdb_tree_entry_csum(te, csum)) {
+                memdb_lock_expired(memdb, path, csum); // insert a new entry
+            }
+        }
 
 	ret = 0;
 
