@@ -874,6 +874,8 @@ int main(int argc, char *argv[])
 
 	system("umount -f " CFSDIR " >/dev/null 2>&1");
 
+	mkdir(CFSDIR, 0755);
+	
 	char *fa[] = { "-f", "-odefault_permissions", "-oallow_other", NULL};
 
 	struct fuse_args fuse_args = FUSE_ARGS_INIT(sizeof (fa)/sizeof(gpointer) - 1, fa); 
