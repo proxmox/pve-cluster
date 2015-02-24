@@ -24,6 +24,7 @@
 #include <sys/syslog.h>
 #include <qb/qbdefs.h>
 #include <qb/qbutil.h>
+#include <qb/qblog.h>
 #include <qb/qbipcc.h>
 
 #define PCS_SOCKET_NAME "pve2"
@@ -35,16 +36,6 @@ static qb_ipcc_connection_t *conn;
 static pid_t conn_pid;
 
 static char ipcbuffer[MAX_MSG_SIZE];
-
-static void libqb_log_writer(const char *file_name,
-			     int32_t file_line,
-			     int32_t severity, const char *msg)
-{
-	if (severity == LOG_DEBUG)
-		return;
-
-	warn("libqb: %s:%d [%d] %s\n", file_name, file_line, severity, msg);
-}
 
 MODULE = PVE::IPCC		PACKAGE = PVE::IPCC		
 
@@ -65,7 +56,8 @@ CODE:
 	}
 
 	if (conn == NULL) {
-		qb_util_set_log_function(libqb_log_writer);
+		qb_log_init("IPCC.xs", LOG_USER, LOG_EMERG);
+		qb_log_ctl(QB_LOG_SYSLOG, QB_LOG_CONF_ENABLED, QB_TRUE);
 		conn = qb_ipcc_connect(PCS_SOCKET_NAME, MAX_MSG_SIZE);
 
 		if (!conn)

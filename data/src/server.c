@@ -435,7 +435,7 @@ gboolean server_start(memdb_t *db)
 	}
 	qb_ipcs_poll_handlers_set(s1, &poll_handlers);
 	
-	worker = g_thread_create (worker_thread, NULL, TRUE, NULL);
+	worker = g_thread_new ("server", worker_thread, NULL);
 
 	return TRUE;
 }

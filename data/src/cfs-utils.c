@@ -117,38 +117,30 @@ cfs_log(
 	...)
 {
 	gint level; 
-	char *ltxt;
 
 	switch (log_level & G_LOG_LEVEL_MASK) { 
 	case G_LOG_LEVEL_ERROR: 
 		level=LOG_ERR; 
-		ltxt = "error";
 		break; 
 	case G_LOG_LEVEL_CRITICAL: 
 		level=LOG_CRIT; 
-		ltxt = "critical";
 		break; 
 	case G_LOG_LEVEL_WARNING: 
 		level=LOG_WARNING; 
-		ltxt = "warning";
- 		break; 
+		break; 
 	case G_LOG_LEVEL_MESSAGE: 
 		level=LOG_NOTICE; 
-		ltxt = "notice";
 		break; 
 	case G_LOG_LEVEL_INFO: 
 		level=LOG_INFO; 
-		ltxt = "info";
 		break; 
 	case G_LOG_LEVEL_DEBUG: 
 		level=LOG_DEBUG;   
-		ltxt = "debug";      
 		if (!cfs.debug)
 			return;
 		break; 
 	default:  
 		level=LOG_INFO; 
-		ltxt = "info";
 	} 
 
 	va_list args;

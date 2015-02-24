@@ -489,7 +489,7 @@ gboolean bdb_backend_commit_update(
 		return rc;
 	}
 
-	g_mutex_lock (memdb->mutex);
+	g_mutex_lock (&memdb->mutex);
 
 	/* first, delete anything not found in master index) */
 
@@ -603,7 +603,7 @@ gboolean bdb_backend_commit_update(
 	result = TRUE;
 
 ret:
-	g_mutex_unlock (memdb->mutex);
+	g_mutex_unlock (&memdb->mutex);
 
 	if (index)
 		g_hash_table_destroy(index);

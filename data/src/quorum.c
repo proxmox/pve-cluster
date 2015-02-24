@@ -104,10 +104,19 @@ static int service_quorum_initialize(
 	cs_error_t result;
 
 	if (!private->handle) {
+            
+                uint32_t quorum_type;
+            
+                result = quorum_initialize(&handle, &quorum_callbacks, &quorum_type);
+                if (result != CS_OK) {
+                        cfs_critical("quorum_initialize failed: %d", result);
+			private->handle = 0;
+			return -1;
+		}
 
-		result = quorum_initialize(&handle, &quorum_callbacks);
-		if (result != CS_OK) {
-			cfs_critical("quorum_initialize failed: %d", result);
+		if (quorum_type != QUORUM_SET) {
+			cfs_critical("quorum_initialize returned wron quorum_type: %d", quorum_type);
+			quorum_finalize(handle);
 			private->handle = 0;
 			return -1;
 		}
@@ -158,8 +167,8 @@ static gboolean service_quorum_dispatch(
 
 	int retries = 0;
 loop:
-	result = quorum_dispatch(handle, QUORUM_DISPATCH_ALL);
-	if (result == QUORUM_ERR_TRY_AGAIN) {
+	result = quorum_dispatch(handle, CS_DISPATCH_ALL);
+	if (result == CS_ERR_TRY_AGAIN) {
 		usleep(100000);
 		++retries;
 		if ((retries % 100) == 0)

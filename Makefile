@@ -1,8 +1,8 @@
-RELEASE=3.3
+RELEASE=4.0
 
 PACKAGE=pve-cluster
-PKGVER=3.0
-PKGREL=17
+PKGVER=4.0
+PKGREL=1
 
 ARCH:=$(shell dpkg-architecture -qDEB_BUILD_ARCH)
 GITVERSION:=$(shell cat .git/refs/heads/master)

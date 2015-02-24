@@ -430,13 +430,12 @@ dcdb_get_state(
 	memdb_t *memdb = (memdb_t *)data;
 
 	g_return_val_if_fail(memdb->root != NULL, FALSE);
-	g_return_val_if_fail(memdb->mutex != NULL, FALSE);
 
 	cfs_debug("enter %s %016zX %08X", __func__, memdb->root->version, memdb->root->mtime);
 
-	g_mutex_lock (memdb->mutex);
+	g_mutex_lock (&memdb->mutex);
 	memdb_index_t *idx = memdb_encode_index(memdb->index, memdb->root);
-	g_mutex_unlock (memdb->mutex);
+	g_mutex_unlock (&memdb->mutex);
 
 	if (idx) {
 		*res_len = idx->bytes;
@@ -489,7 +488,6 @@ dcdb_create_and_send_updates(
 {
 	g_return_val_if_fail(dfsm != NULL, FALSE);
 	g_return_val_if_fail(memdb != NULL, FALSE);
-	g_return_val_if_fail(memdb->mutex != NULL, FALSE);
 	g_return_val_if_fail(master != NULL, FALSE);
 
 	cfs_debug("enter %s", __func__);
@@ -500,7 +498,7 @@ dcdb_create_and_send_updates(
 	if (!updates)
 		goto ret;
 
-	g_mutex_lock (memdb->mutex);
+	g_mutex_lock (&memdb->mutex);
 
 	for (int n = 0; n < node_count; n++) {
 		memdb_index_t *slave = idx[n];
@@ -537,7 +535,7 @@ dcdb_create_and_send_updates(
 		}
 	}
 
-	g_mutex_unlock (memdb->mutex);
+	g_mutex_unlock (&memdb->mutex);
 
 	/* send updates */
 
@@ -762,13 +760,12 @@ dcdb_checksum(
 	memdb_t *memdb = (memdb_t *)data;
 
 	g_return_val_if_fail(memdb != NULL, FALSE);
-	g_return_val_if_fail(memdb->mutex != NULL, FALSE);
 
 	cfs_debug("enter %s %016zX %08X", __func__, memdb->root->version, memdb->root->mtime);
 
-	g_mutex_lock (memdb->mutex);
+	g_mutex_lock (&memdb->mutex);
 	gboolean res = memdb_compute_checksum(memdb->index, memdb->root, csum, csum_len);
-	g_mutex_unlock (memdb->mutex);
+	g_mutex_unlock (&memdb->mutex);
 
 	cfs_debug("leave %s %016zX (%d)", __func__, *(uint64_t *)csum, res); 
 

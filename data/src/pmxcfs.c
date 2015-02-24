@@ -799,8 +799,6 @@ int main(int argc, char *argv[])
 	}
 	cfs.gid = www_data->gr_gid;
 
-	g_thread_init(NULL);
-
 	umask(027);
 
 	mkdir(VARLIBDIR, 0755);

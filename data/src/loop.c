@@ -317,7 +317,7 @@ cfs_loop_start_worker(cfs_loop_t *loop)
 {
 	g_return_val_if_fail(loop != NULL, FALSE);
 
-	loop->worker = g_thread_create (cfs_loop_worker_thread, loop, TRUE, NULL);
+	loop->worker = g_thread_new("cfs_loop", cfs_loop_worker_thread, loop);
 
 	return TRUE;
 }

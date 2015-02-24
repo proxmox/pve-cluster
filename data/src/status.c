@@ -85,7 +85,7 @@ static memdb_change_t memdb_change_array[] = {
 	{ .path = "vzdump.cron" },
 };
 
-static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
+static GMutex mutex;
 
 typedef struct {
 	time_t start_time;
@@ -249,7 +249,7 @@ cfs_create_memberlist_msg(
 {
 	g_return_val_if_fail(str != NULL, -EINVAL);
 
-	g_static_mutex_lock(&mutex);
+	g_mutex_lock (&mutex);
 
 	g_string_append_printf(str,"{\n");
 
@@ -305,7 +305,7 @@ cfs_create_memberlist_msg(
 
 	g_string_append_printf(str,"}\n");
 
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 
 	return 0;
 }
@@ -368,7 +368,7 @@ cfs_cluster_log(clog_entry_t *entry)
 
 void cfs_status_init(void)
 {
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	cfs_status.start_time = time(NULL);
 
@@ -394,12 +394,12 @@ void cfs_status_init(void)
 	clusterlog_add(cfs_status.clusterlog, "root", "cluster", getpid(),
 		       LOG_INFO, "starting cluster log");
 
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 }
 
 void cfs_status_cleanup(void)
 {
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	cfs_status.clinfo_version++;
 
@@ -431,7 +431,7 @@ void cfs_status_cleanup(void)
 	if (cfs_status.clusterlog)
 		clusterlog_destroy(cfs_status.clusterlog);
 
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 }
 
 void cfs_status_set_clinfo(
@@ -439,7 +439,7 @@ void cfs_status_set_clinfo(
 {
 	g_return_if_fail(clinfo != NULL);
 
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	cfs_status.clinfo_version++;
 
@@ -475,7 +475,7 @@ void cfs_status_set_clinfo(
 		cfs_clinfo_destroy(old);
 
 
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 }
 
 static void
@@ -512,7 +512,7 @@ cfs_create_version_msg(GString *str)
 {
 	g_return_val_if_fail(str != NULL, -EINVAL);
 
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	g_string_append_printf(str,"{\n");
 
@@ -554,7 +554,7 @@ cfs_create_version_msg(GString *str)
 
 	g_string_append_printf(str,"}\n");
 
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 
 	return 0;
 }
@@ -610,13 +610,13 @@ vmlist_register_vm(
 
 	cfs_debug("vmlist_register_vm: %s/%u %d", nodename, vmid, vmtype);
 
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	cfs_status.vmlist_version++;
 
 	vmlist_hash_insert_vm(cfs_status.vmlist, vmtype, vmid, nodename, TRUE);
 
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 }
 
 gboolean
@@ -630,14 +630,14 @@ vmlist_different_vm_exists(
 
 	gboolean res = FALSE;
 
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	vminfo_t *vminfo;
 	if ((vminfo = (vminfo_t *)g_hash_table_lookup(cfs_status.vmlist, &vmid))) {
 		if (!(vminfo->vmtype == vmtype && strcmp(vminfo->nodename, nodename) == 0))
 			res = TRUE;
 	}
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 
 	return res;
 }
@@ -649,11 +649,11 @@ vmlist_vm_exists(
 	g_return_val_if_fail(cfs_status.vmlist != NULL, FALSE);
 	g_return_val_if_fail(vmid != 0, FALSE);
 
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	gpointer res = g_hash_table_lookup(cfs_status.vmlist, &vmid);
 
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 
 	return res != NULL;
 }
@@ -665,13 +665,13 @@ vmlist_delete_vm(
 	g_return_if_fail(cfs_status.vmlist != NULL);
 	g_return_if_fail(vmid != 0);
 
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	cfs_status.vmlist_version++;
 
 	g_hash_table_remove(cfs_status.vmlist, &vmid);
 
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 }
 
 void cfs_status_set_vmlist(
@@ -679,7 +679,7 @@ void cfs_status_set_vmlist(
 {
 	g_return_if_fail(vmlist != NULL);
 
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	cfs_status.vmlist_version++;
 
@@ -688,7 +688,7 @@ void cfs_status_set_vmlist(
 
 	cfs_status.vmlist = vmlist;
 
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 }
 
 int
@@ -697,7 +697,7 @@ cfs_create_vmlist_msg(GString *str)
 	g_return_val_if_fail(cfs_status.vmlist != NULL, -EINVAL);
 	g_return_val_if_fail(str != NULL, -EINVAL);
 
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	g_string_append_printf(str,"{\n");
 
@@ -741,7 +741,7 @@ cfs_create_vmlist_msg(GString *str)
 	}
 	g_string_append_printf(str,"\n}\n");
 
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 
 	return 0;
 }
@@ -1281,7 +1281,7 @@ cfs_create_status_msg(
 
 	GHashTable *kvhash = NULL;
 
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	if (!nodename || !nodename[0] || !strcmp(nodename, cfs.nodename)) {
 		kvhash = cfs_status.kvhash;
@@ -1297,7 +1297,7 @@ cfs_create_status_msg(
 		res = 0;
 	}
 
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 
 	return res;
 }
@@ -1315,7 +1315,7 @@ cfs_status_set(
 	if (len > CFS_MAX_STATUS_SIZE)
 		return -EFBIG;
 
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	gboolean res;
 
@@ -1326,7 +1326,7 @@ cfs_status_set(
 	} else {
 		res = kventry_hash_set(cfs_status.kvhash, key, data, len);
 	}
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 
 	if (cfs_status.kvstore)
 		kvstore_send_update_message(cfs_status.kvstore, key, data, len);
@@ -1345,7 +1345,7 @@ cfs_kvstore_node_set(
 	g_return_val_if_fail(key != NULL, FALSE);
 	g_return_val_if_fail(data != NULL, FALSE);
 
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	if (!cfs_status.clinfo || !cfs_status.clinfo->nodes_byid)
 		goto ret; /* ignore */
@@ -1371,7 +1371,7 @@ cfs_kvstore_node_set(
 
 	}
 ret:
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 
 	return TRUE;
 }
@@ -1384,7 +1384,7 @@ cfs_kvstore_sync(void)
 
 	gboolean res = TRUE;
 
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	GHashTable *ht = cfs_status.kvhash;
 	GHashTableIter iter;
@@ -1397,7 +1397,7 @@ cfs_kvstore_sync(void)
 		kvstore_send_update_message(cfs_status.kvstore, entry->key, entry->data, entry->len);
 	}
 
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 
 	return res;
 }
@@ -1465,7 +1465,7 @@ dfsm_confchg(
 
 	cfs_debug("enter %s", __func__);
 
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	cfs_clinfo_t *clinfo = cfs_status.clinfo;
 
@@ -1492,7 +1492,7 @@ dfsm_confchg(
 		cfs_status.clinfo_version++;
 	}
 
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 }
 
 static gpointer
@@ -1608,11 +1608,11 @@ static dfsm_callbacks_t kvstore_dfsm_callbacks = {
 dfsm_t *
 cfs_status_dfsm_new(void)
 {
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	cfs_status.kvstore = dfsm_new(NULL, KVSTORE_CPG_GROUP_NAME, G_LOG_DOMAIN,
 				      0, &kvstore_dfsm_callbacks);
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 
 	return cfs_status.kvstore;
 }
@@ -1620,9 +1620,9 @@ cfs_status_dfsm_new(void)
 gboolean
 cfs_is_quorate(void)
 {
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 	gboolean res =  cfs_status.quorate;
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 
 	return res;
 }
@@ -1632,7 +1632,7 @@ cfs_set_quorate(
 	uint32_t quorate,
 	gboolean quiet)
 {
-	g_static_mutex_lock (&mutex);
+	g_mutex_lock (&mutex);
 
 	uint32_t prev_quorate =	cfs_status.quorate;
 	cfs_status.quorate = quorate;
@@ -1647,6 +1647,6 @@ cfs_set_quorate(
 			cfs_message("node lost quorum");
 	}
 
-	g_static_mutex_unlock (&mutex);
+	g_mutex_unlock (&mutex);
 }
 

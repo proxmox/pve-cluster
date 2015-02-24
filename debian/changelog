@@ -1,3 +1,15 @@
+pve-cluster (4.0-1) unstable; urgency=medium
+
+  * updated for Debian Jessie
+
+  * depend on glib >= 2.42
+
+  * depend on corosync => 2.3.4
+
+  * depend on libqb 0.17.1-1
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 23 Feb 2015 16:11:23 +0100
+
 pve-cluster (3.0-17) unstable; urgency=low
 
   * add ability to update cfs locks

@@ -151,7 +151,7 @@ dfsm_restartable(dfsm_t *dfsm);
 void
 dfsm_set_errormode(dfsm_t *dfsm);
 
-cpg_error_t 
+cs_error_t 
 dfsm_send_message(
 	dfsm_t *dfsm,
 	uint16_t msgtype,
@@ -159,7 +159,7 @@ dfsm_send_message(
 	int len);
 
 /* only call this from another thread - else you get blocked forever */
-cpg_error_t 
+cs_error_t 
 dfsm_send_message_sync(
 	dfsm_t *dfsm,
 	uint16_t msgtype,
@@ -167,13 +167,13 @@ dfsm_send_message_sync(
 	int len,
 	dfsm_result_t *rp);
 
-cpg_error_t 
+cs_error_t 
 dfsm_send_update(
 	dfsm_t *dfsm,
 	struct iovec *iov, 
 	unsigned int len);
 
-cpg_error_t 
+cs_error_t 
 dfsm_send_update_complete(dfsm_t *dfsm);
 
 gboolean 

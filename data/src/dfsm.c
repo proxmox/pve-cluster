@@ -117,7 +117,7 @@ struct dfsm {
 	gboolean joined;
 
 	/* mode is protected with mode_mutex */
-	GMutex *mode_mutex;
+	GMutex mode_mutex;
 	dfsm_mode_t mode;
 
 	GHashTable *members; /* contains dfsm_node_info_t pointers  */
@@ -129,8 +129,8 @@ struct dfsm {
 	GList *sync_queue;
 
 	/* synchrounous message transmission, protected with sync_mutex */
-	GMutex *sync_mutex;
-	GCond *sync_cond;
+	GMutex sync_mutex;
+	GCond sync_cond;
 	GHashTable *results;
 	uint64_t msgcount;
 	uint64_t msgcount_rcvd;
@@ -161,13 +161,11 @@ static void
 dfsm_send_sync_message_abort(dfsm_t *dfsm)
 {
 	g_return_if_fail(dfsm != NULL);
-	g_return_if_fail(dfsm->sync_mutex != NULL);
-	g_return_if_fail(dfsm->sync_cond != NULL);
 
-	g_mutex_lock (dfsm->sync_mutex);
+	g_mutex_lock (&dfsm->sync_mutex);
 	dfsm->msgcount_rcvd = dfsm->msgcount;
-	g_cond_broadcast (dfsm->sync_cond);
-	g_mutex_unlock (dfsm->sync_mutex);
+	g_cond_broadcast (&dfsm->sync_cond);
+	g_mutex_unlock (&dfsm->sync_mutex);
 }
 
 static void 
@@ -178,22 +176,20 @@ dfsm_record_local_result(
 	gboolean processed)
 {
 	g_return_if_fail(dfsm != NULL);
-	g_return_if_fail(dfsm->sync_mutex != NULL);
-	g_return_if_fail(dfsm->sync_cond != NULL);
 	g_return_if_fail(dfsm->results != NULL);
 
-	g_mutex_lock (dfsm->sync_mutex);
+	g_mutex_lock (&dfsm->sync_mutex);
 	dfsm_result_t *rp = (dfsm_result_t *)g_hash_table_lookup(dfsm->results, &msg_count);
 	if (rp) {
 		rp->result = msg_result;
 		rp->processed = processed;
 	}
 	dfsm->msgcount_rcvd = msg_count;
-	g_cond_broadcast (dfsm->sync_cond);
-	g_mutex_unlock (dfsm->sync_mutex);
+	g_cond_broadcast (&dfsm->sync_cond);
+	g_mutex_unlock (&dfsm->sync_mutex);
 }
 
-static cpg_error_t 
+static cs_error_t 
 dfsm_send_message_full(
 	dfsm_t *dfsm,
 	struct iovec *iov, 
@@ -204,11 +200,11 @@ dfsm_send_message_full(
 	g_return_val_if_fail(!len || iov != NULL, CS_ERR_INVALID_PARAM);
 
 	struct timespec tvreq = { .tv_sec = 0, .tv_nsec = 100000000 };
-	cpg_error_t result;
+	cs_error_t result;
 	int retries = 0;
 loop:
 	result = cpg_mcast_joined(dfsm->cpg_handle, CPG_TYPE_AGREED, iov, len);
-	if (retry && result == CPG_ERR_TRY_AGAIN) {
+	if (retry && result == CS_ERR_TRY_AGAIN) {
 		nanosleep(&tvreq, NULL);
 		++retries;
 		if ((retries % 10) == 0)
@@ -221,13 +217,13 @@ loop:
 		cfs_dom_message(dfsm->log_domain, "cpg_send_message retried %d times", retries);
 
 	if (result != CS_OK &&
-	    (!retry || result != CPG_ERR_TRY_AGAIN))
+	    (!retry || result != CS_ERR_TRY_AGAIN))
 		cfs_dom_critical(dfsm->log_domain, "cpg_send_message failed: %d", result);
 
 	return result;
 }
 
-static cpg_error_t 
+static cs_error_t 
 dfsm_send_state_message_full(
 	dfsm_t *dfsm,
 	uint16_t type,
@@ -258,7 +254,7 @@ dfsm_send_state_message_full(
 	return dfsm_send_message_full(dfsm, real_iov, len + 1, 1);
 }
 
-cpg_error_t 
+cs_error_t 
 dfsm_send_update(
 	dfsm_t *dfsm,
 	struct iovec *iov, 
@@ -267,14 +263,14 @@ dfsm_send_update(
 	return dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_UPDATE, iov, len);
 }
 
-cpg_error_t 
+cs_error_t 
 dfsm_send_update_complete(dfsm_t *dfsm)
 {
 	return dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_UPDATE_COMPLETE, NULL, 0);
 }
 
 
-cpg_error_t 
+cs_error_t 
 dfsm_send_message(
 	dfsm_t *dfsm,
 	uint16_t msgtype,
@@ -284,7 +280,7 @@ dfsm_send_message(
 	return dfsm_send_message_sync(dfsm, msgtype, iov, len, NULL);
 }
 
-cpg_error_t 
+cs_error_t 
 dfsm_send_message_sync(
 	dfsm_t *dfsm,
 	uint16_t msgtype,
@@ -293,10 +289,9 @@ dfsm_send_message_sync(
 	dfsm_result_t *rp)
 {
 	g_return_val_if_fail(dfsm != NULL, CS_ERR_INVALID_PARAM);
-	g_return_val_if_fail(dfsm->sync_mutex != NULL, CS_ERR_INVALID_PARAM);
 	g_return_val_if_fail(!len || iov != NULL, CS_ERR_INVALID_PARAM);
 
-	g_mutex_lock (dfsm->sync_mutex);
+	g_mutex_lock (&dfsm->sync_mutex);
 	/* note: hold lock until message is sent - to guarantee ordering */
 	uint64_t msgcount = ++dfsm->msgcount;
 	if (rp) {
@@ -321,31 +316,31 @@ dfsm_send_message_sync(
 	for (int i = 0; i < len; i++)
 		real_iov[i + 1] = iov[i];
 
-	cpg_error_t result = dfsm_send_message_full(dfsm, real_iov, len + 1, 1);
+	cs_error_t result = dfsm_send_message_full(dfsm, real_iov, len + 1, 1);
 
-	g_mutex_unlock (dfsm->sync_mutex);
+	g_mutex_unlock (&dfsm->sync_mutex);
 
 	if (result != CS_OK) {
 		cfs_dom_critical(dfsm->log_domain, "cpg_send_message failed: %d", result);
 
 		if (rp) {
-			g_mutex_lock (dfsm->sync_mutex);
+			g_mutex_lock (&dfsm->sync_mutex);
 			g_hash_table_remove(dfsm->results, &rp->msgcount);
-			g_mutex_unlock (dfsm->sync_mutex);
+			g_mutex_unlock (&dfsm->sync_mutex);
 		}
 		return result;
 	}
 
 	if (rp) {
-		g_mutex_lock (dfsm->sync_mutex);
+		g_mutex_lock (&dfsm->sync_mutex);
 
 		while (dfsm->msgcount_rcvd < msgcount)
-			g_cond_wait (dfsm->sync_cond, dfsm->sync_mutex);
+			g_cond_wait (&dfsm->sync_cond, &dfsm->sync_mutex);
 
       
 		g_hash_table_remove(dfsm->results, &rp->msgcount);
 		
-		g_mutex_unlock (dfsm->sync_mutex);
+		g_mutex_unlock (&dfsm->sync_mutex);
 
 		return rp->processed ? CS_OK : CS_ERR_FAILED_OPERATION;
 	}
@@ -524,7 +519,7 @@ dfsm_set_mode(
 	cfs_debug("dfsm_set_mode - set mode to %d", new_mode);
 
 	int changed = 0;
-	g_mutex_lock (dfsm->mode_mutex);
+	g_mutex_lock (&dfsm->mode_mutex);
 	if (dfsm->mode != new_mode) {
 		if (new_mode < DFSM_ERROR_MODE_START ||
 		    (dfsm->mode < DFSM_ERROR_MODE_START || new_mode >= dfsm->mode)) {
@@ -532,7 +527,7 @@ dfsm_set_mode(
 			changed = 1;
 		}
 	}
-	g_mutex_unlock (dfsm->mode_mutex);
+	g_mutex_unlock (&dfsm->mode_mutex);
 
 	if (!changed)
 		return;
@@ -561,9 +556,9 @@ dfsm_get_mode(dfsm_t *dfsm)
 {
 	g_return_val_if_fail(dfsm != NULL, DFSM_MODE_ERROR);
 
-	g_mutex_lock (dfsm->mode_mutex);
+	g_mutex_lock (&dfsm->mode_mutex);
 	dfsm_mode_t mode = dfsm->mode;
-	g_mutex_unlock (dfsm->mode_mutex);
+	g_mutex_unlock (&dfsm->mode_mutex);
 
 	return mode;
 }
@@ -991,7 +986,7 @@ dfsm_resend_queue(dfsm_t *dfsm)
 			g_sequence_get(cur);
 
 		if (qm->nodeid == dfsm->nodeid && qm->pid == dfsm->pid) {
-			cpg_error_t result;
+			cs_error_t result;
 			struct iovec iov[1];
 			iov[0].iov_base = qm->msg;
 			iov[0].iov_len = qm->msg_len;
@@ -1245,11 +1240,9 @@ dfsm_new(
 	if ((dfsm = g_new0(dfsm_t, 1)) == NULL)
 		return NULL;
 
-	if (!(dfsm->sync_mutex = g_mutex_new()))
-		goto err;
-
-	if (!(dfsm->sync_cond = g_cond_new())) 
-		goto err;
+	g_mutex_init(&dfsm->sync_mutex);
+	
+	g_cond_init(&dfsm->sync_cond);
 
 	if (!(dfsm->results = g_hash_table_new(g_int64_hash, g_int64_equal)))
 		goto err;
@@ -1271,8 +1264,7 @@ dfsm_new(
 	if (!dfsm->members)
 		goto err;
 
-	if ((dfsm->mode_mutex = g_mutex_new()) == NULL)
-		goto err;
+	g_mutex_init(&dfsm->mode_mutex);
 
 	return dfsm;
 
@@ -1343,7 +1335,7 @@ dfsm_dispatch(
 	int retries = 0;
 loop:
 	result = cpg_dispatch(dfsm->cpg_handle, dispatch_types);
-	if (result == CPG_ERR_TRY_AGAIN) {
+	if (result == CS_ERR_TRY_AGAIN) {
 		nanosleep(&tvreq, NULL);
 		++retries;
 		if ((retries % 10) == 0)
@@ -1425,7 +1417,7 @@ dfsm_join(dfsm_t *dfsm)
 	int retries = 0;
 loop:
 	result = cpg_join(dfsm->cpg_handle, &dfsm->cpg_group_name); 
-	if (result == CPG_ERR_TRY_AGAIN) {
+	if (result == CS_ERR_TRY_AGAIN) {
 		nanosleep(&tvreq, NULL);
 		++retries;
 		if ((retries % 10) == 0)
@@ -1454,7 +1446,7 @@ dfsm_leave (dfsm_t *dfsm)
 	int retries = 0;
 loop:
 	result = cpg_leave(dfsm->cpg_handle, &dfsm->cpg_group_name);
-	if (result == CPG_ERR_TRY_AGAIN) {
+	if (result == CS_ERR_TRY_AGAIN) {
 		nanosleep(&tvreq, NULL);
 		++retries;
 		if ((retries % 10) == 0)
@@ -1504,14 +1496,11 @@ dfsm_destroy(dfsm_t *dfsm)
 
 	dfsm_free_sync_queue(dfsm);
 
-	if (dfsm->mode_mutex)
-		g_mutex_free (dfsm->mode_mutex);
+	g_mutex_clear (&dfsm->mode_mutex);
 
-	if (dfsm->sync_mutex)
-		g_mutex_free (dfsm->sync_mutex);
+	g_mutex_clear (&dfsm->sync_mutex);
 
-	if (dfsm->sync_cond)
-		g_cond_free (dfsm->sync_cond);
+	g_cond_clear (&dfsm->sync_cond);
  
 	if (dfsm->results)
 		g_hash_table_destroy(dfsm->results);
@@ -1602,7 +1591,7 @@ service_dfsm_dispatch(
 
 	cs_error_t result;
 
-	result = dfsm_dispatch(dfsm, CPG_DISPATCH_ONE);
+	result = dfsm_dispatch(dfsm, CS_DISPATCH_ONE);
 	if (result == CS_ERR_LIBRARY || result == CS_ERR_BAD_HANDLE)
 		goto finalize;
 	if (result != CS_OK)

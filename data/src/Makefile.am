@@ -8,7 +8,7 @@ create_pmxcfs_db_SOURCES = create_pmxcfs_db.c
 TESTS = check_memdb
 check_PROGRAMS = ${TESTS}
 check_memdb_SOURCES = check_memdb.c
-check_memdb_CFLAGS = $(CFLAGS) @CHECK_CFLAGS@
+check_memdb_CFLAGS = $(AM_CFLAGS) @CHECK_CFLAGS@
 check_memdb_LDADD = $(LDADD) @CHECK_LIBS@ 
 
 noinst_LIBRARIES = libpmxcfs.a
@@ -42,7 +42,7 @@ libpmxcfs_a_SOURCES = 		\
 	memdb.c
 
 # add -lprofiler for google perftools
-CFLAGS =  -g -O -std=gnu99 -Wall $(COROSYNC_CFLAGS) $(SQLITE3_CFLAGS) $(FUSE_CFLAGS) $(QB_CFLAGS) $(GLIB_CFLAGS) $(LIBRRD_CFLAGS) 
+AM_CFLAGS =  -g -O -std=gnu99 -Wall -Werror -Wno-strict-aliasing $(COROSYNC_CFLAGS) $(SQLITE3_CFLAGS) $(FUSE_CFLAGS) $(QB_CFLAGS) $(GLIB_CFLAGS) $(LIBRRD_CFLAGS) 
 LDADD = libpmxcfs.a $(COROSYNC_LIBS) $(SQLITE3_LIBS) $(FUSE_LIBS) $(QB_LIBS) $(GLIB_LIBS) $(LIBRRD_LIBS)
 
 CLEANFILES = *~

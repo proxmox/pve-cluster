@@ -489,7 +489,7 @@ memdb_open(const char *dbfilename)
 {
 	memdb_t *memdb = g_new0(memdb_t, 1);
 	
-	memdb->mutex = g_mutex_new();
+	g_mutex_init(&memdb->mutex);
 
 	memdb->dbfilename = g_strdup(dbfilename);
 
@@ -530,7 +530,7 @@ memdb_close(memdb_t *memdb)
 {
 	g_return_if_fail(memdb != NULL);
 
-	g_mutex_lock (memdb->mutex);
+	g_mutex_lock (&memdb->mutex);
 
 	if (memdb->bdb)
 		bdb_backend_close(memdb->bdb);
@@ -548,9 +548,9 @@ memdb_close(memdb_t *memdb)
 	memdb->bdb = NULL;
 	memdb->dbfilename = NULL;
 
-	g_mutex_unlock (memdb->mutex);
+	g_mutex_unlock (&memdb->mutex);
 
-	g_mutex_free(memdb->mutex);
+	g_mutex_clear (&memdb->mutex);
 
 	g_free(memdb);
 }
@@ -569,7 +569,7 @@ int memdb_mkdir(
 	char *dirname = NULL;
 	char *base = NULL;
 
-	g_mutex_lock (memdb->mutex);
+	g_mutex_lock (&memdb->mutex);
 
 	if (memdb->errors) {
 		ret = -EIO;
@@ -639,7 +639,7 @@ int memdb_mkdir(
 	ret = 0;
 
  ret:
-	g_mutex_unlock (memdb->mutex);
+	g_mutex_unlock (&memdb->mutex);
 
 	if (dirname) g_free (dirname);
 	if (base) g_free (base);
@@ -659,18 +659,18 @@ memdb_read(
 
 	memdb_tree_entry_t *te, *parent; 
 
-	g_mutex_lock (memdb->mutex);
+	g_mutex_lock (&memdb->mutex);
 
 	if ((te = memdb_lookup_path(memdb, path, &parent))) {
 		if (te->type == DT_REG) {
 			*data_ret = g_memdup(te->data.value, te->size);
 			guint32 size = te->size;
-			g_mutex_unlock (memdb->mutex);
+			g_mutex_unlock (&memdb->mutex);
 			return size;
 		}
 	}
 
-	g_mutex_unlock (memdb->mutex);
+	g_mutex_unlock (&memdb->mutex);
 
 	return -ENOENT;
 }
@@ -697,7 +697,7 @@ memdb_pwrite(
 	char *base = NULL;
 	char *nodename = NULL;
 
-	g_mutex_lock (memdb->mutex);
+	g_mutex_lock (&memdb->mutex);
 
 	if (memdb->errors) {
 		ret = -EIO;
@@ -837,7 +837,7 @@ memdb_pwrite(
 	ret = count;
 
  ret:
-	g_mutex_unlock (memdb->mutex);
+	g_mutex_unlock (&memdb->mutex);
 
 	if (nodename) g_free (nodename);
 	if (dirname) g_free (dirname);
@@ -861,7 +861,7 @@ memdb_mtime(
 	char *dirname = NULL;
 	char *base = NULL;
 
-	g_mutex_lock (memdb->mutex);
+	g_mutex_lock (&memdb->mutex);
 
 	if (memdb->errors) {
 		ret = -EIO;
@@ -946,7 +946,7 @@ memdb_mtime(
 	ret = 0;
 
  ret:
-	g_mutex_unlock (memdb->mutex);
+	g_mutex_unlock (&memdb->mutex);
 
 	if (dirname) g_free (dirname);
 	if (base) g_free (base);
@@ -985,18 +985,18 @@ memdb_getattr(
 {
 	memdb_tree_entry_t *te, *parent; 
 
-	g_mutex_lock (memdb->mutex);
+	g_mutex_lock (&memdb->mutex);
 
 	if ((te = memdb_lookup_path(memdb, path, &parent))) {
 
 		memdb_tree_entry_t *cpy = memdb_tree_entry_copy(te, 0);
 
-		g_mutex_unlock (memdb->mutex);
+		g_mutex_unlock (&memdb->mutex);
 
 		return cpy;
 	}
 
-	g_mutex_unlock (memdb->mutex);
+	g_mutex_unlock (&memdb->mutex);
 
 	return NULL;
 }
@@ -1008,13 +1008,12 @@ memdb_readdir(
 {
 	g_return_val_if_fail(memdb != NULL, NULL);
 	g_return_val_if_fail(path != NULL, NULL);
-	g_assert(memdb->mutex != NULL);
 
 	memdb_tree_entry_t *te, *parent;
 
 	GList *list = NULL;
 
-	g_mutex_lock (memdb->mutex);
+	g_mutex_lock (&memdb->mutex);
 
 	if (!(te = memdb_lookup_path(memdb, path, &parent)))
 		goto ret;
@@ -1039,7 +1038,7 @@ memdb_readdir(
 	}
 
  ret:
-	g_mutex_unlock (memdb->mutex);
+	g_mutex_unlock (&memdb->mutex);
 	
 	return list;
 }
@@ -1108,7 +1107,7 @@ memdb_rename(
 	int from_vmtype = 0;
 	char *from_node = NULL;
 
-	g_mutex_lock (memdb->mutex);
+	g_mutex_lock (&memdb->mutex);
 
 	if (memdb->errors) {
 		ret = -EIO;
@@ -1228,7 +1227,7 @@ memdb_rename(
 	ret = 0;
 
  ret:
-	g_mutex_unlock (memdb->mutex);
+	g_mutex_unlock (&memdb->mutex);
 
 	if (from_node) g_free(from_node);
 	if (nodename) g_free (nodename);
@@ -1247,7 +1246,7 @@ memdb_delete(
 {
 	memdb_tree_entry_t *te, *parent;
 
-	g_mutex_lock (memdb->mutex);
+	g_mutex_lock (&memdb->mutex);
 
 	int ret = -EACCES;
 
@@ -1305,7 +1304,7 @@ memdb_delete(
 	ret = 0;
 
  ret:
-	g_mutex_unlock (memdb->mutex);
+	g_mutex_unlock (&memdb->mutex);
 
 	return ret;
 }
@@ -1318,7 +1317,7 @@ memdb_statfs(
 	g_return_val_if_fail(memdb != NULL, -EINVAL);
 	g_return_val_if_fail(stbuf != NULL, -EINVAL);
 
-	g_mutex_lock (memdb->mutex);
+	g_mutex_lock (&memdb->mutex);
 
 	GHashTableIter iter;
 	gpointer key, value;
@@ -1334,7 +1333,7 @@ memdb_statfs(
 		size += te->size;
 	}
 
-	g_mutex_unlock (memdb->mutex);
+	g_mutex_unlock (&memdb->mutex);
 
 	stbuf->f_bsize = MEMDB_BLOCKSIZE;
 	stbuf->f_blocks = MEMDB_BLOCKS;
@@ -1375,7 +1374,7 @@ memdb_dump(memdb_t *memdb)
 {
 	g_return_if_fail(memdb != NULL);
 
-	g_mutex_lock (memdb->mutex);
+	g_mutex_lock (&memdb->mutex);
 	
 	GList *list = g_hash_table_get_values(memdb->index);
       
@@ -1395,7 +1394,7 @@ memdb_dump(memdb_t *memdb)
 
 	g_list_free(list);
 
-	g_mutex_unlock (memdb->mutex);
+	g_mutex_unlock (&memdb->mutex);
 }
 
 void 

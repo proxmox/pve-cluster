@@ -80,7 +80,7 @@ typedef struct {
 	memdb_tree_entry_t *root;
 	GHashTable *index; /* map version ==> memdb_tree_entry */
 	GHashTable *locks; /* contains memdb_lock_info_t */
-	GMutex *mutex;
+	GMutex mutex;
 	db_backend_t *bdb;
 } memdb_t;
 

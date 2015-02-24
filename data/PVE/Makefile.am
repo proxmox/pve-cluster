@@ -4,11 +4,11 @@ IPCC.c: IPCC.xs
 	xsubpp IPCC.xs > IPCC.xsc
 	mv IPCC.xsc IPCC.c
 
-CFLAGS = -shared -fPIC -Wall -I/usr/lib/perl/5.14.2/CORE -DXS_VERSION=VERSION
+AM_CFLAGS = -shared -fPIC -Wall -Werror -Wno-strict-aliasing -I/usr/lib/x86_64-linux-gnu/perl/5.20.1/CORE -DXS_VERSION=VERSION
 LDADD = $(QB_LIBS)
 
 perlbin_PROGRAMS = IPCC.so
-perlbindir = /usr/lib/perl5/auto/PVE/IPCC/
+perlbindir = /usr/lib/x86_64-linux-gnu/perl/5.20.1/auto/PVE/IPCC/
 
 %.1.gz: %.1.pod
 	cat $<|pod2man -n $* -s 1 -r ${VERSION} -c "Proxmox Documentation"|gzip -c9 >$@

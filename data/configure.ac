@@ -3,7 +3,7 @@
 
 AC_PREREQ(2.61)
 AC_INIT([pve-cluster], [1.0], [support@proxmox.com]) 
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AM_INIT_AUTOMAKE([-Wall -Werror -Wno-portability foreign])
 AM_MAINTAINER_MODE
 
 AC_CONFIG_SRCDIR([src/memdb.c])
@@ -16,6 +16,9 @@ AC_PREFIX_DEFAULT([/usr])
 AC_PROG_CC
 AC_PROG_RANLIB
 
+m4_pattern_allow([AM_PROG_AR])
+AM_PROG_AR
+    
 # Checks for libraries.
 
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4],
@@ -27,7 +30,7 @@ AC_SUBST(LIBRRD_CFLAGS)
 AC_SUBST(LIBRRD_LIBS)
 
 PKG_CHECK_MODULES(GLIB, 
-glib-2.0 >= 2.2.0 gthread-2.0 >= 2.2.0, 
+glib-2.0 >= 2.42.1 gthread-2.0 >= 2.42.1, 
 HAVE_GLIB="yes", AC_MSG_ERROR([glib not found]))
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
@@ -39,7 +42,7 @@ AC_SUBST(FUSE_CFLAGS)
 AC_SUBST(FUSE_LIBS)
 
 PKG_CHECK_MODULES(COROSYNC, 
-libquorum >= 1.2.8 libcpg >= 1.2.8 libconfdb, 
+libquorum >= 2.3.4 libcpg >= 2.3.4 libcmap >= 2.3.4,  
 HAVE_COROSYNC="yes", AC_MSG_ERROR([corosync not found]))
 AC_SUBST(COROSYNC_CFLAGS)
 AC_SUBST(COROSYNC_LIBS)

@@ -52,8 +52,6 @@ usage_error(void)
 int 
 main(int argc, char *argv[]) 
 {
-	g_thread_init(NULL);
-
 	cfs_status_init();
 
 	if (argc != 3) {

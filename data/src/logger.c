@@ -407,7 +407,7 @@ dedup_lookup(
 
 struct clusterlog {
 	GHashTable *dedup;
-	GMutex *mutex;
+	GMutex mutex;
 	clog_base_t *base;
 };
 
@@ -421,9 +421,9 @@ clusterlog_dump(
 	g_return_if_fail(cl != NULL);
 	g_return_if_fail(str != NULL);
 
-	g_mutex_lock(cl->mutex);
+	g_mutex_lock(&cl->mutex);
 	clog_dump_json(cl->base, str, user, max_entries);
-	g_mutex_unlock(cl->mutex);
+	g_mutex_unlock(&cl->mutex);
 }
 
 clog_base_t *
@@ -459,7 +459,7 @@ clusterlog_merge(
 		return NULL;
 	}
 
-	g_mutex_lock(cl->mutex);
+	g_mutex_lock(&cl->mutex);
 
 	for (int i = 0; i < count; i++) {
 		if (i == local_index)
@@ -528,7 +528,7 @@ clusterlog_merge(
 	g_free(cl->base);
 	cl->base = res;
 
-	g_mutex_unlock(cl->mutex);
+	g_mutex_unlock(&cl->mutex);
 
 	return res;
 }
@@ -538,8 +538,7 @@ clusterlog_destroy(clusterlog_t *cl)
 {
 	g_return_if_fail(cl != NULL);
 
-	if (cl->mutex)
-		g_mutex_free(cl->mutex);
+	g_mutex_clear(&cl->mutex);
 
 	if (cl->base)
 		g_free(cl->base);
@@ -557,8 +556,7 @@ clusterlog_new(void)
 	if (!cl)
 		return NULL;
 
-	if (!(cl->mutex = g_mutex_new()))
-		goto fail;
+	g_mutex_init(&cl->mutex);
 
 	if (!(cl->base = clog_new(0)))
 		goto fail;
@@ -581,7 +579,7 @@ clusterlog_get_state(
 	g_return_val_if_fail(cl != NULL, NULL);
 	g_return_val_if_fail(res_len != NULL, NULL);
 	
-	g_mutex_lock(cl->mutex);
+	g_mutex_lock(&cl->mutex);
 
 	clog_base_t *new;
 	if ((new = clog_sort(cl->base))) {
@@ -592,7 +590,7 @@ clusterlog_get_state(
 	*res_len = clog_size(cl->base);
 	gpointer msg = g_memdup(cl->base, *res_len);
 
-	g_mutex_unlock(cl->mutex);
+	g_mutex_unlock(&cl->mutex);
 
 	return msg;
 }
@@ -605,7 +603,7 @@ clusterlog_insert(
 	g_return_if_fail(cl != NULL);
 	g_return_if_fail(entry != NULL);
 
-	g_mutex_lock(cl->mutex);
+	g_mutex_lock(&cl->mutex);
 
 	if (dedup_lookup(cl->dedup, entry)) {
 		clog_copy(cl->base, entry);
@@ -613,7 +611,7 @@ clusterlog_insert(
 		cfs_message("ignore duplicate"); // fixme remove
 	}
 
-	g_mutex_unlock(cl->mutex);
+	g_mutex_unlock(&cl->mutex);
 };
 
 void

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2010-2012 Proxmox Server Solutions GmbH
+  Copyright (C) 2010-2015 Proxmox Server Solutions GmbH
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU Affero General Public License as published by
@@ -283,8 +283,6 @@ main(void)
 {
 	int number_failed;
 
-	g_thread_init(NULL);
-	
 	cfs_status_init();
 
 	Suite *s = memdb_suite();
