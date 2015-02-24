@@ -1,0 +1,21 @@
+[Unit]
+Description=The Proxmox VE cluster filesystem
+ConditionFileIsExecutable=/usr/bin/pmxcfs
+Wants=corosync.service
+Wants=systemd-timesyncd.service
+Before=corosync.service
+After=network.target
+After=sys-fs-fuse-connections.mount
+After=systemd-timesyncd.service
+
+[Service]
+EnvironmentFile=-/etc/default/pve-cluster
+ExecStart=/usr/bin/pmxcfs $DAEMON_OPTS
+ExecStartPost=-/usr/bin/pvecm updatecerts --silent
+KillMode=mixed
+TimeoutStopSec=10
+Type=forking
+PIDFile=/var/run/pve-cluster.pid
+
+[Install]
+WantedBy=multi-user.target
