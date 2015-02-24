@@ -18,8 +18,8 @@ cpgtest: cpgtest.c
 	gcc -Wall cpgtest.c $(shell pkg-config --cflags --libs libcpg libcoroipcc) -o cpgtest
 
 .PHONY: dinstall
-dinstall: ${DEB} ${DBG_DEB}
-	dpkg -i ${DEB} ${DBG_DEB}
+dinstall: ${DEB}
+	dpkg -i ${DEB} 
 
 .PHONY: ${DEB} ${DBG_DEB}
 ${DEB} ${DBG_DEB}:
