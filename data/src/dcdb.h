@@ -46,9 +46,9 @@ typedef enum {
 
 dfsm_t *dcdb_new(memdb_t *memdb);
 
-void dcdb_sync_cluster_conf(
+void dcdb_sync_corosync_conf(
 	memdb_t *memdb, 
-	gboolean notify_cman);
+	gboolean notify_corosync);
 
 int dcdb_send_fuse_message(
 	dfsm_t *dfsm, 

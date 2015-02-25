@@ -75,8 +75,8 @@ typedef struct {
 } memdb_change_t;
 
 static memdb_change_t memdb_change_array[] = {
-	{ .path = "cluster.conf" },
-	{ .path = "cluster.conf.new" },
+	{ .path = "corosync.conf" },
+	{ .path = "corosync.conf.new" },
 	{ .path = "storage.cfg" },
 	{ .path = "user.cfg" },
 	{ .path = "domains.cfg" },

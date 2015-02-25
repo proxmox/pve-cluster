@@ -27,11 +27,11 @@ my $nodename = PVE::INotify::nodename();
 my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
 
 my $basedir = "/etc/pve";
-my $clusterconf = "$basedir/cluster.conf";
+my $clusterconf = "$basedir/corosync.conf";
 my $libdir = "/var/lib/pve-cluster";
 my $backupdir = "/var/lib/pve-cluster/backup";
 my $dbfile = "$libdir/config.db";
-my $authfile = "$libdir/corosync.authkey";
+my $authfile = "/etc/corosync/authkey";
 
 
 sub backup_database {
@@ -124,11 +124,11 @@ __PACKAGE__->register_method ({
 	    },
 	    votes => {
 		type => 'integer',
-		description => "Number of votes for this node",
+		description => "Number of votes for this node.",
 		minimum => 1,
 		optional => 1,
 	    },
-	},
+	}, 
     },
     returns => { type => 'null' },
     
@@ -151,19 +151,31 @@ __PACKAGE__->register_method ({
 	$param->{votes} = 1 if !defined($param->{votes});
 
 	my $config = <<_EOD;
-<?xml version="1.0"?>
-<cluster name="$clustername" config_version="1">
+totem {
+  version: 2
+  secauth: on
+  cluster_name: $clustername
+  config_version: 1
+}
 
-  <cman keyfile="$authfile">
-  </cman>
+nodelist {
+  node {
+    ring0_addr: $nodename
+    nodeid: $param->{nodeid}
+    quorum_votes: $param->{votes}
+  }
+}
+	
+quorum {
+  provider: corosync_votequorum
+}
 
-  <clusternodes>
-  <clusternode name="${nodename}" votes="$param->{votes}" nodeid="$param->{nodeid}"/>
-  </clusternodes>
-
-</cluster>
+logging {
+  to_syslog: yes
+  debug: off
+}
 _EOD
-;
+;	
 	PVE::Tools::file_set_contents($clusterconf, $config);
 
 	PVE::Cluster::ssh_merge_keys();
@@ -172,13 +184,9 @@ _EOD
 
 	PVE::Cluster::ssh_merge_known_hosts($nodename, $local_ip_address, 1);
 
-	PVE::Tools::run_command('/etc/init.d/pve-cluster restart'); # restart
+	PVE::Tools::run_command('service pve-cluster restart'); # restart
 
-	# that cman init script returns strange values - simply ignore for now
-	system('/etc/init.d/cman start');
-
-	# also start clvm
-	system('/etc/init.d/clvm start');
+	PVE::Tools::run_command('service corosync restart'); # restart
 	
 	return undef;
 }});
@@ -356,8 +364,8 @@ __PACKAGE__->register_method ({
 		die "this host already contains virtual machines - please remove the first\n";
 	    }
 
-	    if (system("cman_tool status >/dev/null 2>&1") == 0) {
-		die "cman is already running\n";
+	    if (system("corosync-quorumtool >/dev/null 2>&1") == 0) {
+		die "corosync is already running\n";
 	    }
 	}
 
@@ -466,7 +474,7 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	my $cmd = ['cman_tool', 'status'];
+	my $cmd = ['corosync-quorumtool', '-siH'];
 
 	exec (@$cmd);
 
@@ -487,7 +495,7 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	my $cmd = ['cman_tool', 'nodes'];
+	my $cmd = ['corosync-quorumtool', '-l'];
 
 	exec (@$cmd);
 

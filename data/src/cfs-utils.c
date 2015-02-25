@@ -159,76 +159,28 @@ cfs_log(
 	g_free(orgmsg);
 }
 
-// xml parser for cluster.conf - just good enough to extract version
-
-typedef struct
-{
-  guint64 version;
-} PVEClusterConfig;
-
-static void
-parser_start_element (
-	GMarkupParseContext  *context,
-	const gchar          *element_name,
-	const gchar         **attribute_names,
-	const gchar         **attribute_values,
-	gpointer              user_data,
-	GError              **error)
-{
-	PVEClusterConfig *data = user_data;
-
-	if (!data->version && !strcmp(element_name, "cluster")) { 
-		const char **n = attribute_names;
-		const char **v = attribute_values;
-
-		while (n && v && *n) {
-			if (!strcmp(*n, "config_version")) {
-				char *e = NULL;
-				guint64 ver = strtoull(*v, &e, 10);
-				if (e) 
-					data->version = ver;	  
-			}
-			++n;
-			++v;
-		}
-	}
-}
-
-static GMarkupParser cluster_conf_parser = { 
-	.start_element = parser_start_element 
-};
-
 guint64 
 cluster_config_version(
 	const gpointer config_data, 
 	gsize config_length)
 {
-	GMarkupParseContext *ctx;
-
-	GError *err = NULL;
-
-	PVEClusterConfig cfg = { .version = 0 };
-	if (!(ctx = g_markup_parse_context_new(&cluster_conf_parser, 0, &cfg, NULL))) {
-		cfs_critical("g_markup_parse_context_new failed");
-		return 0;
+	GRegex *regex;
+	GMatchInfo *match_info;
+	guint64 version = 0;
+	
+	regex = g_regex_new ("config_version\\s*:\\s*(\\d+)", 0, 0, NULL);
+	g_regex_match (regex, config_data, 0, &match_info);
+	if (g_match_info_matches (match_info)) {
+		gchar *word = g_match_info_fetch (match_info, 1);
+		if (strlen(word)) {
+			version = strtoull(word, NULL, 10);
+		}
+		g_free (word);
 	}
+	g_match_info_free (match_info);
+	g_regex_unref (regex);
 
-	if (!g_markup_parse_context_parse(ctx, config_data, config_length, &err)) {
-		cfs_critical("unable to parse cluster config - %s", err->message);
-		g_error_free (err);
-		g_markup_parse_context_free(ctx);
-		return cfg.version;
-	}
-
-	if (!g_markup_parse_context_end_parse(ctx, &err)) {
-		cfs_critical("unable to parse cluster config - %s", err->message);
-		g_error_free (err);
-		g_markup_parse_context_free(ctx);
-		return cfg.version;
-	}
-
-	g_markup_parse_context_free(ctx);
-	return cfg.version;
+	return version;
 }
 
 ssize_t 

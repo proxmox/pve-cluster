@@ -29,7 +29,7 @@
 #include <glib.h>
 #include <fcntl.h>
 
-#define HOST_CLUSTER_CONF_FN "/etc/cluster/cluster.conf"
+#define HOST_CLUSTER_CONF_FN "/etc/corosync/corosync.conf"
 #define CFS_PID_FN "/var/run/pve-cluster.pid"
 #define VARLIBDIR "/var/lib/pve-cluster"
 

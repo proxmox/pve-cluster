@@ -351,22 +351,24 @@ dcdb_parse_update_inode(
 }
 
 void 
-dcdb_sync_cluster_conf(
+dcdb_sync_corosync_conf(
 	memdb_t *memdb, 
-	gboolean notify_cman)
+	gboolean notify_corosync)
 {
 	g_return_if_fail(memdb != NULL);
 
 	int len;
 	gpointer data = NULL;
 
-	len = memdb_read(memdb, "cluster.conf", &data);
+	len = memdb_read(memdb, "corosync.conf", &data);
 	if (len <= 0)
 		return;
 
 	guint64 new_version = cluster_config_version(data, len);
-	if (!new_version) 
+	if (!new_version) {
+		cfs_critical("unable to parse cluster config_version");
 		return;
+	}
 
 	char *old_data = NULL;
 	gsize old_length = 0;
@@ -390,23 +392,24 @@ dcdb_sync_cluster_conf(
 		goto ret;
 
 	if (new_version < old_version) {
-		cfs_critical("local cluster.conf is newer");
+		cfs_critical("local corosync.conf is newer");
 		goto ret;
 	}
 
-	if (!atomic_write_file(HOST_CLUSTER_CONF_FN, data, len, 0640, 0))
+	if (!atomic_write_file(HOST_CLUSTER_CONF_FN, data, len, 0644, 0))
 		goto ret;
 
-	cfs_message("wrote new cluster config '%s'", HOST_CLUSTER_CONF_FN);
-
-	if (notify_cman && old_version) {
-		/* tell cman that there is a new config file */
-		cfs_debug ("run cman_tool version");
-		int status = system("/usr/sbin/cman_tool version -r -S >/dev/null 2>&1");
+	cfs_message("wrote new corosync config '%s' (version = %zd)",
+		    HOST_CLUSTER_CONF_FN, new_version);
+	
+	if (notify_corosync && old_version) {
+		/* tell corosync that there is a new config file */
+		cfs_debug ("run corosync-cfgtool -R");
+		int status = system("corosync-cfgtool -R >/dev/null 2>&1");
 		if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-			cfs_critical("cman_tool version failed with exit code %d\n", WEXITSTATUS(status));
+			cfs_critical("corosync-cfgtool -R failed with exit code %d\n", WEXITSTATUS(status));
 		}
-		cfs_debug ("end cman_tool version");
+		cfs_debug ("end corosync-cfgtool -R");
 	}
 
 ret:
@@ -714,7 +717,7 @@ dcdb_commit(
 	if (!bdb_backend_commit_update(memdb, localsi->master, localsi->idx, localsi->updates)) 
 		return -1;
 
-	dcdb_sync_cluster_conf(memdb, FALSE);
+	dcdb_sync_corosync_conf(memdb, FALSE);
 
 	return 0;
 }
@@ -851,8 +854,8 @@ dcdb_deliver(
 		msg_result = memdb_write(memdb, path, nodeid, msg_time,
 					 buf, size, offset, flags);
 
-		if ((msg_result >= 0) && !strcmp(path, "cluster.conf"))
-			dcdb_sync_cluster_conf(memdb, dfsm_nodeid_is_local(dfsm, nodeid, pid));
+		if ((msg_result >= 0) && !strcmp(path, "corosync.conf"))
+			dcdb_sync_corosync_conf(memdb, dfsm_nodeid_is_local(dfsm, nodeid, pid));
 
 	} else if (msg_type == DCDB_MESSAGE_CFS_CREATE) {
 
@@ -862,8 +865,8 @@ dcdb_deliver(
 		
 		msg_result = memdb_create(memdb, path, nodeid, msg_time);
 
-		if ((msg_result >= 0) && !strcmp(path, "cluster.conf"))
-			dcdb_sync_cluster_conf(memdb, dfsm_nodeid_is_local(dfsm, nodeid, pid));
+		if ((msg_result >= 0) && !strcmp(path, "corosync.conf"))
+			dcdb_sync_corosync_conf(memdb, dfsm_nodeid_is_local(dfsm, nodeid, pid));
 		
 	} else if (msg_type == DCDB_MESSAGE_CFS_MKDIR) {
 
@@ -889,8 +892,8 @@ dcdb_deliver(
 
 		msg_result = memdb_rename(memdb, path, to, nodeid, msg_time);
 		
-		if ((msg_result >= 0) && !strcmp(to, "cluster.conf"))
-			dcdb_sync_cluster_conf(memdb, dfsm_nodeid_is_local(dfsm, nodeid, pid));
+		if ((msg_result >= 0) && !strcmp(to, "corosync.conf"))
+			dcdb_sync_corosync_conf(memdb, dfsm_nodeid_is_local(dfsm, nodeid, pid));
 			
 	} else if (msg_type == DCDB_MESSAGE_CFS_MTIME) {
 

@@ -745,7 +745,7 @@ int main(int argc, char *argv[])
 		{ "debug", 'd', 0, G_OPTION_ARG_NONE, &cfs.debug, "Turn on debug messages", NULL },
 		{ "foreground", 'f', 0, G_OPTION_ARG_NONE, &foreground, "Do not daemonize server", NULL },
 		{ "local", 'l', 0, G_OPTION_ARG_NONE, &force_local_mode, 
-		  "Force local mode (ignore cluster.conf, force quorum)", NULL },
+		  "Force local mode (ignore corosync.conf, force quorum)", NULL },
 		{ NULL },
 	};
 
@@ -830,7 +830,7 @@ int main(int argc, char *argv[])
 		goto err;
 	}
 
-	// automatically import cluster.conf from host
+	// automatically import corosync.conf from host
 	if (create && !force_local_mode) {
 		char *cdata = NULL;
 		gsize clen = 0;
@@ -838,28 +838,28 @@ int main(int argc, char *argv[])
 
 			guint32 mtime = time(NULL);
 
-			memdb_create(memdb, "/cluster.conf", 0, mtime);
-			if (memdb_write(memdb, "/cluster.conf", 0, mtime, cdata, clen, 0, 1) < 0) {
-				cfs_critical("memdb_write failed - unable to import cluster.conf");
+			memdb_create(memdb, "/corosync.conf", 0, mtime);
+			if (memdb_write(memdb, "/corosync.conf", 0, mtime, cdata, clen, 0, 1) < 0) {
+				cfs_critical("memdb_write failed - unable to import corosync.conf");
 				goto err;
 			}
 		}
 	}
 
-	// does cluster.conf exist?
+	// does corosync.conf exist?
 	gpointer conf_data = NULL;
-	int len = memdb_read(memdb, "cluster.conf", &conf_data);
+	int len = memdb_read(memdb, "corosync.conf", &conf_data);
 	if (len >= 0) {
 		if (force_local_mode) {
-			cfs_message("forcing local mode (althought cluster.conf exists)");
+			cfs_message("forcing local mode (althought corosync.conf exists)");
 			cfs_set_quorate(1, TRUE);
 		} else {
 			if (!(dcdb = dcdb_new(memdb)))
 				goto err;
-			dcdb_sync_cluster_conf(memdb, 1);
+			dcdb_sync_corosync_conf(memdb, 1);
 		}
 	} else {
-		cfs_debug("using local mode (cluster.conf does not exist)");
+		cfs_debug("using local mode (corosync.conf does not exist)");
 		cfs_set_quorate(1, TRUE);
 	}
 	if (conf_data) g_free(conf_data);
