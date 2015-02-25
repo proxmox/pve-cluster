@@ -42,7 +42,7 @@ libpmxcfs_a_SOURCES = 		\
 	memdb.c
 
 # add -lprofiler for google perftools
-AM_CFLAGS =  -g -O -std=gnu99 -Wall -Werror -Wno-strict-aliasing $(COROSYNC_CFLAGS) $(SQLITE3_CFLAGS) $(FUSE_CFLAGS) $(QB_CFLAGS) $(GLIB_CFLAGS) $(LIBRRD_CFLAGS) 
-LDADD = libpmxcfs.a $(COROSYNC_LIBS) $(SQLITE3_LIBS) $(FUSE_LIBS) $(QB_LIBS) $(GLIB_LIBS) $(LIBRRD_LIBS)
+AM_CFLAGS =  -g -O -Wl,-z,relro -std=gnu99 -Wall -Werror -Wno-strict-aliasing $(COROSYNC_CFLAGS) $(SQLITE3_CFLAGS) $(FUSE_CFLAGS) $(QB_CFLAGS) $(GLIB_CFLAGS) $(LIBRRD_CFLAGS) 
+LDADD = libpmxcfs.a $(COROSYNC_LIBS) $(SQLITE3_LIBS) $(FUSE_LIBS) $(QB_LIBS) $(GLIB_LIBS) $(LIBRRD_LIBS) 
 
 CLEANFILES = *~
