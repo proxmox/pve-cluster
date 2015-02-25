@@ -93,46 +93,12 @@ __PACKAGE__->register_method ({
 	my $dirname = dirname($filename);
 	my $basename = basename($filename);
 
+	die "key file '$filename' already exists\n" if -e $filename;
+
 	File::Path::make_path($dirname) if $dirname;
 
-	my $fh = IO::File->new ("/dev/urandom", 'r') ||
-	    die "can't open /dev/urandom - $!\n";
-
-	my $keysize = 128;
-	my $key = '';
-
-	my $bytes = 0;
-	while ($bytes < $keysize) {
-	    my $rb = sysread($fh, $key, $keysize - $bytes, $bytes);
-	    ($rb > 0) || die "Could not read /dev/urandom - $!\n";
-	    $bytes += $rb;
-	}
-
-	close($fh);
-
-	my $tmpfn = "$filename.tmp.$$";
-	$fh = IO::File->new ($tmpfn, O_CREAT|O_WRONLY, 0400);
-	die "can't open temporary file '$tmpfn' - $!\n" if !$fh;
-
-	eval {
-	    my $wb;
-	    (($wb = syswrite($fh, $key)) == $keysize) || 
-		die "writing key failed - short write $wb\n;"
-	};
-	my $err = $@;
-    
-	$fh->close();
-
-	if ($err) {
-	    unlink $tmpfn;
-	    die $err;
-	}
-
-	if (!rename($tmpfn, $filename)) {
-	    my $err = $!;
-	    unlink $tmpfn;	
-	    die "rename $tmpfn to $filename failed - $err\n";
-	}
+	my $cmd = ['corosync-keygen', '-l', '-k', $filename];
+	PVE::Tools::run_command($cmd);   
 
 	return undef;
     }});
