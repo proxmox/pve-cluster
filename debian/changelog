@@ -2,6 +2,8 @@ pve-cluster (4.0-1) unstable; urgency=medium
 
   * updated for Debian Jessie
 
+  * use corosync votequorum instead of cman
+
   * add systemd support
   
   * depend on glib >= 2.42

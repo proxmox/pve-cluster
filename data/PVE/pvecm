@@ -270,7 +270,7 @@ __PACKAGE__->register_method ({
 
 	my $cmd = ['ccs_tool', 'addnode', '-c', $clusterconf];
 
-	# NOTE: cman does not like votes="0"
+	# NOTE: corosync does not like votes="0"
 	if ($param->{votes}) {
 	    push @$cmd, '-v', $param->{votes};
 	}
@@ -522,7 +522,7 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	my $cmd = ['cman_tool', 'expected', '-e', $param->{expected}];
+	my $cmd = ['corosync-quorumtool', '-e', $param->{expected}];
 
 	exec (@$cmd);
 
