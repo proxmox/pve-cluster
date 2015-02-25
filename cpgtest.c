@@ -63,15 +63,15 @@ static void my_cpg_confchg_callback (
 	}
 
 	/* send update message */
-	char *inbuf = "This is jus a test message\n";
+	char *inbuf = "This is just a test message\n";
 	struct iovec iov;
 	iov.iov_base = inbuf;
 	iov.iov_len = strlen(inbuf)+1;
 
-	cpg_error_t result;
+	cs_error_t result;
 loop:
 	result = cpg_mcast_joined(handle, CPG_TYPE_AGREED, &iov, 1);
-	if (result == CPG_ERR_TRY_AGAIN) {
+	if (result == CS_ERR_TRY_AGAIN) {
 		usleep(1000);
 		printf("cpg_send_message retry");
 		goto loop;
@@ -143,7 +143,7 @@ start:
 		if (result > 0) {
 
 			if (FD_ISSET(cpg_fd, &read_fds)) {			
-				cs_error_t res = cpg_dispatch(handle, CPG_DISPATCH_ALL);
+				cs_error_t res = cpg_dispatch(handle, CS_DISPATCH_ALL);
 				if (res != CS_OK) {
 					printf("cpg_dispatch failed: %d\n", res);
 					break;

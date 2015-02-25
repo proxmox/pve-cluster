@@ -15,7 +15,7 @@ DBG_DEB=${PACKAGE}-dbg_${PKGVER}-${PKGREL}_${ARCH}.deb
 all: ${DEB} ${DBG_DEB}
 
 cpgtest: cpgtest.c
-	gcc -Wall cpgtest.c $(shell pkg-config --cflags --libs libcpg libcoroipcc) -o cpgtest
+	gcc -Wall cpgtest.c $(shell pkg-config --cflags --libs libcpg libqb) -o cpgtest
 
 .PHONY: dinstall
 dinstall: ${DEB}
