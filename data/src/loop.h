@@ -85,7 +85,7 @@ gboolean cfs_loop_add_service(
 gboolean cfs_loop_start_worker(
 	cfs_loop_t *loop);
 
-gpointer cfs_loop_stop_worker(
+void cfs_loop_stop_worker(
 	cfs_loop_t *loop);
 
 

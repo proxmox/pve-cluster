@@ -47,7 +47,14 @@ static qb_loop_t *loop;
 static qb_ipcs_service_t* s1;
 static GString *outbuf;
 static memdb_t *memdb;
- 
+
+static int server_started = 0;   /* protect with server_started_mutex */
+static int terminate_server = 0; /* protect with server_started_mutex */
+static GCond server_started_cond;
+static GCond server_stopped_cond;
+static GMutex server_started_mutex;
+
+
 typedef struct {
 	struct qb_ipc_request_header req_header;
 	char name[256];
@@ -389,8 +396,35 @@ static struct qb_ipcs_poll_handlers poll_handlers = {
 
 static void timer_job(void *data)
 {
-	/* we currently do nothing here */
+	gboolean terminate = FALSE;
 
+	g_mutex_lock (&server_started_mutex);
+
+	if (terminate_server) {
+		cfs_debug ("got terminate request");
+
+		if (loop)
+			qb_loop_stop (loop);
+		
+		if (s1) {
+			qb_ipcs_destroy (s1);
+			s1 = 0;
+		}
+		server_started = 0;
+
+		g_cond_signal (&server_stopped_cond);
+		
+		terminate = TRUE;
+	} else if (!server_started) {
+		server_started = 1;
+		g_cond_signal (&server_started_cond);
+	}
+	
+	g_mutex_unlock (&server_started_mutex);
+
+	if (terminate)
+		return;
+			       
 	qb_loop_timer_handle th;
 	qb_loop_timer_add(loop, QB_LOOP_LOW, 1000000000, NULL, timer_job, &th);
 }
@@ -419,6 +453,9 @@ gboolean server_start(memdb_t *db)
 	g_return_val_if_fail(worker == NULL, FALSE);
 	g_return_val_if_fail(db != NULL, FALSE);
 
+	terminate_server = 0;
+	server_started = 0;
+	
 	memdb = db;
 
 	outbuf = g_string_sized_new(8192*8);
@@ -434,9 +471,16 @@ gboolean server_start(memdb_t *db)
 		return FALSE;
 	}
 	qb_ipcs_poll_handlers_set(s1, &poll_handlers);
-	
+
 	worker = g_thread_new ("server", worker_thread, NULL);
 
+	g_mutex_lock (&server_started_mutex);
+	while (!server_started)
+		g_cond_wait (&server_started_cond, &server_started_mutex);
+	g_mutex_unlock (&server_started_mutex);
+	
+	cfs_debug("server started");
+	
 	return TRUE;
 }
 
@@ -444,13 +488,11 @@ void server_stop(void)
 {
 	cfs_debug("server stop");
 
-	if (loop)
-		qb_loop_stop(loop);
-
-	if (s1) {
-		qb_ipcs_destroy(s1);
-		s1 = 0;
-	}
+	g_mutex_lock (&server_started_mutex);
+	terminate_server = 1;
+	while (server_started)
+		g_cond_wait (&server_stopped_cond, &server_started_mutex);
+	g_mutex_unlock (&server_started_mutex);
 
 	if (worker) {
 		g_thread_join(worker);
