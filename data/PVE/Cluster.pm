@@ -59,8 +59,8 @@ my $observed = {
     'vzdump.cron' => 1,
     'storage.cfg' => 1,
     'datacenter.cfg' => 1,
-    'cluster.conf' => 1,
-    'cluster.conf.new' => 1,
+    'corosync.conf' => 1,
+    'corosync.conf.new' => 1,
     'user.cfg' => 1,
     'domains.cfg' => 1,
     'priv/shadow.cfg' => 1,
@@ -1292,52 +1292,57 @@ cfs_register_file('datacenter.cfg',
 		  \&parse_datacenter_config,  
 		  \&write_datacenter_config);
 
-sub parse_cluster_conf {
+# a very simply parser ...
+sub parse_corosync_conf {
     my ($filename, $raw) = @_;
 
-    my $conf = {};
+    return {} if !$raw;
 
     my $digest = Digest::SHA::sha1_hex(defined($raw) ? $raw : '');
 
-    my $createNode = sub {
-	my ($expat, $tag, %attrib) = @_;
-	$expat->{NodeCount}++;
-	return { text => $tag, id => $expat->{NodeCount}, %attrib };
-    }; 
+    $raw =~ s/#.*$//mg;
+    $raw =~ s/\r?\n/ /g;
+    $raw =~ s/\s+/ /g;
+    $raw =~ s/^\s+//;
+    $raw =~ s/\s*$//;
+  
+    print "RAW: $raw\n";
+    
+    my @tokens = split(/\s/, $raw);
+    
+    my $conf = { section => 'main', children => [] };
 
-    my $handlers = {
-	Init => sub {
-	    my $expat = shift;
-	    $expat->{NodeCount} = 0;
-	    $expat->{NodeStack} = [];
-	    $expat->{CurNode} = $expat->{Tree} = &$createNode($expat, 'root');
-	},
-	Final => sub {
-	    my $expat = shift;
-	    delete $expat->{CurNode};
-	    delete $expat->{NodeStack};
-	    $expat->{Tree};
-	},
-	Start => sub {
-	    my $expat = shift;
-	    my $tag = shift;
-	    my $parent = $expat->{CurNode};
-	    push @{ $expat->{NodeStack} }, $parent;
-	    my $node = &$createNode($expat, $tag, @_);
-	    push @{$expat->{CurNode}->{children}}, $node;
-	    $expat->{CurNode} = $node;
-	},
-	End => sub {
-	    my $expat = shift;
-	    my $tag = shift;
-	    my $node = pop @{ $expat->{NodeStack} };
-	    $expat->{CurNode} = $node;
-	},
-    };
- 
-    if ($raw) {
-	my $parser = new XML::Parser(Handlers => $handlers);
-	$conf = $parser->parse($raw);
+    my $stack = [];
+    my $section = $conf;
+    
+    while (defined(my $token = shift @tokens)) {
+	my $nexttok = $tokens[0];
+
+	if ($nexttok && ($nexttok eq '{')) {
+	    shift @tokens; # skip '{'
+	    my $new_section = {
+		section => $token,
+		children => [],
+	    };
+	    push @{$section->{children}}, $new_section;
+	    push @$stack, $section;
+	    $section = $new_section;
+	    next;
+	}
+
+	if ($token eq '}') {
+	    $section = pop @$stack;
+	    die "parse error - uncexpected '}'\n" if !$section;
+	    next;
+	}
+
+	my $key = $token;
+	die "missing ':' after key '$key'\n" if ! ($key =~ s/:$//);
+	
+	die "parse error - no value for '$key'\n" if !defined($nexttok);
+	my $value = shift @tokens;
+
+	push @{$section->{children}}, { key => $key, value => $value };
     }
 
     $conf->{digest} = $digest;
@@ -1345,142 +1350,78 @@ sub parse_cluster_conf {
     return $conf;
 }
 
-sub cluster_conf_version {
-    my ($conf, $noerr) = @_;
+my $dump_corosync_section;
+$dump_corosync_section = sub {
+    my ($section, $prefix) = @_;
 
-    if ($conf && $conf->{children} && $conf->{children}->[0]) {
-	my $cluster = $conf->{children}->[0];
-	if ($cluster && ($cluster->{text} eq 'cluster') && 
-	    $cluster->{config_version}) {
-	    if (my $version = int($cluster->{config_version})) {
-		return wantarray ? ($version, $cluster) : $version;
+    my $raw = $prefix . $section->{section} . " {\n";
+    
+    my @list = grep { defined($_->{key}) } @{$section->{children}};
+    foreach my $child (sort {$a->{key} cmp $b->{key}} @list) {
+	$raw .= $prefix . "  $child->{key}: $child->{value}\n";
+    }
+    
+    @list = grep { defined($_->{section}) } @{$section->{children}};
+    foreach my $child (sort {$a->{section} cmp $b->{section}} @list) {
+	$raw .= &$dump_corosync_section($child, "$prefix  ");
+    }
+
+    $raw .= $prefix . "}\n\n";
+    
+    return $raw;
+    
+};
+
+sub write_corosync_conf {
+    my ($filename, $conf) = @_;
+
+    my $raw = '';
+
+    my $prefix = '';
+    
+    die "no main section" if $conf->{section} ne 'main';
+
+    my @list = grep { defined($_->{key}) } @{$conf->{children}};
+    foreach my $child (sort {$a->{key} cmp $b->{key}} @list) {
+	$raw .= "$child->{key}: $child->{value}\n";
+    }
+
+    @list = grep { defined($_->{section}) } @{$conf->{children}};
+    foreach my $child (sort {$a->{section} cmp $b->{section}} @list) {
+	$raw .= &$dump_corosync_section($child, $prefix);
+    }
+
+    return $raw;
+}
+
+sub corosync_conf_version {
+    my ($conf, $noerr, $new_value) = @_;
+
+    foreach my $child (@{$conf->{children}}) {
+	next if !defined($child->{section});
+	if ($child->{section} eq 'totem') {
+	    foreach my $e (@{$child->{children}}) {
+		next if !defined($e->{key});
+		if ($e->{key} eq 'config_version') {
+		    if ($new_value) {
+			$e->{value} = $new_value;
+			return $new_value;
+		    } elsif (my $version = int($e->{value})) {
+			return $version;
+		    }
+		    last;
+		}
 	    }
 	}
     }
-
+    
     return undef if $noerr;
 
-    die "no cluster config - unable to read version\n";
+    die "invalid corosync config - unable to read version\n";
 }
 
-sub cluster_conf_lookup_cluster_section {
-    my ($conf, $noerr) = @_;
-
-    my ($version, $cluster) = cluster_conf_version($conf, $noerr);
-
-    return $cluster;
-}
-
-sub cluster_conf_lookup_rm_section {
-    my ($conf, $create, $noerr) = @_;
-
-    my $cluster = cluster_conf_lookup_cluster_section($conf, $noerr);
-    return undef if !$cluster;
-
-    my $rmsec;
-    foreach my $child (@{$cluster->{children}}) {
-	if ($child->{text} eq 'rm') {
-	    $rmsec = $child;
-	}
-    }
-    if (!$rmsec) {
-	if (!$create) {
-	    return undef if $noerr;
-	    die "no resource manager section\n";
-	}
-	$rmsec = { text => 'rm' };
-	push @{$cluster->{children}}, $rmsec;
-    }
-
-    return $rmsec;
-}
-
-sub cluster_conf_lookup_pvevm {
-    my ($conf, $create, $vmid, $noerr) = @_;
-
-    my $rmsec = cluster_conf_lookup_rm_section($conf, $create, $noerr);
-    return undef if !$rmsec;
-
-    my $vmref;
-    foreach my $child (@{$rmsec->{children}}) {
-	if ($child->{text} eq 'pvevm' && $child->{vmid} eq $vmid) {
-	    $vmref = $child;
-	}
-    }
-
-    if (!$vmref) {
-	if (!$create) {
-	    return undef if $noerr;
-	    die "unable to find service 'pvevm:$vmid'\n";
-	}
-	$vmref = { text => 'pvevm', vmid => $vmid };
-	push @{$rmsec->{children}}, $vmref;
-    } elsif ($create) {
-	return undef if $noerr;
-	die "unable to create service 'pvevm:$vmid' - already exists\n";
-    }
-
-    return $vmref;
-}
-
-sub xml_escape_attrib {
-    my ($data) = @_;
-
-    return '' if !defined($data);
-
-    $data =~ s/&/&amp;/sg;
-    $data =~ s/</&lt;/sg;
-    $data =~ s/>/&gt;/sg;
-    $data =~ s/"/&quot;/sg;
-
-    return $data;
-}
-
-sub __cluster_conf_dump_node {
-    my ($node, $indend) = @_;
-
-    my $xml = '';
-
-    $indend = '' if !defined($indend);
-
-    my $attribs = '';
-
-    foreach my $key (sort keys %$node) {
-	my $value = $node->{$key};
-	next if $key eq 'id' || $key eq 'text' || $key eq 'children';
-	$attribs .= " $key=\"" .  xml_escape_attrib($value) . "\"";
-    }
-    
-    my $children = $node->{children};
-
-    if ($children && scalar(@$children)) {
-	$xml .= "$indend<$node->{text}$attribs>\n";
-	my $childindend = "$indend  ";
-	foreach my $child (@$children) {
-	    $xml .= __cluster_conf_dump_node($child, $childindend);
-	}
-	$xml .= "$indend</$node->{text}>\n";
-    } else { 
-	$xml .= "$indend<$node->{text}$attribs/>\n";
-    }
-
-    return $xml;
-}
-
-sub write_cluster_conf {
-    my ($filename, $cfg) = @_;
-
-    my $version = cluster_conf_version($cfg);
- 
-    my $res = "<?xml version=\"1.0\"?>\n";
-
-    $res .= __cluster_conf_dump_node($cfg->{children}->[0]);
-
-    return $res;
-}
-
-# read only - use "rename cluster.conf.new cluster.conf" to write
-PVE::Cluster::cfs_register_file('cluster.conf', \&parse_cluster_conf);
+# read only - use "rename corosync.conf.new corosync.conf" to write
+PVE::Cluster::cfs_register_file('corosync.conf', \&parse_corosync_conf);
 # this is read/write
-PVE::Cluster::cfs_register_file('cluster.conf.new', \&parse_cluster_conf, 
-				\&write_cluster_conf);
+PVE::Cluster::cfs_register_file('corosync.conf.new', \&parse_corosync_conf, 
+				\&write_corosync_conf);
