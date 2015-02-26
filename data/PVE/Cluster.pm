@@ -1306,8 +1306,6 @@ sub parse_corosync_conf {
     $raw =~ s/^\s+//;
     $raw =~ s/\s*$//;
   
-    print "RAW: $raw\n";
-    
     my @tokens = split(/\s/, $raw);
     
     my $conf = { section => 'main', children => [] };

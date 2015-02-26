@@ -226,11 +226,13 @@ __PACKAGE__->register_method ({
 
 	PVE::Cluster::check_cfs_quorum();
 
-	my $lst = lsnode();
+	my $conf = PVE::Cluster::cfs_read_file("corosync.conf");
+
+	my $nodelist = corosync_nodelist($conf);
 
 	my $name = $param->{node};
 
-	if (defined(my $res = $lst->{$name})) {
+	if (defined(my $res = $nodelist->{$name})) {
 	    $param->{nodeid} = $res->{nodeid} if !$param->{nodeid};
 	    $param->{votes} = $res->{votes} if !defined($param->{votes});
 
@@ -242,13 +244,15 @@ __PACKAGE__->register_method ({
 		} else {
 		    exit (-1);
 		}
+	    } else {
+		die "can't add existing node\n";
 	    }
 	} elsif (!$param->{nodeid}) {
 	    my $nodeid = 1;
 	    
 	    while(1) {
 		my $found = 0; 
-		foreach my $v (values %$lst) {
+		foreach my $v (values %$nodelist) {
 		    if ($v->{nodeid} eq $nodeid) {
 			$found = 1;
 			$nodeid++;
@@ -268,17 +272,11 @@ __PACKAGE__->register_method ({
 	eval { 	PVE::Cluster::ssh_merge_keys(); };
 	warn $@ if $@;
 
-	my $cmd = ['ccs_tool', 'addnode', '-c', $clusterconf];
-
-	# NOTE: corosync does not like votes="0"
-	if ($param->{votes}) {
-	    push @$cmd, '-v', $param->{votes};
-	}
-
-	push @$cmd, '-n', $param->{nodeid}, $name;
-
-	system(@$cmd) == 0 || exit(-1);
-
+	$nodelist->{$name} = { ring0_addr => $name, nodeid => $param->{nodeid} };
+	$nodelist->{$name}->{quorum_votes} = $param->{votes} if $param->{votes};
+	
+	corosync_update_nodelist($conf, $nodelist);
+	
 	exit (0);
     }});
 
@@ -301,11 +299,16 @@ __PACKAGE__->register_method ({
 
 	PVE::Cluster::check_cfs_quorum();
 
-	my $cmd = ['ccs_tool', 'delnode', '-c', $clusterconf, $param->{node}];
+	my $conf = PVE::Cluster::cfs_read_file("corosync.conf");
 
-	exec (@$cmd);
+	my $nodelist = corosync_nodelist($conf);
 
-	exit (-1); # should not be reached
+	my $nd = delete $nodelist->{$param->{node}};
+	die "no such node '$param->{node}'\n" if !$nd;
+	
+	corosync_update_nodelist($conf, $nodelist);
+
+	return undef;
     }});
 
 __PACKAGE__->register_method ({
@@ -530,31 +533,65 @@ __PACKAGE__->register_method ({
 
     }});
 
-sub lsnode {
+sub corosync_update_nodelist {
+    my ($conf, $nodelist) = @_;
 
+    delete $conf->{digest};
+    
+    my $version = PVE::Cluster::corosync_conf_version($conf);
+    PVE::Cluster::corosync_conf_version($conf, undef, $version + 1);
+
+    my $children = [];
+    foreach my $v (values %$nodelist) {
+	next if !$v->{ring0_addr};
+	my $kv = [];
+	foreach my $k (keys %$v) {
+	    push @$kv, { key => $k, value => $v->{$k} };
+	} 
+	my $ns = { section => 'node', children => $kv };
+	push @$children, $ns;
+    }
+    
+    foreach my $main (@{$conf->{children}}) {
+	next if !defined($main->{section});
+	if ($main->{section} eq 'nodelist') {
+	    $main->{children} = $children;
+	    last;
+	}
+    }
+
+    
+    PVE::Cluster::cfs_write_file("corosync.conf.new", $conf);
+    
+    rename("/etc/pve/corosync.conf.new", "/etc/pve/corosync.conf")
+	|| die "activate  corosync.conf.new failed - $!\n";
+}
+
+sub corosync_nodelist {
+    my ($conf) = @_;
+    
     my $res = {};
 
-    my $cmd = ['ccs_tool',  'lsnode', '-c', $clusterconf];
-
-    my $scan = 0;
-    my $parser = sub {
-	my $line = shift;
-
-	if ($line =~ m/^Nodename\s+Votes\s+Nodeid\s/i) {
-	    $scan = 1;
-	    return;
+    my $nodelist = {};
+    
+    foreach my $main (@{$conf->{children}}) {
+	next if !defined($main->{section});
+	if ($main->{section} eq 'nodelist') {
+	    foreach my $ne (@{$main->{children}}) {
+		next if !defined($ne->{section}) || ($ne->{section} ne 'node');
+		my $node = {};
+		foreach my $child (@{$ne->{children}}) {
+		    next if !defined($child->{key});
+		    $node->{$child->{key}} = $child->{value};
+		    if ($child->{key} eq 'ring0_addr') {
+			$nodelist->{$child->{value}} = $node;
+		    }
+		}
+	    }
 	}
-	return if !$scan;
-	if ($line =~ m/^(\S+)\s+(\d+)\s+(\d+)\s/) {
-	    $res->{$1} = {
-		name => $1,
-		votes => $2,
-		nodeid => $3 };
-	}
-    };
+    }   
 
-    PVE::Tools::run_command($cmd, outfunc => $parser);
-    return $res;
+    return $nodelist;
 }
 
 __PACKAGE__->register_method ({
