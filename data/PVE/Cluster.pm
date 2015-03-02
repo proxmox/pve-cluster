@@ -1423,3 +1423,15 @@ PVE::Cluster::cfs_register_file('corosync.conf', \&parse_corosync_conf);
 # this is read/write
 PVE::Cluster::cfs_register_file('corosync.conf.new', \&parse_corosync_conf, 
 				\&write_corosync_conf);
+
+sub vm_is_ha_managed {
+    my ($vmid) = @_;
+
+    # fixme: what HA stack do we use on debian jessie?
+    # this is old code used with rgmanager
+    #my $cc = cfs_read_file('cluster.conf');
+    #if (cluster_conf_lookup_pvevm($cc, 0, $vmid, 1)) {
+    #return 1;
+    #}
+    return 0;
+};
