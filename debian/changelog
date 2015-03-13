@@ -1,3 +1,9 @@
+pve-cluster (4.0-3) unstable; urgency=medium
+
+  * use systemctl to start/stop services
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 13 Mar 2015 11:35:00 +0100
+
 pve-cluster (4.0-2) unstable; urgency=medium
 
   * fix perl api dependency (perlapi-5.20.0)

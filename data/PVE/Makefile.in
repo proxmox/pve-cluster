@@ -296,9 +296,9 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 bin_SCRIPTS = pvecm
-AM_CFLAGS = -shared -fPIC -Wall -Werror -Wno-strict-aliasing -I/usr/lib/x86_64-linux-gnu/perl/5.20.1/CORE -DXS_VERSION=VERSION
+AM_CFLAGS = -shared -fPIC -Wl,-z,relro -Wall -Werror -Wno-strict-aliasing -I/usr/lib/x86_64-linux-gnu/perl/5.20/CORE -DXS_VERSION=VERSION
 LDADD = $(QB_LIBS)
-perlbindir = /usr/lib/x86_64-linux-gnu/perl/5.20.1/auto/PVE/IPCC/
+perlbindir = /usr/lib/x86_64-linux-gnu/perl/5.20/auto/PVE/IPCC/
 
 #datacenter.cfg.5.gz: Cluster.pm gen-datacenter-pod.pl
 #	./gen-datacenter-pod.pl|pod2man -n datacenter.cfg -s 5 -r ${VERSION} -c #"Proxmox Documentation"|gzip -c9 >$@

@@ -414,17 +414,17 @@ __PACKAGE__->register_method ({
 	    print "stopping pve-cluster service\n";
 
 	    system("umount $basedir -f >/dev/null 2>&1");
-	    system("/etc/init.d/pve-cluster stop") == 0 ||
+	    system("systemctl stop pve-cluster") == 0 ||
 		die "can't stop pve-cluster service\n";
 
 	    backup_database();
 
 	    unlink $dbfile;
 
-	    system("/etc/init.d/pve-cluster start") == 0 ||
+	    system("systemctl start pve-cluster") == 0 ||
 		die "starting pve-cluster failed\n";
 
-	    system("/etc/init.d/cman start");
+	    system("systemctl start corosync");
 
 	    # wait for quorum
 	    my $printqmsg = 1;
@@ -438,7 +438,7 @@ __PACKAGE__->register_method ({
 	    }
 	    print "OK\n" if !$printqmsg;
 
-	    system("/etc/init.d/clvm start");
+	    # system("systemctl start clvm");
 
 	    print "generating node certificates\n";
 	    PVE::Cluster::gen_pve_node_files($nodename, $local_ip_address); 
@@ -448,9 +448,9 @@ __PACKAGE__->register_method ({
 
 	    print "restart services\n";
 	    # restart pvedaemon (changed certs)
-	    system("/etc/init.d/pvedaemon restart");
+	    system("systemctl restart pvedaemon");
 	    # restart pveproxy (changed certs)
-	    system("/etc/init.d/pveproxy restart");
+	    system("systemctl restart pveproxy");
 
 	    print "successfully added node '$nodename' to cluster.\n";
 	};
@@ -509,7 +509,7 @@ __PACKAGE__->register_method ({
     name => 'expected', 
     path => 'expected',
     method => 'PUT',
-    description => "Tells CMAN a new value of expected votes.",
+    description => "Tells corosync a new value of expected votes.",
     parameters => {
     	additionalProperties => 0,
 	properties => {
