@@ -234,9 +234,9 @@ __PACKAGE__->register_method ({
 
 	if (defined(my $res = $nodelist->{$name})) {
 	    $param->{nodeid} = $res->{nodeid} if !$param->{nodeid};
-	    $param->{votes} = $res->{votes} if !defined($param->{votes});
+	    $param->{votes} = $res->{quorum_votes} if !defined($param->{votes});
 
-	    if ($res->{votes} == $param->{votes} &&
+	    if ($res->{quorum_votes} == $param->{votes} &&
 		$res->{nodeid} == $param->{nodeid}) {
 		print "node $name already defined\n";
 		if ($param->{force}) {
@@ -401,10 +401,10 @@ __PACKAGE__->register_method ({
 
 	    system(@$cmd) == 0 || die "can't rsync data from host '$host'\n";
 
-	    mkdir "/etc/cluster";
+	    mkdir "/etc/cororsync";
 	    my $confbase = basename($clusterconf);
 
-	    $cmd = "cp '$tmpdir/$confbase' '/etc/cluster/$confbase'";
+	    $cmd = "cp '$tmpdir/$confbase' '/etc/corosync/$confbase'";
 	    system($cmd) == 0 || die "can't copy cluster configuration\n";
 
 	    my $keybase = basename($authfile);
@@ -579,7 +579,7 @@ sub corosync_nodelist {
 	if ($main->{section} eq 'nodelist') {
 	    foreach my $ne (@{$main->{children}}) {
 		next if !defined($ne->{section}) || ($ne->{section} ne 'node');
-		my $node = {};
+		my $node = { quorum_votes => 1 };
 		foreach my $child (@{$ne->{children}}) {
 		    next if !defined($child->{key});
 		    $node->{$child->{key}} = $child->{value};
