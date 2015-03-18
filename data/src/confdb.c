@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2010 Proxmox Server Solutions GmbH
+  Copyright (C) 2010-2015 Proxmox Server Solutions GmbH
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU Affero General Public License as published by
@@ -20,7 +20,7 @@
 
 
 /* see "man cmap_overview" and "man cmap_keys" */
- 
+
 #define G_LOG_DOMAIN "confdb"
 
 #define CLUSTER_KEY "cluster"
@@ -43,23 +43,70 @@
 
 typedef struct {
 	cmap_handle_t handle;
+	cmap_track_handle_t track_handle;
 	gboolean changes;
 } cs_private_t;
 
-static cs_error_t 
-cmap_read_config(cmap_handle_t handle)
+static cs_error_t
+cmap_read_clusternodes(
+	cmap_handle_t handle,
+	cfs_clinfo_t *clinfo)
 {
 	cs_error_t result;
-
         cmap_iter_handle_t iter;
 
-        result = cmap_iter_init(handle, "nodelist.node", &iter);
-  	if (result != CS_OK) {
+	result = cmap_iter_init(handle, "nodelist.node.", &iter);
+	if (result != CS_OK) {
 		cfs_critical("cmap_iter_init failed %d", result);
 		return result;
 	}
 
-        // TODO 
+ 	cmap_value_types_t type;
+ 	char key_name[CMAP_KEYNAME_MAXLEN + 1];
+	size_t value_len;
+
+	int last_id = -1;
+	uint32_t nodeid = 0;
+	uint32_t votes = 0;
+	char *name = NULL;
+
+	while ((result = cmap_iter_next(handle, iter, key_name, &value_len, &type)) == CS_OK) {
+		int id;
+		char subkey[CMAP_KEYNAME_MAXLEN + 1];
+		if (sscanf(key_name, "nodelist.node.%d.%s", &id, subkey) != 2) continue;
+
+		if (id != last_id) {
+			if (name && nodeid) {
+				cfs_clnode_t *clnode = cfs_clnode_new(name, nodeid, votes);
+				cfs_clinfo_add_node(clinfo, clnode);
+			}
+			last_id = id;
+			if (name) free(name);
+			name = NULL;
+			nodeid = 0;
+			votes = 0;
+		}
+
+		if (strcmp(subkey, "nodeid") == 0) {
+			if ((result = cmap_get_uint32(handle, key_name, &nodeid)) != CS_OK) {
+				cfs_critical("cmap_get %s failed %d", key_name, result);
+			}
+		} else if (strcmp(subkey, "quorum_votes") == 0) {
+			if ((result = cmap_get_uint32(handle, key_name, &votes)) != CS_OK) {
+				cfs_critical("cmap_get %s failed %d", key_name, result);
+			}
+		} else if (strcmp(subkey, "ring0_addr") == 0) {
+			if ((result = cmap_get_string(handle, key_name, &name)) != CS_OK) {
+				cfs_critical("cmap_get %s failed %d", key_name, result);
+			}
+		}
+	}
+
+	if (name && nodeid) {
+		cfs_clnode_t *clnode = cfs_clnode_new(name, nodeid, votes);
+		cfs_clinfo_add_node(clinfo, clnode);
+	}
+	if (name) free(name);
 
         result = cmap_iter_finalize(handle, iter);
  	if (result != CS_OK) {
@@ -70,7 +117,40 @@ cmap_read_config(cmap_handle_t handle)
 	return result;
 }
 
-static gboolean 
+static cs_error_t
+cmap_read_config(cmap_handle_t handle)
+{
+	cs_error_t result;
+
+	uint64_t config_version = 0;
+
+	result = cmap_get_uint64(handle, "totem.config_version", &config_version);
+	if (result != CS_OK) {
+		cfs_critical("cmap_get totem.config_version failed %d", result);
+		// optional, do not throw error
+	}
+
+	char *clustername = NULL;
+	result = cmap_get_string(handle, "totem.cluster_name", &clustername);
+	if (result != CS_OK) {
+		cfs_critical("cmap_get totem.cluster_name failed %d", result);
+		return result;
+	}
+
+	cfs_clinfo_t *clinfo = cfs_clinfo_new(clustername, config_version);
+	g_free(clustername);
+
+	result = cmap_read_clusternodes(handle, clinfo);
+	if (result == CS_OK) {
+		cfs_status_set_clinfo(clinfo);
+	} else {
+		cfs_clinfo_destroy(clinfo);
+	}
+
+	return result;
+}
+
+static gboolean
 service_cmap_finalize(
 	cfs_service_t *service,
 	gpointer context)
@@ -80,8 +160,15 @@ service_cmap_finalize(
 
 	cs_private_t *private = (cs_private_t *)context;
 	cmap_handle_t handle = private->handle;
-
 	cs_error_t result;
+
+        if (private->track_handle) {
+            result = cmap_track_delete(handle, private->track_handle);
+            if (result != CS_OK) {
+		cfs_critical("cmap_track_delete failed: %d", result);
+            }
+            private->track_handle = 0;
+        }
 
 	result = cmap_finalize(handle);
 	private->handle = 0;
@@ -93,7 +180,26 @@ service_cmap_finalize(
 	return TRUE;
 }
 
-static int 
+static void
+track_callback(
+    cmap_handle_t cmap_handle,
+    cmap_track_handle_t cmap_track_handle,
+    int32_t event,
+    const char *key_name,
+    struct cmap_notify_value new_value,
+    struct cmap_notify_value old_value,
+    void *context)
+{
+
+    cs_private_t *private = (cs_private_t *)context;
+
+    cfs_debug("track_callback %s\n", key_name);
+
+    private->changes = TRUE;
+}
+
+
+static int
 service_cmap_initialize(
 	cfs_service_t *service,
 	gpointer context)
@@ -127,8 +233,9 @@ service_cmap_initialize(
 		private->handle = handle;
 	}
 
-	result = CS_OK; // fixme: track_object(handle);
-        
+        result = cmap_track_add(handle, "nodelist.node.", CMAP_TRACK_PREFIX,
+                                track_callback, context, &private->track_handle);
+
 	if (result == CS_ERR_LIBRARY || result == CS_ERR_BAD_HANDLE) {
 		cfs_critical("cmap_track_changes failed: %d - closing handle", result);
 		cmap_finalize(handle);
@@ -138,7 +245,7 @@ service_cmap_initialize(
                 cfs_critical("cmap_track_changes failed: %d - trying again", result);
 		return -1;
 	}
-		
+
 	int cmap_fd = -1;
 	if ((result = cmap_fd_get(handle, &cmap_fd)) != CS_OK) {
 		cfs_critical("confdb_fd_get failed %d - trying again", result);
@@ -150,7 +257,7 @@ service_cmap_initialize(
 	return cmap_fd;
 }
 
-static gboolean 
+static gboolean
 service_cmap_dispatch(
 	cfs_service_t *service,
 	gpointer context)
@@ -207,17 +314,17 @@ service_confdb_new(void)
 	if (!private)
 		return NULL;
 
-	service = cfs_service_new(&cfs_confdb_callbacks, G_LOG_DOMAIN, private); 
+	service = cfs_service_new(&cfs_confdb_callbacks, G_LOG_DOMAIN, private);
 
 	return service;
 }
 
-void 
-service_confdb_destroy(cfs_service_t *service) 
+void
+service_confdb_destroy(cfs_service_t *service)
 {
 	g_return_if_fail(service != NULL);
 
-	cs_private_t *private = 
+	cs_private_t *private =
 		(cs_private_t *)cfs_service_get_context(service);
 
 	g_free(private);
