@@ -1,3 +1,9 @@
+pve-cluster (4.0-4) unstable; urgency=medium
+
+  * fix corosync cmap reader
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 18 Mar 2015 15:08:48 +0100
+
 pve-cluster (4.0-3) unstable; urgency=medium
 
   * use systemctl to start/stop services
