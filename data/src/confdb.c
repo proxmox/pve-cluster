@@ -287,6 +287,9 @@ loop:
 
 		if (private->changes) {
 			result = cmap_read_config(handle);
+
+			private->changes = FALSE;
+
 			if (result == CS_OK)
 				return TRUE;
 		}
