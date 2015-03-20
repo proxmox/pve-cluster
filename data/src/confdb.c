@@ -43,7 +43,8 @@
 
 typedef struct {
 	cmap_handle_t handle;
-	cmap_track_handle_t track_handle;
+	cmap_track_handle_t track_nodelist_handle;
+	cmap_track_handle_t track_version_handle;
 	gboolean changes;
 } cs_private_t;
 
@@ -162,12 +163,20 @@ service_cmap_finalize(
 	cmap_handle_t handle = private->handle;
 	cs_error_t result;
 
-        if (private->track_handle) {
-            result = cmap_track_delete(handle, private->track_handle);
+        if (private->track_nodelist_handle) {
+            result = cmap_track_delete(handle, private->track_nodelist_handle);
             if (result != CS_OK) {
-		cfs_critical("cmap_track_delete failed: %d", result);
+		cfs_critical("cmap_track_delete nodelist failed: %d", result);
             }
-            private->track_handle = 0;
+            private->track_nodelist_handle = 0;
+        }
+	
+        if (private->track_version_handle) {
+            result = cmap_track_delete(handle, private->track_version_handle);
+            if (result != CS_OK) {
+		cfs_critical("cmap_track_delete version failed: %d", result);
+            }
+            private->track_version_handle = 0;
         }
 
 	result = cmap_finalize(handle);
@@ -234,9 +243,16 @@ service_cmap_initialize(
 		private->handle = handle;
 	}
 
+	
         result = cmap_track_add(handle, "nodelist.node.",
 				CMAP_TRACK_PREFIX|CMAP_TRACK_ADD|CMAP_TRACK_DELETE|CMAP_TRACK_MODIFY,
-                                track_callback, context, &private->track_handle);
+                                track_callback, context, &private->track_nodelist_handle);
+
+	if (result == CS_OK) {
+		result = cmap_track_add(handle, "totem.config_version",
+					CMAP_TRACK_ADD|CMAP_TRACK_DELETE|CMAP_TRACK_MODIFY,
+					track_callback, context, &private->track_version_handle);
+	}
 
 	if (result == CS_ERR_LIBRARY || result == CS_ERR_BAD_HANDLE) {
 		cfs_critical("cmap_track_changes failed: %d - closing handle", result);
