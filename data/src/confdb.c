@@ -190,12 +190,13 @@ track_callback(
     struct cmap_notify_value old_value,
     void *context)
 {
+	g_return_if_fail(context != NULL);
 
-    cs_private_t *private = (cs_private_t *)context;
+	cs_private_t *private = (cs_private_t *)context;
 
-    cfs_debug("track_callback %s\n", key_name);
+	cfs_debug("track_callback %s %d\n", key_name, event);
 
-    private->changes = TRUE;
+	private->changes = TRUE;
 }
 
 
@@ -233,7 +234,8 @@ service_cmap_initialize(
 		private->handle = handle;
 	}
 
-        result = cmap_track_add(handle, "nodelist.node.", CMAP_TRACK_PREFIX,
+        result = cmap_track_add(handle, "nodelist.node.",
+				CMAP_TRACK_PREFIX|CMAP_TRACK_ADD|CMAP_TRACK_DELETE|CMAP_TRACK_MODIFY,
                                 track_callback, context, &private->track_handle);
 
 	if (result == CS_ERR_LIBRARY || result == CS_ERR_BAD_HANDLE) {
