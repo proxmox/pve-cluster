@@ -66,6 +66,10 @@ my $observed = {
     'priv/shadow.cfg' => 1,
     '/qemu-server/' => 1,
     '/openvz/' => 1,
+    'ha/crm_commands' => 1,
+    'ha/manager_status' => 1,
+    'ha/resources.cfg' => 1,
+    'ha/groups.cfg' => 1,
 };
 
 # only write output if something fails

@@ -83,6 +83,10 @@ static memdb_change_t memdb_change_array[] = {
 	{ .path = "priv/shadow.cfg" },
 	{ .path = "datacenter.cfg" },
 	{ .path = "vzdump.cron" },
+	{ .path = "ha/crm_commands" },
+	{ .path = "ha/manager_status" },
+	{ .path = "ha/resources.cfg" },
+	{ .path = "ha/groups.cfg" },
 };
 
 static GMutex mutex;
