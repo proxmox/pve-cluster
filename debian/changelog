@@ -1,3 +1,9 @@
+pve-cluster (4.0-7) unstable; urgency=medium
+
+  * track configuration changes inside lxc subdirectories
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 10 Apr 2015 08:31:12 +0200
+
 pve-cluster (4.0-6) unstable; urgency=medium
 
   * observe more files (improve change tracking)
