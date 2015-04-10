@@ -652,6 +652,11 @@ create_symlinks(cfs_plug_base_t *bplug, const char *nodename)
 	g_free(lnktarget);
 	cfs_plug_base_insert(bplug, (cfs_plug_t*)lnk);
 
+	lnktarget = g_strdup_printf("nodes/%s/lxc", nodename);
+	lnk = cfs_plug_link_new("lxc", lnktarget);
+	g_free(lnktarget);
+	cfs_plug_base_insert(bplug, (cfs_plug_t*)lnk);
+
 	cfs_plug_func_t *fplug = cfs_plug_func_new(".version", 0440, create_dot_version_cb, NULL);
 	cfs_plug_base_insert(bplug, (cfs_plug_t*)fplug);
 	

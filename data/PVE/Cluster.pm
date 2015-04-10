@@ -66,6 +66,7 @@ my $observed = {
     'priv/shadow.cfg' => 1,
     '/qemu-server/' => 1,
     '/openvz/' => 1,
+    '/lxc/' => 1,
     'ha/crm_commands' => 1,
     'ha/manager_status' => 1,
     'ha/resources.cfg' => 1,
@@ -129,6 +130,7 @@ sub gen_local_dirs {
 	"$basedir/priv",
 	"$basedir/nodes", 
 	"$basedir/nodes/$nodename",
+	"$basedir/nodes/$nodename/lxc",
 	"$basedir/nodes/$nodename/qemu-server",
 	"$basedir/nodes/$nodename/openvz",
 	"$basedir/nodes/$nodename/priv");
@@ -794,6 +796,12 @@ sub cfs_file_version {
 	    $version = $vmlist->{ids}->{$vmid}->{version};
 	}
 	$infotag = "/$type/";
+    } elsif ($filename =~ m!^nodes/[^/]+/lxc/(\d+)/config$!) {
+	my $vmid = $1;
+	if ($vmlist && $vmlist->{ids} && $vmlist->{ids}->{$vmid}) {
+	    $version = $vmlist->{ids}->{$vmid}->{version};
+	}
+	$infotag = "/lxc/";
     } else {
 	$infotag = $filename;
 	$version = $versions->{$filename};

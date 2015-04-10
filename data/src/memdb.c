@@ -222,6 +222,26 @@ name_is_vm_config(
 	return TRUE;
 }
 
+static gboolean 
+name_is_vm_config_dir(
+	const char *name, 
+	guint32 *vmid_ret)
+{
+	if (!name || name[0] < '1' || name[0] > '9')
+		return FALSE;
+
+	char *end = NULL;
+	guint32 vmid =  strtoul(name, &end, 10);
+
+	if (!end || end[0] != 0)
+		return FALSE;
+
+	if (vmid_ret)
+		*vmid_ret = vmid;
+
+	return TRUE;
+}
+
 static gboolean
 valid_nodename(
 	const char *nodename) 
@@ -272,6 +292,9 @@ dir_contain_vm_config(
 		} else if (strcmp(sa[1], "openvz") == 0) {
 			*vmtype_ret = VMTYPE_OPENVZ;
 			nodename = g_strdup(sa[0]);
+		} else if (strcmp(sa[1], "lxc") == 0) {
+			*vmtype_ret = VMTYPE_LXC;
+			nodename = g_strdup(sa[0]);
 		} 
 	}
 
@@ -295,9 +318,20 @@ path_contain_vm_config(
 
 	split_path(path, &dirname, &base);
 
-	if (name_is_vm_config(base, vmid_ret))
-		nodename = dir_contain_vm_config(dirname, vmtype_ret);
-
+	if ((nodename = dir_contain_vm_config(dirname, vmtype_ret))) {
+		if (*vmtype_ret == VMTYPE_LXC) {
+			if (!name_is_vm_config_dir(base, vmid_ret)) {
+				g_free(nodename);
+				nodename = NULL;
+			}
+		} else {
+			if (!name_is_vm_config(base, vmid_ret)) {
+				g_free(nodename);
+				nodename = NULL;
+			}
+		}
+	}
+	
 	if (dirname) g_free (dirname);
 	if (base) g_free (base);
 
@@ -330,15 +364,28 @@ vmlist_add_dir(
 
 		memdb_tree_entry_t *node_te = (memdb_tree_entry_t *)value;
 
-		if (node_te->type != DT_REG)
-			continue;
+		if (vmtype == VMTYPE_LXC) {
+			if (node_te->type != DT_DIR)
+				continue;
 
-		guint32 vmid = 0;
-		if (!name_is_vm_config(node_te->name, &vmid))
-			continue;
+			guint32 vmid = 0;
+			if (!name_is_vm_config_dir(node_te->name, &vmid))
+				continue;
 
-		if (!vmlist_hash_insert_vm(vmlist, vmtype, vmid, nodename, FALSE))
-			ret = FALSE;
+			if (!vmlist_hash_insert_vm(vmlist, vmtype, vmid, nodename, FALSE))
+				ret = FALSE;
+
+		} else {
+			if (node_te->type != DT_REG)
+				continue;
+
+			guint32 vmid = 0;
+			if (!name_is_vm_config(node_te->name, &vmid))
+				continue;
+
+			if (!vmlist_hash_insert_vm(vmlist, vmtype, vmid, nodename, FALSE))
+				ret = FALSE;
+		}
 	}
 
 	return ret;
@@ -476,6 +523,10 @@ memdb_recreate_vmlist(
 			if (!vmlist_add_dir(memdb, vmlist, node_te->name, VMTYPE_OPENVZ, te))
 				ret = FALSE;
 		}
+		if ((te = g_hash_table_lookup(node_te->data.entries, "lxc"))) {
+			if (!vmlist_add_dir(memdb, vmlist, node_te->name, VMTYPE_LXC, te))
+				ret = FALSE;
+		}
 	}
 
 	/* always update list - even if we detected duplicates */
@@ -568,6 +619,7 @@ int memdb_mkdir(
 
 	char *dirname = NULL;
 	char *base = NULL;
+	char *nodename = NULL;
 
 	g_mutex_lock (&memdb->mutex);
 
@@ -597,6 +649,17 @@ int memdb_mkdir(
 		ret = -EACCES;		
 		goto ret;
 	}
+
+	guint32 vmid = 0;
+	int vmtype = 0;
+
+	if ((nodename = path_contain_vm_config(path, &vmtype, &vmid))) {
+		if (vmlist_different_vm_exists(vmtype, vmid, nodename)) {
+			ret = -EEXIST;
+			goto ret;
+		}
+	}
+	
 
 	memdb_tree_entry_t *te;
 	if ((te = memdb_lookup_dir_entry(memdb, base, parent))) {
@@ -636,11 +699,15 @@ int memdb_mkdir(
 		}
 	}
 
+	if (nodename)
+		vmlist_register_vm(vmtype, vmid, nodename);
+
 	ret = 0;
 
  ret:
 	g_mutex_unlock (&memdb->mutex);
 
+	if (nodename) g_free (nodename);
 	if (dirname) g_free (dirname);
 	if (base) g_free (base);
 
@@ -897,7 +964,7 @@ memdb_mtime(
         int is_lock = (strcmp(dirname, "priv/lock") == 0) && (te->type == DT_DIR);
 
 	/* NOTE: we use utime(0,0) to trigger 'unlock', so we do not
-	 * allow to change mtime for locks (only it mtime is newer).
+	 * allow to change mtime for locks (only if mtime is newer).
 	 * See README for details about locks.
 	 */
         if (is_lock) {
@@ -1132,7 +1199,7 @@ memdb_rename(
 
 	from_node = path_contain_vm_config(from, &from_vmtype, &from_vmid);
 
-	if (from_te->type == DT_REG && (nodename = path_contain_vm_config(to, &vmtype, &vmid))) {
+	if ((nodename = path_contain_vm_config(to, &vmtype, &vmid))) {
 		if (vmlist_different_vm_exists(vmtype, vmid, nodename)) {
 			if (!(from_node && vmid == from_vmid)) {
 				ret = -EEXIST;

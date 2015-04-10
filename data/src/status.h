@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2010 Proxmox Server Solutions GmbH
+  Copyright (C) 2010-2015 Proxmox Server Solutions GmbH
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU Affero General Public License as published by
@@ -28,6 +28,7 @@
 
 #define VMTYPE_QEMU 1
 #define VMTYPE_OPENVZ 2
+#define VMTYPE_LXC 3
 
 #define CFS_MAX_STATUS_SIZE (32*1024)
 

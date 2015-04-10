@@ -581,7 +581,8 @@ vmlist_hash_insert_vm(
 	g_return_val_if_fail(vmlist != NULL, FALSE);
 	g_return_val_if_fail(nodename != NULL, FALSE);
 	g_return_val_if_fail(vmid != 0, FALSE);
-	g_return_val_if_fail(vmtype == VMTYPE_QEMU || vmtype == VMTYPE_OPENVZ, FALSE);
+	g_return_val_if_fail(vmtype == VMTYPE_QEMU || vmtype == VMTYPE_OPENVZ ||
+			     vmtype == VMTYPE_LXC, FALSE);
 
 	if (!replace && g_hash_table_lookup(vmlist, &vmid)) {
 		cfs_critical("detected duplicate VMID %d", vmid);
@@ -610,7 +611,8 @@ vmlist_register_vm(
 	g_return_if_fail(cfs_status.vmlist != NULL);
 	g_return_if_fail(nodename != NULL);
 	g_return_if_fail(vmid != 0);
-	g_return_if_fail(vmtype == VMTYPE_QEMU || vmtype == VMTYPE_OPENVZ);
+	g_return_if_fail(vmtype == VMTYPE_QEMU || vmtype == VMTYPE_OPENVZ ||
+			 vmtype == VMTYPE_LXC);
 
 	cfs_debug("vmlist_register_vm: %s/%u %d", nodename, vmid, vmtype);
 
@@ -729,6 +731,8 @@ cfs_create_vmlist_msg(GString *str)
 				type = "qemu";
 			} else if (vminfo->vmtype == VMTYPE_OPENVZ) {
 				type = "openvz";
+			} else if (vminfo->vmtype == VMTYPE_LXC) {
+				type = "lxc";
 			} else {
 				type = "unknown";
 			}
@@ -757,6 +761,18 @@ record_memdb_change(const char *path)
 
 	memdb_change_t *ce;
 
+	unsigned int vmid = 0;
+	char nodename[256];
+	char rest[4096];
+	if (cfs_status.vmlist &&
+	    sscanf(path, "nodes/%255[^/]/lxc/%u/%4095s", nodename, &vmid, rest) == 3) {
+		vminfo_t *vminfo = (vminfo_t *)g_hash_table_lookup(cfs_status.vmlist, &vmid);
+		if (vminfo && (vminfo->vmtype == VMTYPE_LXC && strcmp(vminfo->nodename, nodename) == 0)) {
+			cfs_status.vmlist_version++;
+			vminfo->version = ++vminfo_version_counter;
+		}
+	}
+	
 	if ((ce = (memdb_change_t *)g_hash_table_lookup(cfs_status.memdb_changes, path))) {
 		ce->version++;
 	}
