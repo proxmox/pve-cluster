@@ -113,6 +113,9 @@ gboolean
 path_is_private(const char *path);
 
 gboolean
+path_is_lxc_conf(const char *path);
+
+gboolean
 path_is_lockdir(const char *path);
 
 #endif /* _PVE_CFS_UTILS_H_ */

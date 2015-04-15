@@ -135,10 +135,19 @@ static int cfs_fuse_getattr(const char *path, struct stat *stbuf)
 
 		stbuf->st_gid = cfs.gid;
 
-		stbuf->st_mode &= 0777750; // no access for other users
-
-		if (path_is_private(path))
+		if (path_is_private(path)) {
 			stbuf->st_mode &= 0777700;
+		} else {
+			if (S_ISDIR(stbuf->st_mode) || S_ISLNK(stbuf->st_mode)) {
+				stbuf->st_mode &= 0777755; // access for other users
+			} else {
+				if (path_is_lxc_conf(path)) {
+					stbuf->st_mode &= 0777755; // access for other users
+				} else {
+					stbuf->st_mode &= 0777750; // no access for other users
+				}
+			}
+		}
 	}
 
 	cfs_debug("leave cfs_fuse_getattr %s (%d)", path, ret);

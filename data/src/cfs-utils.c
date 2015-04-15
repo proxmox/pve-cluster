@@ -309,6 +309,25 @@ path_is_private(const char *path)
 }
 
 gboolean
+path_is_lxc_conf(const char *path)
+{
+	while (*path == '/') path++;
+
+	if (strncmp(path, "nodes/", 6) == 0) {
+		const char *tmp = path + 6;
+		while(*tmp && *tmp != '/') tmp++;
+		if (*tmp == '/' && 
+		    (strncmp(tmp, "/lxc", 4) == 0) && 
+		    (tmp[4] == 0 || tmp[4] == '/')) {
+			return TRUE;
+		}
+	}
+       
+	return FALSE;
+}
+
+
+gboolean
 path_is_lockdir(const char *path)
 {
 	while (*path == '/') path++;
