@@ -977,6 +977,21 @@ sub log_msg {
    syslog("err", "writing cluster log failed: $@") if $@;
 }
 
+sub check_vmid_unused {
+    my ($vmid, $noerr) = @_;
+    
+    my $vmlist = get_vmlist();
+
+    my $d = $vmlist->{ids}->{$vmid};
+    return 1 if !defined($d);
+    
+    return undef if $noerr;
+
+    die "VM $vmid already exists\n" if $d->{type} eq 'qemu';
+    
+    die "CT $vmid already exists\n";
+}
+
 sub check_node_exists {
     my ($nodename, $noerr) = @_;
 
