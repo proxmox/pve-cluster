@@ -1,3 +1,9 @@
+pve-cluster (4.0-8) unstable; urgency=medium
+
+  * allow unpriviledged users to read lxc configuration
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 16 Apr 2015 07:15:31 +0200
+
 pve-cluster (4.0-7) unstable; urgency=medium
 
   * track configuration changes inside lxc subdirectories
