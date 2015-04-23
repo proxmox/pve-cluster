@@ -1,4 +1,4 @@
-RELEASE=3.3
+RELEASE=3.4
 
 PACKAGE=pve-cluster
 PKGVER=3.0
