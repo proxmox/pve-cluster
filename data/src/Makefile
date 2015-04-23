@@ -160,7 +160,7 @@ ECHO_T =
 EGREP = /bin/grep -E
 EXEEXT = 
 FUSE_CFLAGS = -D_FILE_OFFSET_BITS=64 -I/usr/include/fuse  
-FUSE_LIBS = -lfuse  
+FUSE_LIBS = -pthread -lfuse  
 GLIB_CFLAGS = -pthread -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include  
 GLIB_LIBS = -pthread -lgthread-2.0 -lrt -lglib-2.0  
 GREP = /bin/grep
