@@ -1,3 +1,9 @@
+pve-cluster (3.0-17) unstable; urgency=low
+
+  * logger: add safety checks to avoid core dumps
+  
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 23 Apr 2015 07:36:33 +0200
+
 pve-cluster (3.0-16) unstable; urgency=low
 
   * recompile, and include new package with debug information
