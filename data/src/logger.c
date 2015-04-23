@@ -133,6 +133,10 @@ clog_dump(clog_base_t *clog)
 	uint32_t cpos = clog->cpos;
 
 	while (cpos && (cpos <= clog->cpos || cpos > (clog->cpos + CLOG_MAX_ENTRY_SIZE))) {
+                if (cpos > (clog->size - sizeof(clog_entry_t))) {
+                        cfs_critical("log pointer out of range!");
+                        break;
+                }
 		clog_entry_t *cur = (clog_entry_t *)((char *)clog + cpos);
 		clog_dump_entry(cur, cpos);
 		cpos = cur->prev;
@@ -163,7 +167,12 @@ clog_dump_json(
 
 	guint count = 0;
 	while (cpos && (cpos <= clog->cpos || cpos > (clog->cpos + CLOG_MAX_ENTRY_SIZE))) {
+                if (cpos > (clog->size - sizeof(clog_entry_t))) {
+                        cfs_critical("log pointer out of range!");
+                        break;
+                }
 		clog_entry_t *cur = (clog_entry_t *)((char *)clog + cpos);
+
 		cpos = cur->prev;
 
 		if (count >= max_entries)
@@ -353,6 +362,10 @@ clog_sort(clog_base_t *clog)
 	uint32_t cpos = clog->cpos;
 
 	while (cpos && (cpos <= clog->cpos || cpos > (clog->cpos + CLOG_MAX_ENTRY_SIZE))) {
+                if (cpos > (clog->size - sizeof(clog_entry_t))) {
+                        cfs_critical("log pointer out of range!");
+                        break;
+                }
 		clog_entry_t *cur = (clog_entry_t *)((char *)clog + cpos);
 
 		g_tree_insert(tree, cur, cur);
