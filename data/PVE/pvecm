@@ -20,11 +20,15 @@ $ENV{'PATH'} = '/sbin:/bin:/usr/sbin:/usr/bin';
 $ENV{LC_ALL} = 'C';
 $ENV{HOME} = '/root'; # for ssh-copy-id
 
-die "please run as root\n" if $> != 0;
+my ($local_ip_address, $nodename);
 
-my $nodename = PVE::INotify::nodename();
-# trigger check that we have resolvable name
-my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
+if ($ARGV[0] ne 'printmanpod' && $ARGV[0] ne 'verifyapi') {
+    die "please run as root\n" if $> != 0;
+
+    $nodename = PVE::INotify::nodename();
+    # trigger check that we have resolvable name
+    $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
+}
 
 my $basedir = "/etc/pve";
 my $clusterconf = "$basedir/corosync.conf";
