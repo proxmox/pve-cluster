@@ -817,7 +817,7 @@ int main(int argc, char *argv[])
 
 	mkdir(VARLIBDIR, 0755);
 
-	if ((lockfd = open(LOCKFILE, O_RDWR|O_CREAT|O_APPEND)) == -1) {
+	if ((lockfd = open(LOCKFILE, O_RDWR|O_CREAT|O_APPEND, 0600)) == -1) {
 		cfs_critical("unable to create lock '%s': %s", LOCKFILE, strerror (errno));
 		goto err;
 	}
