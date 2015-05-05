@@ -886,7 +886,7 @@ int main(int argc, char *argv[])
 
 	root_plug = (cfs_plug_t *)bplug;
 
-	system("umount -f " CFSDIR " >/dev/null 2>&1");
+	umount2(CFSDIR, MNT_FORCE);
 
 	mkdir(CFSDIR, 0755);
 	
