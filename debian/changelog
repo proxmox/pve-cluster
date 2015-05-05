@@ -1,3 +1,9 @@
+pve-cluster (4.0-9) unstable; urgency=medium
+
+  * trigger pve-api-updates event
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 05 May 2015 15:13:41 +0200
+
 pve-cluster (4.0-8) unstable; urgency=medium
 
   * allow unpriviledged users to read lxc configuration
