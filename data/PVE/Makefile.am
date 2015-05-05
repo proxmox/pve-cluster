@@ -4,11 +4,11 @@ IPCC.c: IPCC.xs
 	xsubpp IPCC.xs > IPCC.xsc
 	mv IPCC.xsc IPCC.c
 
-AM_CFLAGS = -shared -fPIC -Wl,-z,relro -Wall -Werror -Wno-strict-aliasing -I/usr/lib/x86_64-linux-gnu/perl/5.20/CORE -DXS_VERSION=VERSION
+AM_CFLAGS = -shared -fPIC -Wl,-z,relro -Wall -Werror -Wno-strict-aliasing $(PERL_INC) -DXS_VERSION=VERSION
 LDADD = $(QB_LIBS)
 
 perlbin_PROGRAMS = IPCC.so
-perlbindir = /usr/lib/x86_64-linux-gnu/perl/5.20/auto/PVE/IPCC/
+perlbindir = $(PERL_INSTALLARCHLIB)/auto/PVE/IPCC
 
 %.1.gz: %.1.pod
 	cat $<|pod2man -n $* -s 1 -r ${VERSION} -c "Proxmox Documentation"|gzip -c9 >$@
@@ -35,7 +35,7 @@ man5_MANS = datacenter.cfg.5.gz
 IPCC_so_SOURCES = IPCC.c ppport.h
 
 pvelib_DATA = IPCC.pm Cluster.pm
-pvelibdir = /usr/share/perl5/PVE
+pvelibdir = $(PERL_VENDORLIB)/PVE
 
 install-exec-hook:
 	perl -I.. ./pvecm verifyapi

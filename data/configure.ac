@@ -59,6 +59,19 @@ HAVE_SQLITE3="yes", AC_MSG_ERROR([sqlite3 not found]))
 AC_SUBST(SQLITE3_CFLAGS)
 AC_SUBST(SQLITE3_LIBS)
 
+AC_PATH_PROG([PERL], [perl], [no])
+if test "x${PERL}" = xno; then
+  AC_MSG_ERROR([perl not found])
+fi
+AC_SUBST(PERL)
+
+PERL_INC="$(perl -MExtUtils::Embed -e perl_inc)"
+PERL_VENDORLIB="$(perl -MConfig -e 'print $Config{vendorlibexp}')"
+PERL_INSTALLARCHLIB="$(perl -MConfig -e 'print $Config{installarchlib}')"
+AC_SUBST(PERL_INC)
+AC_SUBST(PERL_VENDORLIB)
+AC_SUBST(PERL_INSTALLARCHLIB)
+
 # Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
