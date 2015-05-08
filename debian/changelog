@@ -1,3 +1,9 @@
+pve-cluster (4.0-10) unstable; urgency=medium
+
+  * add IPv6 support
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 08 May 2015 12:24:06 +0200
+
 pve-cluster (4.0-9) unstable; urgency=medium
 
   * trigger pve-api-updates event
