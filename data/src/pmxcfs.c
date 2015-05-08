@@ -41,7 +41,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
- 
+
 #include <qb/qbdefs.h>
 #include <qb/qbutil.h>
 #include <qb/qblog.h>
@@ -59,7 +59,7 @@
 #define DBFILENAME VARLIBDIR "/config.db"
 #define LOCKFILE VARLIBDIR "/.pmxcfs.lockfile"
 
-#define CFSDIR "/etc/pve" 
+#define CFSDIR "/etc/pve"
 
 cfs_t cfs = {
 	.debug = 0,
@@ -108,7 +108,7 @@ static cfs_plug_t *find_plug(const char *path, char **sub)
 
 	cfs_debug("find_plug end %s = %p (%s)", path, plug, subpath);
 
-	if (subpath && subpath[0]) 
+	if (subpath && subpath[0])
 		*sub = g_strdup(subpath);
 
 	g_free(tmppath);
@@ -129,7 +129,7 @@ static int cfs_fuse_getattr(const char *path, struct stat *stbuf)
 
 	char *subpath = NULL;
 	cfs_plug_t *plug = find_plug(path, &subpath);
-	
+
 	if (plug && plug->ops && plug->ops->getattr) {
 		ret = plug->ops->getattr(plug, subpath ? subpath : "", stbuf);
 
@@ -171,7 +171,7 @@ static int cfs_fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
 	char *subpath = NULL;
 	cfs_plug_t *plug = find_plug(path, &subpath);
-	
+
 	if (!plug)
 		goto ret;
 
@@ -179,10 +179,10 @@ static int cfs_fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		ret = plug->ops->readdir(plug, subpath ? subpath : "", buf, filler, 0, fi);
 ret:
 	cfs_debug("leave cfs_fuse_readdir %s (%d)", path, ret);
-		
+
 	if (subpath)
 		g_free(subpath);
-	
+
 	return ret;
 }
 
@@ -194,7 +194,7 @@ static int cfs_fuse_mkdir(const char *path, mode_t mode)
 
 	char *subpath = NULL;
 	cfs_plug_t *plug = find_plug(path, &subpath);
-	
+
 	if (!plug)
 		goto ret;
 
@@ -218,7 +218,7 @@ static int cfs_fuse_rmdir(const char *path)
 
 	char *subpath = NULL;
 	cfs_plug_t *plug = find_plug(path, &subpath);
-	
+
 	if (!plug)
 		goto ret;
 
@@ -275,8 +275,8 @@ static int cfs_fuse_open(const char *path, struct fuse_file_info *fi)
 
 	char *subpath = NULL;
 	cfs_plug_t *plug = find_plug(path, &subpath);
-	
-	if (plug && plug->ops) { 
+
+	if (plug && plug->ops) {
 		if ((subpath || !plug->ops->readdir) && plug->ops->open) {
 			ret = plug->ops->open(plug, subpath ? subpath : "", fi);
 		}
@@ -301,8 +301,8 @@ static int cfs_fuse_read(const char *path, char *buf, size_t size, off_t offset,
 
 	char *subpath = NULL;
 	cfs_plug_t *plug = find_plug(path, &subpath);
-	
-	if (plug && plug->ops) { 
+
+	if (plug && plug->ops) {
 		if ((subpath || !plug->ops->readdir) && plug->ops->read)
 			ret = plug->ops->read(plug, subpath ? subpath : "", buf, size, offset, fi);
 	}
@@ -326,13 +326,13 @@ static int cfs_fuse_write(const char *path, const char *buf, size_t size,
 
 	char *subpath = NULL;
 	cfs_plug_t *plug = find_plug(path, &subpath);
-	
-	if (plug && plug->ops) { 
+
+	if (plug && plug->ops) {
 		if ((subpath || !plug->ops->readdir) && plug->ops->write)
-		ret = plug->ops->write(plug, subpath ? subpath : "", 
+		ret = plug->ops->write(plug, subpath ? subpath : "",
 				       buf, size, offset, fi);
 	}
-	
+
 	cfs_debug("leave cfs_fuse_write %s (%d)", path, ret);
 
 	if (subpath)
@@ -349,8 +349,8 @@ static int cfs_fuse_truncate(const char *path, off_t size)
 
 	char *subpath = NULL;
 	cfs_plug_t *plug = find_plug(path, &subpath);
-	
-	if (plug && plug->ops) { 
+
+	if (plug && plug->ops) {
 		if ((subpath || !plug->ops->readdir) && plug->ops->truncate)
 			ret = plug->ops->truncate(plug, subpath ? subpath : "", size);
 	}
@@ -371,7 +371,7 @@ static int cfs_fuse_create(const char *path, mode_t mode, struct fuse_file_info 
 
 	char *subpath = NULL;
 	cfs_plug_t *plug = find_plug(path, &subpath);
-	
+
 	if (!plug)
 		goto ret;
 
@@ -395,7 +395,7 @@ static int cfs_fuse_unlink(const char *path)
 
 	char *subpath = NULL;
 	cfs_plug_t *plug = find_plug(path, &subpath);
-	
+
 	if (!plug)
 		goto ret;
 
@@ -407,7 +407,7 @@ ret:
 
 	if (subpath)
 		g_free(subpath);
-	
+
 	return ret;
 }
 
@@ -419,13 +419,13 @@ static int cfs_fuse_readlink(const char *path, char *buf, size_t max)
 
 	char *subpath = NULL;
 	cfs_plug_t *plug = find_plug(path, &subpath);
-	
+
 	if (!plug)
 		goto ret;
 
 	if (plug->ops && plug->ops->readlink)
 		ret = plug->ops->readlink(plug, subpath ? subpath : "", buf, max);
-	
+
 ret:
 	cfs_debug("leave cfs_fuse_readlink %s (%d)", path, ret);
 
@@ -443,13 +443,13 @@ static int cfs_fuse_utimens(const char *path, const struct timespec tv[2])
 
 	char *subpath = NULL;
 	cfs_plug_t *plug = find_plug(path, &subpath);
-	
+
 	if (!plug)
 		goto ret;
 
 	if (plug->ops && plug->ops->utimens)
 		ret = plug->ops->utimens(plug, subpath ? subpath : "", tv);
-	
+
 ret:
 	cfs_debug("leave cfs_fuse_utimens %s (%d)", path, ret);
 
@@ -566,7 +566,7 @@ create_dot_clusterlog_cb(cfs_plug_t *plug)
 static char *
 read_debug_setting_cb(cfs_plug_t *plug)
 {
-	return g_strdup_printf("%d\n", !!cfs.debug); 
+	return g_strdup_printf("%d\n", !!cfs.debug);
 }
 
 static void
@@ -596,8 +596,8 @@ my_qb_log_filter(struct qb_log_callsite *cs)
 	}
 }
 
-static void 
-update_qb_log_settings(void) 
+static void
+update_qb_log_settings(void)
 {
 	qb_log_filter_fn_set(my_qb_log_filter);
 
@@ -610,9 +610,9 @@ update_qb_log_settings(void)
 	}
 }
 
-static int 
+static int
 write_debug_setting_cb(
-	cfs_plug_t *plug, 
+	cfs_plug_t *plug,
 	const char *buf,
 	size_t size)
 {
@@ -640,7 +640,7 @@ write_debug_setting_cb(
 	return res;
 }
 
-static void 
+static void
 create_symlinks(cfs_plug_base_t *bplug, const char *nodename)
 {
 	g_return_if_fail(bplug != NULL);
@@ -655,7 +655,7 @@ create_symlinks(cfs_plug_base_t *bplug, const char *nodename)
 	lnk = cfs_plug_link_new("qemu-server", lnktarget);
 	g_free(lnktarget);
 	cfs_plug_base_insert(bplug, (cfs_plug_t*)lnk);
-	
+
 	lnktarget = g_strdup_printf("nodes/%s/openvz", nodename);
 	lnk = cfs_plug_link_new("openvz", lnktarget);
 	g_free(lnktarget);
@@ -668,7 +668,7 @@ create_symlinks(cfs_plug_base_t *bplug, const char *nodename)
 
 	cfs_plug_func_t *fplug = cfs_plug_func_new(".version", 0440, create_dot_version_cb, NULL);
 	cfs_plug_base_insert(bplug, (cfs_plug_t*)fplug);
-	
+
 	fplug = cfs_plug_func_new(".members", 0440, create_dot_members_cb, NULL);
 	cfs_plug_base_insert(bplug, (cfs_plug_t*)fplug);
 
@@ -688,7 +688,7 @@ create_symlinks(cfs_plug_base_t *bplug, const char *nodename)
 }
 
 static char *
-lookup_node_ip(const char *nodename) 
+lookup_node_ip(const char *nodename)
 {
 	char buf[INET6_ADDRSTRLEN];
 	struct addrinfo *ainfo;
@@ -705,8 +705,7 @@ lookup_node_ip(const char *nodename)
 		if (strncmp(buf, "127.", 4) != 0) {
 			res = g_strdup(buf);
 		}
-	}
-	else if (ainfo->ai_family == AF_INET6) {
+	} else if (ainfo->ai_family == AF_INET6) {
 		struct sockaddr_in6 *sa = (struct sockaddr_in6 *)ainfo->ai_addr;
 		inet_ntop(ainfo->ai_family, &sa->sin6_addr, buf, sizeof(buf));
 		if (strcmp(buf, "::1") != 0) {
@@ -719,7 +718,7 @@ lookup_node_ip(const char *nodename)
 	return res;
 }
 
-static const char* 
+static const char*
 log_tags_stringify(uint32_t tags) {
 	if (qb_bit_is_set(tags, QB_LOG_TAG_LIBQB_MSG_BIT)) {
 		return "libqb";
@@ -748,7 +747,7 @@ int main(int argc, char *argv[])
 
 	qb_log_init("pmxcfs", LOG_DAEMON, LOG_DEBUG);
 	/* remove default filter */
-	qb_log_filter_ctl(QB_LOG_SYSLOG, QB_LOG_FILTER_REMOVE, 
+	qb_log_filter_ctl(QB_LOG_SYSLOG, QB_LOG_FILTER_REMOVE,
 			  QB_LOG_FILTER_FILE, "*", LOG_DEBUG);
 
  	qb_log_tags_stringify_fn_set(log_tags_stringify);
@@ -766,7 +765,7 @@ int main(int argc, char *argv[])
 	GOptionEntry entries[] = {
 		{ "debug", 'd', 0, G_OPTION_ARG_NONE, &cfs.debug, "Turn on debug messages", NULL },
 		{ "foreground", 'f', 0, G_OPTION_ARG_NONE, &foreground, "Do not daemonize server", NULL },
-		{ "local", 'l', 0, G_OPTION_ARG_NONE, &force_local_mode, 
+		{ "local", 'l', 0, G_OPTION_ARG_NONE, &force_local_mode,
 		  "Force local mode (ignore corosync.conf, force quorum)", NULL },
 		{ NULL },
 	};
@@ -800,14 +799,14 @@ int main(int argc, char *argv[])
 		qb_log_fini();
 		exit (-1);
 	}
-	
+
 	for (int i=0; i < sizeof(utsname.nodename); i++) {
 		if (utsname.nodename[i] =='.') utsname.nodename[i] = 0;
 	}
 
 	cfs.nodename = g_strdup(utsname.nodename);
 
-	if (!(cfs.ip = lookup_node_ip(cfs.nodename))) { 
+	if (!(cfs.ip = lookup_node_ip(cfs.nodename))) {
 		cfs_critical("Unable to get local IP address");
 		qb_log_fini();
 		exit(-1);
@@ -887,7 +886,7 @@ int main(int argc, char *argv[])
 	if (conf_data) g_free(conf_data);
 
 	cfs_plug_memdb_t *config = cfs_plug_memdb_new("memdb", memdb, dcdb);
-	
+
 	cfs_plug_base_t *bplug = cfs_plug_base_new("", (cfs_plug_t *)config);
 
 	create_symlinks(bplug, cfs.nodename);
@@ -897,11 +896,11 @@ int main(int argc, char *argv[])
 	umount2(CFSDIR, MNT_FORCE);
 
 	mkdir(CFSDIR, 0755);
-	
+
 	char *fa[] = { "-f", "-odefault_permissions", "-oallow_other", NULL};
 
-	struct fuse_args fuse_args = FUSE_ARGS_INIT(sizeof (fa)/sizeof(gpointer) - 1, fa); 
-	
+	struct fuse_args fuse_args = FUSE_ARGS_INIT(sizeof (fa)/sizeof(gpointer) - 1, fa);
+
 	struct fuse_chan *fuse_chan = fuse_mount(CFSDIR, &fuse_args);
 	if (!fuse_chan) {
 		cfs_critical("fuse_mount error: %s", strerror(errno));
@@ -1015,13 +1014,13 @@ int main(int argc, char *argv[])
 	sleep(1); /* do not restart too fast */
  ret:
 
-	if (status_fsm) 
+	if (status_fsm)
 		dfsm_destroy(status_fsm);
 
 	if (dcdb)
 		dfsm_destroy(dcdb);
 
-	if (memdb) 
+	if (memdb)
 		memdb_close(memdb);
 
 	if (wrote_pidfile)
