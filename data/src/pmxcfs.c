@@ -690,6 +690,7 @@ create_symlinks(cfs_plug_base_t *bplug, const char *nodename)
 static char *
 lookup_node_ip(const char *nodename) 
 {
+	char buf[INET6_ADDRSTRLEN];
 	struct addrinfo *ainfo;
 	struct addrinfo ahints;
 	memset(&ahints, 0, sizeof(ahints));
@@ -698,7 +699,6 @@ lookup_node_ip(const char *nodename)
 		return NULL;
 
 	if (ainfo->ai_family == AF_INET) {
-		char buf[INET6_ADDRSTRLEN];
 		struct sockaddr_in *sa = (struct sockaddr_in *)ainfo->ai_addr;
 		inet_ntop(ainfo->ai_family, &sa->sin_addr, buf, sizeof(buf));
 		if (strncmp(buf, "127.", 4) != 0) {
@@ -706,7 +706,13 @@ lookup_node_ip(const char *nodename)
 		}
 	}
 
-	// ipv6 support ?
+	if (ainfo->ai_family == AF_INET6) {
+		struct sockaddr_in6 *sa = (struct sockaddr_in6 *)ainfo->ai_addr;
+		inet_ntop(ainfo->ai_family, &sa->sin6_addr, buf, sizeof(buf));
+		if (strcmp(buf, "::1") != 0) {
+			return g_strdup(buf);
+		}
+	}
 
 	return NULL;
 }
