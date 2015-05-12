@@ -1010,26 +1010,32 @@ sub remote_node_ip {
     my $nodelist = $clinfo->{nodelist};
     if ($nodelist && $nodelist->{$nodename}) {
 	if (my $ip = $nodelist->{$nodename}->{ip}) {
-	    return $ip;
+	    return wantarray ? ($ip, PVE::Tools::get_host_address_family($ip))
+	                     : $ip;
 	}
     }
 
     # fallback: try to get IP by other means
-    my $packed_ip = gethostbyname($nodename);
-    if (defined $packed_ip) {
-        my $ip = inet_ntoa($packed_ip);
+    my ($family, $packed_ip);
 
-	if ($ip =~ m/^127\./) {
-	    die "hostname lookup failed - got local IP address ($nodename = $ip)\n" if !$noerr;
-	    return undef;
-	}
+    eval {
+	my @res = PVE::Tools::getaddrinfo_all($nodename);
+	$family = $res[0]->{family};
+	$packed_ip = (PVE::Tools::unpack_sockaddr_in46($res[0]->{addr}))[2];
+    };
 
-	return $ip;
+    if ($@) {
+	die "hostname lookup failed:\n$@" if !$noerr;
+	return undef;
     }
 
-    die "unable to get IP for node '$nodename' - node offline?\n" if !$noerr;
+    my $ip = Socket::inet_ntop($family, $packed_ip);
+    if ($ip =~ m/^127\.|^::1$/) {
+	die "hostname lookup failed - got local IP address ($nodename = $ip)\n" if !$noerr;
+	return undef;
+    }
 
-    return undef;
+    return wantarray ? ($ip, $family) : $ip;
 }
 
 # ssh related utility functions
