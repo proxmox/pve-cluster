@@ -1010,8 +1010,14 @@ sub remote_node_ip {
     my $nodelist = $clinfo->{nodelist};
     if ($nodelist && $nodelist->{$nodename}) {
 	if (my $ip = $nodelist->{$nodename}->{ip}) {
-	    return wantarray ? ($ip, PVE::Tools::get_host_address_family($ip))
-	                     : $ip;
+	    return $ip if !wantarray;
+	    my $family = $nodelist->{$nodename}->{address_family};
+	    if (!$family) {
+		$nodelist->{$nodename}->{address_family} =
+		    $family =
+		    PVE::Tools::get_host_address_family($ip);
+	    }
+	    return ($ip, $family);
 	}
     }
 
