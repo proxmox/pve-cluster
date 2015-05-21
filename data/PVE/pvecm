@@ -5,6 +5,7 @@ use warnings;
 use Getopt::Long;
 use Socket;
 use IO::File;
+use Net::IP;
 use File::Path;
 use File::Basename;
 use Data::Dumper; # fixme: remove 
@@ -154,12 +155,20 @@ __PACKAGE__->register_method ({
 
 	$param->{votes} = 1 if !defined($param->{votes});
 
+	# No, corosync cannot deduce this on its own
+	my $ipversion = Net::IP::ip_is_ipv6($local_ip_address) ? 'ipv6' : 'ipv4';
+
 	my $config = <<_EOD;
 totem {
   version: 2
   secauth: on
   cluster_name: $clustername
   config_version: 1
+  ip_version: $ipversion
+  interface {
+    ringnumber: 0
+    bindnetaddr: $local_ip_address
+  }
 }
 
 nodelist {
