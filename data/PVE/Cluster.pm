@@ -235,7 +235,7 @@ sub gen_pve_ssl_cert {
 
     return if !$force && -f $pvessl_cert_fn;
 
-    my $names = "IP:127.0.0.1,DNS:localhost";
+    my $names = "IP:127.0.0.1,IP:::1,DNS:localhost";
 
     my $rc = PVE::INotify::read_file('resolvconf');
 
