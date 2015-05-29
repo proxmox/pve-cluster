@@ -51,6 +51,7 @@ my $ssh_host_rsa_id = "/etc/ssh/ssh_host_rsa_key.pub";
 my $sshglobalknownhosts = "/etc/ssh/ssh_known_hosts";
 my $sshknownhosts = "/etc/pve/priv/known_hosts";
 my $sshauthkeys = "/etc/pve/priv/authorized_keys";
+my $sshd_config_fn = "/etc/ssh/sshd_config";
 my $rootsshauthkeys = "/root/.ssh/authorized_keys";
 my $rootsshauthkeysbackup = "${rootsshauthkeys}.org";
 my $rootsshconfig = "/root/.ssh/config";
@@ -1087,6 +1088,22 @@ sub ssh_merge_keys {
 	# everything went well, so we can remove the backup
 	unlink $rootsshauthkeysbackup;
     }
+}
+
+sub setup_sshd_config {
+
+    my $conf = PVE::Tools::file_get_contents($sshd_config_fn);
+    
+    return if $conf =~ m/^PermitRootLogin\s+yes\s*$/m;
+
+    if ($conf !~ s/^#?PermitRootLogin.*$/PermitRootLogin yes/m) {
+	chomp $conf;
+	$conf .= "\nPermitRootLogin yes\n";
+    } 
+
+    PVE::Tools::file_set_contents($sshd_config_fn, $conf);
+
+    PVE::Tools::run_command(['systemctl', 'reload-or-restart', 'sshd']);
 }
 
 sub setup_rootsshconfig {
