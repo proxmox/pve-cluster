@@ -1,3 +1,9 @@
+pve-cluster (4.0-11) unstable; urgency=medium
+
+  *  allow sshd root login when we setup a PVE cluster
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 29 May 2015 14:45:35 +0200
+
 pve-cluster (4.0-10) unstable; urgency=medium
 
   * add IPv6 support
