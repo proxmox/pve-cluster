@@ -198,9 +198,9 @@ _EOD
 
 	PVE::Cluster::ssh_merge_known_hosts($nodename, $local_ip_address, 1);
 
-	PVE::Tools::run_command('service pve-cluster restart'); # restart
+	PVE::Tools::run_command('systemctl restart pve-cluster'); # restart
 
-	PVE::Tools::run_command('service corosync restart'); # restart
+	PVE::Tools::run_command('systemctl restart corosync'); # restart
 	
 	return undef;
 }});
