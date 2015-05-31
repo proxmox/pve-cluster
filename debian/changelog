@@ -1,3 +1,9 @@
+pve-cluster (3.0-18) unstable; urgency=low
+
+  * improve parser for /etc/ssh/ssh_host_rsa_key.pub
+
+ -- Proxmox Support Team <support@proxmox.com>  Sun, 31 May 2015 08:11:23 +0200
+
 pve-cluster (3.0-17) unstable; urgency=low
 
   * logger: add safety checks to avoid core dumps
