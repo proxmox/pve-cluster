@@ -1140,7 +1140,7 @@ sub ssh_merge_known_hosts {
     }
 
     my $hostkey = PVE::Tools::file_get_contents($ssh_host_rsa_id);
-    die "can't parse $ssh_rsa_id" if $hostkey !~ m/^(ssh-rsa\s\S+)(\s.*)?$/;
+    die "can't parse $ssh_host_rsa_id" if $hostkey !~ m/^(ssh-rsa\s\S+)(\s.*)?$/;
     $hostkey = $1;
 
     my $data = '';
