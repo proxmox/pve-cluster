@@ -332,5 +332,5 @@ path_is_lockdir(const char *path)
 {
 	while (*path == '/') path++;
 
-	return (strncmp(path, "priv/lock/", 10) == 0) && (strlen(path) > 10);
+	return (strncmp(path, "priv/lock/", 10) == 0) && path[10];
 }
