@@ -23,7 +23,7 @@ $ENV{HOME} = '/root'; # for ssh-copy-id
 
 my ($local_ip_address, $nodename);
 
-if ($ARGV[0] ne 'printmanpod' && $ARGV[0] ne 'verifyapi') {
+if (defined($ARGV[0]) && $ARGV[0] ne 'printmanpod' && $ARGV[0] ne 'verifyapi') {
     die "please run as root\n" if $> != 0;
 
     $nodename = PVE::INotify::nodename();
