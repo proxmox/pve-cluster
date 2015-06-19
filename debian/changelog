@@ -1,3 +1,9 @@
+pve-cluster (4.0-13) unstable; urgency=medium
+
+  * pvecm: avoid warning about uninitialized value
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 19 Jun 2015 07:33:37 +0200
+
 pve-cluster (4.0-12) unstable; urgency=medium
 
   * remove debian trigger for pve-api-updates
