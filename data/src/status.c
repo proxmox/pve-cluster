@@ -87,6 +87,7 @@ static memdb_change_t memdb_change_array[] = {
 	{ .path = "ha/manager_status" },
 	{ .path = "ha/resources.cfg" },
 	{ .path = "ha/groups.cfg" },
+	{ .path = "status.cfg" },
 };
 
 static GMutex mutex;

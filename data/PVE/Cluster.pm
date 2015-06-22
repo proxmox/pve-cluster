@@ -72,6 +72,7 @@ my $observed = {
     'ha/manager_status' => 1,
     'ha/resources.cfg' => 1,
     'ha/groups.cfg' => 1,
+    'status.cfg' => 1,
 };
 
 # only write output if something fails
