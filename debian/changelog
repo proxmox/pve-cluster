@@ -1,3 +1,9 @@
+pve-cluster (4.0-14) unstable; urgency=medium
+
+  * add new observed file status.cfg
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 22 Jun 2015 09:36:53 +0200
+
 pve-cluster (4.0-13) unstable; urgency=medium
 
   * pvecm: avoid warning about uninitialized value
