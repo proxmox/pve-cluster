@@ -379,7 +379,7 @@ __PACKAGE__->register_method ({
 
 	    my $vmlist = PVE::Cluster::get_vmlist();
 	    if ($vmlist && $vmlist->{ids} && scalar(keys %{$vmlist->{ids}})) {
-		die "this host already contains virtual machines - please remove the first\n";
+		die "this host already contains virtual machines - please remove them first\n";
 	    }
 
 	    if (system("corosync-quorumtool >/dev/null 2>&1") == 0) {
