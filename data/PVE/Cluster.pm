@@ -792,18 +792,12 @@ sub cfs_file_version {
 
     my $version;
     my $infotag;
-    if ($filename =~ m!^nodes/[^/]+/(openvz|qemu-server)/(\d+)\.conf$!) {
+    if ($filename =~ m!^nodes/[^/]+/(openvz|lxc|qemu-server)/(\d+)\.conf$!) {
 	my ($type, $vmid) = ($1, $2);
 	if ($vmlist && $vmlist->{ids} && $vmlist->{ids}->{$vmid}) {
 	    $version = $vmlist->{ids}->{$vmid}->{version};
 	}
 	$infotag = "/$type/";
-    } elsif ($filename =~ m!^nodes/[^/]+/lxc/(\d+)/config$!) {
-	my $vmid = $1;
-	if ($vmlist && $vmlist->{ids} && $vmlist->{ids}->{$vmid}) {
-	    $version = $vmlist->{ids}->{$vmid}->{version};
-	}
-	$infotag = "/lxc/";
     } else {
 	$infotag = $filename;
 	$version = $versions->{$filename};

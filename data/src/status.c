@@ -762,18 +762,6 @@ record_memdb_change(const char *path)
 
 	memdb_change_t *ce;
 
-	unsigned int vmid = 0;
-	char nodename[256];
-	char rest[4096];
-	if (cfs_status.vmlist &&
-	    sscanf(path, "nodes/%255[^/]/lxc/%u/%4095s", nodename, &vmid, rest) == 3) {
-		vminfo_t *vminfo = (vminfo_t *)g_hash_table_lookup(cfs_status.vmlist, &vmid);
-		if (vminfo && (vminfo->vmtype == VMTYPE_LXC && strcmp(vminfo->nodename, nodename) == 0)) {
-			cfs_status.vmlist_version++;
-			vminfo->version = ++vminfo_version_counter;
-		}
-	}
-	
 	if ((ce = (memdb_change_t *)g_hash_table_lookup(cfs_status.memdb_changes, path))) {
 		ce->version++;
 	}
