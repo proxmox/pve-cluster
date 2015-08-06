@@ -1,3 +1,9 @@
+pve-cluster (4.0-15) unstable; urgency=medium
+
+  * use simple files for LXC configuration (instead of subdirs)
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 06 Aug 2015 11:22:05 +0200
+
 pve-cluster (4.0-14) unstable; urgency=medium
 
   * add new observed file status.cfg
