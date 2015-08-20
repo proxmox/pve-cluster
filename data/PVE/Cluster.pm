@@ -1429,9 +1429,6 @@ sub xml_escape_attrib {
 
     return '' if !defined($data);
 
-    $data =~ s/&/&amp;/sg;
-    $data =~ s/</&lt;/sg;
-    $data =~ s/>/&gt;/sg;
     $data =~ s/"/&quot;/sg;
 
     return $data;
