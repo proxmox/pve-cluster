@@ -1,3 +1,9 @@
+pve-cluster (3.0-19) unstable; urgency=low
+
+  * fix bug #686: Fix escaping of XML attributes in cluster.conf
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 22 Aug 2015 10:31:33 +0200
+
 pve-cluster (3.0-18) unstable; urgency=low
 
   * improve parser for /etc/ssh/ssh_host_rsa_key.pub
