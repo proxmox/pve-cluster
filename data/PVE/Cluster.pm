@@ -1331,7 +1331,7 @@ sub get_datacenter_schema { return $datacenter_schema };
 sub parse_datacenter_config {
     my ($filename, $raw) = @_;
 
-    return PVE::JSONSchema::parse_config($datacenter_schema, $filename, $raw);
+    return PVE::JSONSchema::parse_config($datacenter_schema, $filename, $raw // '');
 }
 
 sub write_datacenter_config {
