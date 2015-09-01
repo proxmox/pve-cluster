@@ -1,3 +1,9 @@
+pve-cluster (4.0-16) unstable; urgency=medium
+
+  * avoid warnings if there is no /etc/pve/datacenter.cfg
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 01 Sep 2015 10:43:30 +0200
+
 pve-cluster (4.0-15) unstable; urgency=medium
 
   * use simple files for LXC configuration (instead of subdirs)
