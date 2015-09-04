@@ -1476,4 +1476,35 @@ PVE::Cluster::cfs_register_file('corosync.conf', \&parse_corosync_conf);
 PVE::Cluster::cfs_register_file('corosync.conf.new', \&parse_corosync_conf, 
 				\&write_corosync_conf);
 
+# bash completion helpers
+
+sub complete_next_vmid {
+
+    my $vmlist = get_vmlist() || {};
+    my $idlist = $vmlist->{ids} || {};
+
+    for (my $i = 100; $i < 10000; $i++) {
+	return [$i] if !defined($idlist->{$i});
+    }
+
+    return [];
+}
+
+sub complete_local_vmid {
+
+    my $vmlist = get_vmlist();
+    my $ids = $vmlist->{ids} || {};
+
+    my $nodename = PVE::INotify::nodename();
+
+    my $res = [];
+    foreach my $vmid (keys %$ids) {
+	my $d = $ids->{$vmid};
+	next if !$d->{node} || $d->{node} ne $nodename;
+	push @$res, $vmid;
+    }
+
+    return $res;
+}
+
 1;
