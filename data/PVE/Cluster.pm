@@ -1507,4 +1507,19 @@ sub complete_local_vmid {
     return $res;
 }
 
+sub complete_migration_target {
+
+    my $res = [];
+
+    my $nodename = PVE::INotify::nodename();
+
+    my $nodelist = get_nodelist();
+    foreach my $node (@$nodelist) {
+	next if $node eq $nodename;
+	push @$res, $node;
+    }
+
+    return $res;
+}
+
 1;
