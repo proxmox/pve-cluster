@@ -1,3 +1,9 @@
+pve-cluster (4.0-17) unstable; urgency=medium
+
+  * add some bash completion helpers
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 08 Sep 2015 07:21:34 +0200
+
 pve-cluster (4.0-16) unstable; urgency=medium
 
   * avoid warnings if there is no /etc/pve/datacenter.cfg
