@@ -1,3 +1,9 @@
+pve-cluster (4.0-18) unstable; urgency=medium
+
+  * add another bash completion helper: complete_vmid
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 18 Sep 2015 09:19:11 +0200
+
 pve-cluster (4.0-17) unstable; urgency=medium
 
   * add some bash completion helpers
