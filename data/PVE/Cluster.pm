@@ -1490,6 +1490,14 @@ sub complete_next_vmid {
     return [];
 }
 
+sub complete_vmid {
+
+    my $vmlist = get_vmlist();
+    my $ids = $vmlist->{ids} || {};
+
+    return [ keys %$ids ];
+}
+
 sub complete_local_vmid {
 
     my $vmlist = get_vmlist();
