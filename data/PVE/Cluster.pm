@@ -977,15 +977,23 @@ sub check_vmid_unused {
     my ($vmid, $noerr) = @_;
     
     my $vmlist = get_vmlist();
+    my $node = PVE::INotify::nodename();
 
     my $d = $vmlist->{ids}->{$vmid};
     return 1 if !defined($d);
     
     return undef if $noerr;
 
-    die "VM $vmid already exists\n" if $d->{type} eq 'qemu';
-    
-    die "CT $vmid already exists\n";
+    my $msg = "$vmid already exists";
+    my $msg_cluster = "$msg on cluster node '$d->{node}'";
+
+    if ($d->{node} eq $node) {
+	die "VM $msg\n" if $d->{type} eq 'qemu';
+	die "CT $msg\n";
+    } else {
+        die "VM $msg_cluster\n" if $d->{type} eq 'qemu';
+        die "CT $msg_cluster\n";
+    }
 }
 
 sub check_node_exists {
