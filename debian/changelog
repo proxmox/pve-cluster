@@ -1,3 +1,9 @@
+pve-cluster (4.0-19) unstable; urgency=medium
+
+  * check_vmid_unused: improved error message
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 23 Sep 2015 07:56:52 +0200
+
 pve-cluster (4.0-18) unstable; urgency=medium
 
   * add another bash completion helper: complete_vmid
