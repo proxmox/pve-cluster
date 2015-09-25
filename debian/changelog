@@ -1,3 +1,11 @@
+pve-cluster (4.0-20) unstable; urgency=medium
+
+  * convert pvecm into a PVE::CLI class
+
+  * install bash completion configuration file
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 25 Sep 2015 13:03:06 +0200
+
 pve-cluster (4.0-19) unstable; urgency=medium
 
   * check_vmid_unused: improved error message
