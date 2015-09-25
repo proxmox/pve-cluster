@@ -927,6 +927,14 @@ sub cfs_lock_storage {
     &$cfs_lock($lockid, $timeout, $code, @param);
 }
 
+sub cfs_lock_domain {
+    my ($domainname, $timeout, $code, @param) = @_;
+
+    my $lockid = "domain-$domainname";
+
+    &$cfs_lock($lockid, $timeout, $code, @param);
+}
+
 my $log_levels = {
     "emerg" => 0,
     "alert" => 1,
