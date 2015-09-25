@@ -20,6 +20,9 @@ perlbindir = $(PERL_INSTALLARCHLIB)/auto/PVE/IPCC
 	perl -I.. -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_pod_manpage();" >$@.tmp
 	mv $@.tmp $@
 
+%.bash-completion:
+	perl -I.. -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_bash_completions();" >$@.tmp
+	mv $@.tmp $@
 
 datacenter.cfg.5.pod: Cluster.pm gen-datacenter-pod.pl
 	perl -I.. ./gen-datacenter-pod.pl > $@
@@ -39,10 +42,13 @@ IPCC_so_SOURCES = IPCC.c ppport.h
 pvelib_DATA = IPCC.pm Cluster.pm
 pvelibdir = $(PERL_VENDORLIB)/PVE
 
+noinst_DATA = pvecm.bash-completion
+
 cliclass_DATA = CLI/pvecm.pm
 cliclassdir = $(PERL_VENDORLIB)/PVE/CLI
 
-install-exec-hook:
+install-exec-hook: pvecm.bash-completion
 	perl -I.. -T -e "use PVE::CLI::pvecm; PVE::CLI::pvecm->verify_api();"
+	install -m 0644 -D pvecm.bash-completion ${DESTDIR}/usr/share/bash-completion/completions/pvecm
 
 CLEANFILES = IPCC.c *~ *.1.gz *.5.gz *.pod
