@@ -17,7 +17,9 @@ perlbindir = $(PERL_INSTALLARCHLIB)/auto/PVE/IPCC
 	cat $<|pod2man -n $* -s 5 -r ${VERSION} -c "Proxmox Documentation"|gzip -c9 >$@
 
 %.1.pod: %
-	perl -I.. ./$* printmanpod > $@
+	perl -I.. -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_pod_manpage();" >$@.tmp
+	mv $@.tmp $@
+
 
 datacenter.cfg.5.pod: Cluster.pm gen-datacenter-pod.pl
 	perl -I.. ./gen-datacenter-pod.pl > $@
@@ -37,7 +39,10 @@ IPCC_so_SOURCES = IPCC.c ppport.h
 pvelib_DATA = IPCC.pm Cluster.pm
 pvelibdir = $(PERL_VENDORLIB)/PVE
 
+cliclass_DATA = CLI/pvecm.pm
+cliclassdir = $(PERL_VENDORLIB)/PVE/CLI
+
 install-exec-hook:
-	perl -I.. ./pvecm verifyapi
+	perl -I.. -T -e "use PVE::CLI::pvecm; PVE::CLI::pvecm->verify_api();"
 
 CLEANFILES = IPCC.c *~ *.1.gz *.5.gz *.pod
