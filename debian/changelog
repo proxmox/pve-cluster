@@ -1,3 +1,9 @@
+pve-cluster (4.0-21) unstable; urgency=medium
+
+  * add function to lock a domain
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 26 Sep 2015 10:31:25 +0200
+
 pve-cluster (4.0-20) unstable; urgency=medium
 
   * convert pvecm into a PVE::CLI class
