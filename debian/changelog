@@ -1,3 +1,9 @@
+pve-cluster (4.0-22) unstable; urgency=medium
+
+  * check_vmid_unused: fix error message
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 05 Oct 2015 13:16:05 +0200
+
 pve-cluster (4.0-21) unstable; urgency=medium
 
   * add function to lock a domain
