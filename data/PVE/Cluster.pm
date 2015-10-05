@@ -992,7 +992,7 @@ sub check_vmid_unused {
     return undef if $noerr;
 
     my $vmtypestr =  $d->{type} eq 'qemu' ? 'VM' : 'CT';
-    die "$vmtypestr $vmid already exists on node '$d->{node}'";
+    die "$vmtypestr $vmid already exists on node '$d->{node}'\n";
 }
 
 sub check_node_exists {
