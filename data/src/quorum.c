@@ -110,23 +110,18 @@ static int service_quorum_initialize(
                 result = quorum_initialize(&handle, &quorum_callbacks, &quorum_type);
                 if (result != CS_OK) {
                         cfs_critical("quorum_initialize failed: %d", result);
-			private->handle = 0;
-			return -1;
+			goto err_reset_handle;
 		}
 
 		if (quorum_type != QUORUM_SET) {
-			cfs_critical("quorum_initialize returned wron quorum_type: %d", quorum_type);
-			quorum_finalize(handle);
-			private->handle = 0;
-			return -1;
+			cfs_critical("quorum_initialize returned wrong quorum_type: %d", quorum_type);
+			goto err_finalize;
 		}
 
 		result = quorum_context_set(handle, private);
 		if (result != CS_OK) {
 			cfs_critical("quorum_context_set failed: %d", result);
-			quorum_finalize(handle);
-			private->handle = 0;
-			return -1;
+			goto err_finalize;
 		}
 
 		private->handle = handle;
@@ -136,9 +131,7 @@ static int service_quorum_initialize(
 	result = quorum_trackstart(handle, CS_TRACK_CHANGES);
 	if (result == CS_ERR_LIBRARY || result == CS_ERR_BAD_HANDLE) {
 		cfs_critical("quorum_trackstart failed: %d - closing handle", result);
-		quorum_finalize(handle);
-		private->handle = 0;
-		return -1;
+		goto err_finalize;
 	} else if (result != CS_OK) {
 		cfs_critical("quorum_trackstart failed: %d - trying again", result);
 		return -1;
@@ -151,6 +144,12 @@ static int service_quorum_initialize(
 	}
 
 	return quorum_fd;
+
+ err_finalize:
+	quorum_finalize(handle);
+ err_reset_handle:
+	private->handle = 0;
+	return -1;
 }
 
 static gboolean service_quorum_dispatch(

@@ -918,13 +918,13 @@ ret:
 	cfs_debug("leave %s (%d)", __func__, res);
 
 	return res;
+
+unknown:
+	cfs_critical("received unknown message type (msg_type == %d)", msg_type);
 leave:
 	res = -1;
 	goto ret;
 
-unknown:
-	cfs_critical("received unknown message type (msg_type == %d)", msg_type);
-	goto leave;
 };
 
 static dfsm_callbacks_t dcdb_dfsm_callbacks = {

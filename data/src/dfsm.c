@@ -1371,13 +1371,12 @@ dfsm_initialize(dfsm_t *dfsm, int *fd)
 	if (dfsm->cpg_handle == 0) {
 		if ((result = cpg_initialize(&dfsm->cpg_handle, dfsm->cpg_callbacks)) != CS_OK) {
 			cfs_dom_critical(dfsm->log_domain, "cpg_initialize failed: %d", result);
-			dfsm->cpg_handle = 0;
-			goto fail;
+			goto err_no_finalize;
 		}
 
 		if ((result = cpg_local_get(dfsm->cpg_handle, &dfsm->nodeid)) != CS_OK) {
 			cfs_dom_critical(dfsm->log_domain, "cpg_local_get failed: %d", result);
-			goto fail;
+			goto err_finalize;
 		}
 
 		dfsm->pid = getpid();
@@ -1385,21 +1384,21 @@ dfsm_initialize(dfsm_t *dfsm, int *fd)
 		result = cpg_context_set(dfsm->cpg_handle, dfsm);
 		if (result != CS_OK) {
 			cfs_dom_critical(dfsm->log_domain, "cpg_context_set failed: %d", result);
-			goto fail;
+			goto err_finalize;
 		}
 	}
 
 	result = cpg_fd_get(dfsm->cpg_handle, fd);
 	if (result != CS_OK) {
 		cfs_dom_critical(dfsm->log_domain, "cpg_fd_get failed: %d", result);
-		goto fail;
+		goto err_finalize;
 	}
        
 	return CS_OK;
 
-fail:
-	if (dfsm->cpg_handle) 
-		cpg_finalize(dfsm->cpg_handle);
+ err_finalize:
+	cpg_finalize(dfsm->cpg_handle);
+ err_no_finalize:
 	dfsm->cpg_handle = 0;
 	return result;
 }
@@ -1613,13 +1612,11 @@ service_dfsm_dispatch(
 
 	return TRUE;
 
+finalize:
+	dfsm_finalize(dfsm);
 fail:
 	cfs_service_set_restartable(service, dfsm_restartable(dfsm));
 	return FALSE;
-
-finalize:
-	dfsm_finalize(dfsm);
-	goto fail;
 }
 
 static void 
