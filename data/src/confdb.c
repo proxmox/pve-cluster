@@ -97,6 +97,15 @@ cmap_read_clusternodes(
 				cfs_critical("cmap_get %s failed %d", key_name, result);
 			}
 		} else if (strcmp(subkey, "ring0_addr") == 0) {
+			// prefering the 'name' subkey over 'ring0_addr', needed for RRP
+			// and when using a IP address for ring0_addr
+			if (name == NULL &&
+			    (result = cmap_get_string(handle, key_name, &name)) != CS_OK) {
+				cfs_critical("cmap_get %s failed %d", key_name, result);
+			}
+		} else if (strcmp(subkey, "name") == 0) {
+			free(name);
+			name = NULL;
 			if ((result = cmap_get_string(handle, key_name, &name)) != CS_OK) {
 				cfs_critical("cmap_get %s failed %d", key_name, result);
 			}
