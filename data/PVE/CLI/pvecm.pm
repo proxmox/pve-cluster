@@ -121,7 +121,40 @@ __PACKAGE__->register_method ({
 		minimum => 1,
 		optional => 1,
 	    },
-	}, 
+	    bindnet0_addr => {
+		type => 'string', format => 'ip',
+		description => "This specifies the network address the corosync ring 0".
+		    " executive should bind to and defaults to the local IP address of the node.",
+		optional => 1,
+	    },
+	    ring0_addr => {
+		type => 'string', format => 'address',
+		description => "Hostname (or IP) of the corosync ring0 address of this node.".
+		    " Defaults to the hostname of the node.",
+		optional => 1,
+	    },
+	    rrp_mode => {
+		type => 'string',
+		enum => ['none', 'active', 'passive'],
+		description => "This specifies the mode of redundant ring, which" .
+		    " may be none, active or passive. Using multiple interfaces".
+		    " only allows 'active' or 'passive'.",
+		default => 'none',
+		optional => 1,
+	    },
+	    bindnet1_addr => {
+		type => 'string', format => 'ip',
+		description => "This specifies the network address the corosync ring 1".
+		    " executive should bind to and is optional.",
+		optional => 1,
+	    },
+	    ring1_addr => {
+		type => 'string', format => 'address',
+		description => "Hostname (or IP) of the corosync ring1 address, this".
+		    " needs an valid bindnet1_addr.",
+		optional => 1,
+	    },
+	},
     },
     returns => { type => 'null' },
     
@@ -148,8 +181,50 @@ __PACKAGE__->register_method ({
 	
 	my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
 
+	$param->{bindnet0_addr} = $local_ip_address
+	    if !defined($param->{bindnet0_addr});
+
+	$param->{ring0_addr} = $nodename if !defined($param->{ring0_addr});
+
+	die "Param bindnet1_addr and ring1_addr are dependend, use both or none!\n"
+	    if (defined($param->{bindnet1_addr}) != defined($param->{ring1_addr}));
+
+	my $bind_is_ipv6 = Net::IP::ip_is_ipv6($param->{bindnet0_addr});
+
+	# use string as here-doc format distracts more
+	my $interfaces = "interface {\n    ringnumber: 0\n" .
+	    "    bindnetaddr: $param->{bindnet0_addr}\n  }";
+
+	my $ring_addresses = "ring0_addr: $param->{ring0_addr}" ;
+
+	# allow use of multiple rings (rrp) at cluster creation time
+	if ($param->{bindnet1_addr}) {
+	    die "IPv6 and IPv4 cannot be mixed, use one or the other!\n"
+		if Net::IP::ip_is_ipv6($param->{bindnet1_addr}) != $bind_is_ipv6;
+
+	    die "rrp_mode 'none' is not allowed when using multiple interfaces,".
+		" use 'active' or 'passive'!\n"
+		if !$param->{rrp_mode} || $param->{rrp_mode} eq 'none';
+
+	    $interfaces .= "\n  interface {\n    ringnumber: 1\n" .
+		"    bindnetaddr: $param->{bindnet1_addr}\n  }\n";
+
+	    $ring_addresses .= "\n    ring1_addr: $param->{ring1_addr}";
+
+	} elsif($param->{rrp_mode} && $param->{rrp_mode} ne 'none') {
+
+	    warn "rrp_mode '$param->{rrp_mode}' useless when using only one".
+		" ring, using 'none' instead";
+	    # corosync defaults to none if only one interface is configured
+	    $param->{rrp_mode} = undef;
+
+	}
+
+	$interfaces = "rrp_mode: $param->{rrp_mode}\n  " . $interfaces
+	    if $param->{rrp_mode};
+
 	# No, corosync cannot deduce this on its own
-	my $ipversion = Net::IP::ip_is_ipv6($local_ip_address) ? 'ipv6' : 'ipv4';
+	my $ipversion = $bind_is_ipv6 ? 'ipv6' : 'ipv4';
 
 	my $config = <<_EOD;
 totem {
@@ -158,20 +233,18 @@ totem {
   cluster_name: $clustername
   config_version: 1
   ip_version: $ipversion
-  interface {
-    ringnumber: 0
-    bindnetaddr: $local_ip_address
-  }
+  $interfaces
 }
 
 nodelist {
   node {
-    ring0_addr: $nodename
+    $ring_addresses
+    name: $nodename
     nodeid: $param->{nodeid}
     quorum_votes: $param->{votes}
   }
 }
-	
+
 quorum {
   provider: corosync_votequorum
 }
@@ -181,7 +254,7 @@ logging {
   debug: off
 }
 _EOD
-;	
+;
 	PVE::Tools::file_set_contents($clusterconf, $config);
 
 	PVE::Cluster::ssh_merge_keys();
@@ -223,6 +296,18 @@ __PACKAGE__->register_method ({
 		description => "Do not throw error if node already exists.",
 		optional => 1,
 	    },
+	    ring0_addr => {
+		type => 'string', format => 'address',
+		description => "Hostname (or IP) of the corosync ring0 address of this node.".
+		    " Defaults to nodes hostname.",
+		optional => 1,
+	    },
+	    ring1_addr => {
+		type => 'string', format => 'address',
+		description => "Hostname (or IP) of the corosync ring1 address, this".
+		    " needs an valid bindnet1_addr.",
+		optional => 1,
+	    },
 	},
     },
     returns => { type => 'null' },
@@ -236,7 +321,14 @@ __PACKAGE__->register_method ({
 
 	my $nodelist = corosync_nodelist($conf);
 
+	my $totem_cfg = corosync_totem_config($conf);
+
 	my $name = $param->{node};
+
+	$param->{ring0_addr} = $name if !$param->{ring0_addr};
+
+	die " ring1_addr needs a configured ring 1 interface!\n"
+	    if $param->{ring1_addr} && !defined($totem_cfg->{interface}->{1});
 
 	if (defined(my $res = $nodelist->{$name})) {
 	    $param->{nodeid} = $res->{nodeid} if !$param->{nodeid};
@@ -278,7 +370,12 @@ __PACKAGE__->register_method ({
 	eval { 	PVE::Cluster::ssh_merge_keys(); };
 	warn $@ if $@;
 
-	$nodelist->{$name} = { ring0_addr => $name, nodeid => $param->{nodeid} };
+	$nodelist->{$name} = {
+	    ring0_addr => $param->{ring0_addr},
+	    nodeid => $param->{nodeid},
+	    name => $name,
+	};
+	$nodelist->{$name}->{ring1_addr} = $param->{ring1_addr} if $param->{ring1_addr};
 	$nodelist->{$name}->{quorum_votes} = $param->{votes} if $param->{votes};
 	
 	corosync_update_nodelist($conf, $nodelist);
@@ -346,6 +443,18 @@ __PACKAGE__->register_method ({
 		description => "Do not throw error if node already exists.",
 		optional => 1,
 	    },
+	    ring0_addr => {
+		type => 'string', format => 'address',
+		description => "Hostname (or IP) of the corosync ring0 address of this node.".
+		    " Defaults to nodes hostname.",
+		optional => 1,
+	    },
+	    ring1_addr => {
+		type => 'string', format => 'address',
+		description => "Hostname (or IP) of the corosync ring1 address, this".
+		    " needs an valid configured ring 1 interface in the cluster.",
+		optional => 1,
+	    },
 	},
     },
     returns => { type => 'null' },
@@ -394,6 +503,10 @@ __PACKAGE__->register_method ({
 	push @$cmd, '--nodeid', $param->{nodeid} if $param->{nodeid};
 
 	push @$cmd, '--votes', $param->{votes} if defined($param->{votes});
+
+	push @$cmd, '--ring0_addr', $param->{ring0_addr} if defined($param->{ring0_addr});
+
+	push @$cmd, '--ring1_addr', $param->{ring1_addr} if defined($param->{ring1_addr});
 
 	if (system (@$cmd) != 0) {
 	    my $cmdtxt = join (' ', @$cmd);
