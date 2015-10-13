@@ -2,7 +2,9 @@ pve-cluster (4.0-23) unstable; urgency=medium
 
   * corosync: implement RRP support
 
- -- Proxmox Support Team <support@proxmox.com>  Mon, 12 Oct 2015 12:46:55 +0200
+  * sysctl : fs.aio-max-nr = 10485
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 13 Oct 2015 17:02:14 +0200
 
 pve-cluster (4.0-22) unstable; urgency=medium
 
