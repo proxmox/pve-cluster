@@ -963,12 +963,10 @@ sub log_msg {
    $msg = "empty message" if !$msg;
 
    $ident = "" if !$ident;
-   $ident = encode("ascii", decode_utf8($ident),
+   $ident = encode("ascii", $ident,
 		   sub { sprintf "\\u%04x", shift });
 
-   my $utf8 = decode_utf8($msg);
-
-   my $ascii = encode("ascii", $utf8, sub { sprintf "\\u%04x", shift });
+   my $ascii = encode("ascii", $msg, sub { sprintf "\\u%04x", shift });
 
    if ($ident) {
        syslog($priority, "<%s> %s", $ident, $ascii);
