@@ -1,3 +1,9 @@
+pve-cluster (4.0-24) unstable; urgency=medium
+
+  * fix bug #790: Remove decode from log_msg
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 29 Oct 2015 17:38:15 +0100
+
 pve-cluster (4.0-23) unstable; urgency=medium
 
   * corosync: implement RRP support
