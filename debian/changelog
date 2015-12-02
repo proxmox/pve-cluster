@@ -1,3 +1,9 @@
+pve-cluster (4.0-27) unstable; urgency=medium
+
+  * start pve-cluster before ceph, because ceph config can be on /etc/pve
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 02 Dec 2015 13:03:31 +0100
+
 pve-cluster (4.0-26) unstable; urgency=medium
 
   * add Wants=rrdcached.service to pve-cluster.service

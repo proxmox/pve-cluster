@@ -5,6 +5,7 @@ Wants=corosync.service
 Wants=systemd-timesyncd.service
 Wants=rrdcached.service
 Before=corosync.service
+Before=ceph.service
 After=network.target
 After=sys-fs-fuse-connections.mount
 After=systemd-timesyncd.service
