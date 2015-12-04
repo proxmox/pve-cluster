@@ -1,3 +1,12 @@
+pve-cluster (4.0-29) unstable; urgency=medium
+
+  * qb_loop_timer_add: do not use small timeouts (avoid startup
+    problems at boot time)
+
+  * add/use dfsm_is_initialized to avoid unnecessary error logs at startup
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 04 Dec 2015 13:51:42 +0100
+
 pve-cluster (4.0-28) unstable; urgency=medium
 
   * start pve-cluster before cron, because cron config can be
