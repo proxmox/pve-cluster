@@ -148,6 +148,9 @@ dfsm_dispatch(
 gboolean 
 dfsm_restartable(dfsm_t *dfsm);
 
+gboolean
+dfsm_is_initialized(dfsm_t *dfsm);
+
 void
 dfsm_set_errormode(dfsm_t *dfsm);
 

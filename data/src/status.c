@@ -368,7 +368,8 @@ cfs_cluster_log(clog_entry_t *entry)
 		iov[0].iov_base = (char *)entry;
 		iov[0].iov_len = clog_entry_size(entry);
 
-		dfsm_send_message(cfs_status.kvstore, KVSTORE_MESSAGE_LOG, iov, 1);
+		if (dfsm_is_initialized(cfs_status.kvstore))
+			dfsm_send_message(cfs_status.kvstore, KVSTORE_MESSAGE_LOG, iov, 1);
 	}
 }
 
@@ -1175,6 +1176,8 @@ kvstore_send_update_message(
 	gpointer data,
 	guint32 len)
 {
+	if (!dfsm_is_initialized(dfsm))
+		return -EACCES;
 
 	struct iovec iov[2];
 

@@ -1273,6 +1273,14 @@ err:
 	return NULL;
 }
 
+gboolean
+dfsm_is_initialized(dfsm_t *dfsm)
+{
+	g_return_val_if_fail(dfsm != NULL, FALSE);
+
+	return (dfsm->cpg_handle != 0) ? TRUE : FALSE;
+}
+
 gboolean 
 dfsm_lowest_nodeid(dfsm_t *dfsm)
 {
