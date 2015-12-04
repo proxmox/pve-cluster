@@ -321,8 +321,8 @@ cfs_loop_worker_thread(gpointer data)
 	}
 
 	qb_loop_timer_handle th;
-	qb_loop_timer_add(qbloop, QB_LOOP_LOW, 1000, loop, service_start_job, &th);
-     
+	qb_loop_timer_add(qbloop, QB_LOOP_LOW, 10000000, loop, service_start_job, &th);
+
 	qb_loop_timer_add(qbloop, QB_LOOP_LOW, 1000000000, loop, service_timer_job, &th);
 
 	cfs_debug("start loop");
