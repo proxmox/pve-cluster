@@ -102,10 +102,10 @@ CODE:
 		errno = -res_header->error;
 		XSRETURN_UNDEF;
 	} else {
+		errno = 0;
 		if (dsize > 0) {
 			RETVAL = newSVpv(ipcbuffer + sizeof(struct qb_ipc_response_header), dsize);
 		} else {
-			errno = 0;
 			XSRETURN_UNDEF;
 		}
 	}
