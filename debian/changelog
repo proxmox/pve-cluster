@@ -1,3 +1,9 @@
+pve-cluster (4.0-30) unstable; urgency=medium
+
+  * ipcc_send_rec: clear errno if we get a valid result
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 26 Dec 2015 19:11:13 +0100
+
 pve-cluster (4.0-29) unstable; urgency=medium
 
   * qb_loop_timer_add: do not use small timeouts (avoid startup
