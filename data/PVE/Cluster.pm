@@ -271,8 +271,7 @@ commonName = $fqdn
 
 [ v3_req ]
 basicConstraints = CA:FALSE
-nsCertType = server
-keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
 subjectAltName = $names
 __EOD
 
