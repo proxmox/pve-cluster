@@ -165,7 +165,7 @@ sub gen_pveca_key {
     return if -f $pveca_key_fn;
 
     eval {
-	run_silent_cmd(['openssl', 'genrsa', '-out', $pveca_key_fn, '2048']);
+	run_silent_cmd(['openssl', 'genrsa', '-out', $pveca_key_fn, '4096']);
     };
 
     die "unable to generate pve ca key:\n$@" if $@;
