@@ -1,3 +1,11 @@
+pve-cluster (4.0-31) unstable; urgency=medium
+
+  * Use correct key usage in node SSL certificate
+
+  * Change CA SSL key size to 4096 bit
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 15 Jan 2016 17:16:40 +0100
+
 pve-cluster (4.0-30) unstable; urgency=medium
 
   * ipcc_send_rec: clear errno if we get a valid result
