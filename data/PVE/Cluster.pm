@@ -1327,6 +1327,13 @@ my $datacenter_schema = {
 	    format => 'email-opt',
 	    description => "Specify email address to send notification from (default is root@\$hostname)",
 	},
+	max_workers => {
+	    optional => 1,
+	    type => 'integer',
+	    minimum => 1,
+	    description => "Defines how many workers (per node) are maximal started ".
+	      " on actions like 'stopall VMs' or task from the ha-manager.",
+	},
     },
 };
 
