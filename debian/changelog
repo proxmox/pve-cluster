@@ -1,3 +1,9 @@
+pve-cluster (4.0-32) unstable; urgency=medium
+
+  * add 'max_workers' to datacenter.cfg
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 11 Feb 2016 10:00:54 +0100
+
 pve-cluster (4.0-31) unstable; urgency=medium
 
   * Use correct key usage in node SSL certificate
