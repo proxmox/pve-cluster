@@ -213,7 +213,7 @@ name_is_vm_config(
 	guint32 vmid =  strtoul(name, &end, 10);
 
 	if (!end || end[0] != '.' || end[1] != 'c'|| end[2] != 'o' || end[3] != 'n' ||
-	    end[4] != 'f' || end[5] != 0)
+	    end[4] != 'f' || end[5] != 0 || errno == ERANGE)
 		return FALSE;
 
 	if (vmid_ret)
