@@ -209,11 +209,15 @@ name_is_vm_config(
 	if (!name || name[0] < '1' || name[0] > '9')
 		return FALSE;
 
+	
 	char *end = NULL;
+
+	errno = 0; /* see man strtoul */
+	
 	guint32 vmid =  strtoul(name, &end, 10);
 
 	if (!end || end[0] != '.' || end[1] != 'c'|| end[2] != 'o' || end[3] != 'n' ||
-	    end[4] != 'f' || end[5] != 0 || errno == ERANGE)
+	    end[4] != 'f' || end[5] != 0 || errno != 0)
 		return FALSE;
 
 	if (vmid_ret)
