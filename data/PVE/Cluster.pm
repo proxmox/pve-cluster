@@ -707,6 +707,7 @@ sub create_rrd_graph {
 	"--width" => 800,
 	"--start" => - $reso*$count,
 	"--end" => 'now' ,
+	"--lower-limit" => 0,
 	);
 
     my $socket = "/var/run/rrdcached.sock";
