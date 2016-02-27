@@ -1,3 +1,9 @@
+pve-cluster (4.0-34) unstable; urgency=medium
+
+  * always start rrd grephs at 0
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 27 Feb 2016 09:38:04 +0100
+
 pve-cluster (4.0-33) unstable; urgency=medium
 
   * add check for int overflow on vmids
