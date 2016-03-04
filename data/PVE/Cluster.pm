@@ -1335,6 +1335,16 @@ my $datacenter_schema = {
 	    description => "Defines how many workers (per node) are maximal started ".
 	      " on actions like 'stopall VMs' or task from the ha-manager.",
 	},
+	fencing => {
+	    optional => 1,
+	    type => 'string',
+	    default => 'watchdog',
+	    enum => [ 'watchdog', 'hardware', 'both' ],
+	    description => "Set the fencing mode of the HA cluster. Hardware mode " .
+	      "needs a valid configuration of fence devices in /etc/pve/ha/fence.cfg." .
+	      " With both all two modes are used. " .
+	      " NOTE: 'hardware' and 'both' are EXPERIMENTAL & WIP",
+	},
     },
 };
 
