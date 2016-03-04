@@ -1,3 +1,9 @@
+pve-cluster (4.0-35) unstable; urgency=medium
+
+  * add 'fencing' to datacenter.cfg
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 04 Mar 2016 17:01:09 +0100
+
 pve-cluster (4.0-34) unstable; urgency=medium
 
   * always start rrd grephs at 0
