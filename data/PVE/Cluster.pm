@@ -184,8 +184,9 @@ sub gen_pveca_cert {
     my $nid = (split (/\s/, `md5sum '$pveca_key_fn'`))[0] || time();
 
     eval {
-	run_silent_cmd(['openssl', 'req', '-batch', '-days', '3650', '-new',
-			'-x509', '-nodes', '-key',
+	# wrap openssl with faketime to prevent bug #904
+	run_silent_cmd(['faketime', 'yesterday', 'openssl', 'req', '-batch',
+			'-days', '3650', '-new', '-x509', '-nodes', '-key',
 			$pveca_key_fn, '-out', $pveca_cert_fn, '-subj',
 			"/CN=Proxmox Virtual Environment/OU=$nid/O=PVE Cluster Manager CA/"]);
     };
@@ -298,10 +299,11 @@ __EOD
     update_serial("0000000000000000") if ! -f $pveca_srl_fn;
 
     eval {
-	run_silent_cmd(['openssl', 'x509', '-req', '-in', $reqfn, '-days', '3650',
-			'-out', $pvessl_cert_fn, '-CAkey', $pveca_key_fn,
-			'-CA', $pveca_cert_fn, '-CAserial', $pveca_srl_fn,
-			'-extfile', $cfgfn]);
+	# wrap openssl with faketime to prevent bug #904
+	run_silent_cmd(['faketime', 'yesterday', 'openssl', 'x509', '-req',
+			'-in', $reqfn, '-days', '3650', '-out', $pvessl_cert_fn,
+			'-CAkey', $pveca_key_fn, '-CA', $pveca_cert_fn,
+			'-CAserial', $pveca_srl_fn, '-extfile', $cfgfn]);
     };
 
     if (my $err = $@) {
