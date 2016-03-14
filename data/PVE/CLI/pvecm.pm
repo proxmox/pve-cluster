@@ -601,6 +601,8 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
+	PVE::Cluster::check_corosync_conf_exists();
+
 	my $cmd = ['corosync-quorumtool', '-siH'];
 
 	exec (@$cmd);
@@ -621,6 +623,8 @@ __PACKAGE__->register_method ({
     
     code => sub {
 	my ($param) = @_;
+
+	PVE::Cluster::check_corosync_conf_exists();
 
 	my $cmd = ['corosync-quorumtool', '-l'];
 
@@ -648,6 +652,8 @@ __PACKAGE__->register_method ({
     
     code => sub {
 	my ($param) = @_;
+
+	PVE::Cluster::check_corosync_conf_exists();
 
 	my $cmd = ['corosync-quorumtool', '-e', $param->{expected}];
 

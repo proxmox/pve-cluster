@@ -1501,6 +1501,19 @@ PVE::Cluster::cfs_register_file('corosync.conf', \&parse_corosync_conf);
 PVE::Cluster::cfs_register_file('corosync.conf.new', \&parse_corosync_conf, 
 				\&write_corosync_conf);
 
+sub check_corosync_conf_exists {
+    my ($silent) = @_;
+
+    $silent = $silent // 0;
+
+    my $exists = -f "$basedir/corosync.conf";
+
+    warn "Corosync config '$basedir/corosync.conf' does not exist - is this node part of a cluster?\n"
+	if !$silent;
+
+    return $exists;
+}
+
 # bash completion helpers
 
 sub complete_next_vmid {
