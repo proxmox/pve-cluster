@@ -658,18 +658,16 @@ sub create_rrd_data {
     for my $line (@$data) {
 	my $entry = { 'time' => $start };
 	$start += $step;
-	my $found_undefs;
 	for (my $i = 0; $i < $fields; $i++) {
 	    my $name = $names->[$i];
 	    if (defined(my $val = $line->[$i])) {
 		$entry->{$name} = $val;
 	    } else {
-		# we only add entryies with all data defined
-		# extjs chart has problems with undefined values
-		$found_undefs = 1;
+		# leave empty fields undefined
+		# maybe make this configurable?
 	    }
 	}
-	push @$res, $entry if !$found_undefs;
+	push @$res, $entry;
     }
 
     return $res;
