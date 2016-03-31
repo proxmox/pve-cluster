@@ -1,3 +1,9 @@
+pve-cluster (4.0-38) unstable; urgency=medium
+
+  * allow empty values in rrddata
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 31 Mar 2016 10:33:07 +0200
+
 pve-cluster (4.0-37) unstable; urgency=medium
 
   * Add warning for pvecm commands if not part of cluster
