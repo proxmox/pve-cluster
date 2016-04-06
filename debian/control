@@ -2,7 +2,7 @@ Source: pve-cluster
 Section: admin
 Priority: optional
 Maintainer: Proxmox Support Team <support@proxmox.com>
-Build-Depends: debhelper (>= 7), autotools-dev, libsqlite3-dev, sqlite3, libfuse-dev (>= 2.9.2-4), libcorosync-pve-dev (>= 2.3.4-1), libqb-dev (>= 0.17.1-1), libpve-common-perl, libglib2.0-dev (>= 2.42.1-1), librrd-dev, librrds-perl, rrdcached, check, libdigest-hmac-perl, libxml-parser-perl, dh-systemd
+Build-Depends: debhelper (>= 7), autotools-dev, libsqlite3-dev, sqlite3, libfuse-dev (>= 2.9.2-4), libcorosync-pve-dev (>= 2.3.4-1), libqb-dev (>= 0.17.1-1), libpve-common-perl, libglib2.0-dev (>= 2.42.1-1), librrd-dev, librrds-perl, rrdcached, check, libdigest-hmac-perl, libxml-parser-perl, dh-systemd, pve-doc-generator
 Standards-Version: 3.7.3
 
 Package: pve-cluster

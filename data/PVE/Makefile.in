@@ -92,7 +92,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(perlbindir)" "$(DESTDIR)$(bindir)" \
 	"$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" \
-	"$(DESTDIR)$(poddir)" "$(DESTDIR)$(pvelibdir)"
+	"$(DESTDIR)$(cliclassdir)" "$(DESTDIR)$(pvelibdir)"
 PROGRAMS = $(perlbin_PROGRAMS)
 am_IPCC_so_OBJECTS = IPCC.$(OBJEXT)
 IPCC_so_OBJECTS = $(am_IPCC_so_OBJECTS)
@@ -166,7 +166,7 @@ man1dir = $(mandir)/man1
 man5dir = $(mandir)/man5
 NROFF = nroff
 MANS = $(man1_MANS) $(man5_MANS)
-DATA = $(pod_DATA) $(pvelib_DATA)
+DATA = $(cliclass_DATA) $(noinst_DATA) $(pvelib_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -240,6 +240,10 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PERL = @PERL@
+PERL_INC = @PERL_INC@
+PERL_INSTALLARCHLIB = @PERL_INSTALLARCHLIB@
+PERL_VENDORLIB = @PERL_VENDORLIB@
 PKG_CONFIG = @PKG_CONFIG@
 PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
 PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
@@ -296,20 +300,17 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 bin_SCRIPTS = pvecm
-AM_CFLAGS = -shared -fPIC -Wl,-z,relro -Wall -Werror -Wno-strict-aliasing -I/usr/lib/x86_64-linux-gnu/perl/5.20/CORE -DXS_VERSION=VERSION
+AM_CFLAGS = -shared -fPIC -Wl,-z,relro -Wall -Werror -Wno-strict-aliasing $(PERL_INC) -DXS_VERSION=VERSION
 LDADD = $(QB_LIBS)
-perlbindir = /usr/lib/x86_64-linux-gnu/perl/5.20/auto/PVE/IPCC/
-
-#datacenter.cfg.5.gz: Cluster.pm gen-datacenter-pod.pl
-#	./gen-datacenter-pod.pl|pod2man -n datacenter.cfg -s 5 -r ${VERSION} -c #"Proxmox Documentation"|gzip -c9 >$@
-pod_DATA = pvecm.1.pod datacenter.cfg.5.pod
-poddir = /usr/share/doc/pve-cluster/pod
-man1_MANS = pvecm.1.gz
-man5_MANS = datacenter.cfg.5.gz
+perlbindir = $(PERL_INSTALLARCHLIB)/auto/PVE/IPCC
+man1_MANS = pvecm.1
+man5_MANS = datacenter.cfg.5
 IPCC_so_SOURCES = IPCC.c ppport.h
 pvelib_DATA = IPCC.pm Cluster.pm
-pvelibdir = /usr/share/perl5/PVE
-CLEANFILES = IPCC.c *~ *.1.gz *.5.gz *.pod
+pvelibdir = $(PERL_VENDORLIB)/PVE
+noinst_DATA = pvecm.bash-completion
+cliclass_DATA = CLI/pvecm.pm
+cliclassdir = $(PERL_VENDORLIB)/PVE/CLI
 all: all-am
 
 .SUFFIXES:
@@ -529,27 +530,27 @@ uninstall-man5:
 	} | sed -e 's,.*/,,;h;s,.*\.,,;s,^[^5][0-9a-z]*$$,5,;x' \
 	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,'`; \
 	dir='$(DESTDIR)$(man5dir)'; $(am__uninstall_files_from_dir)
-install-podDATA: $(pod_DATA)
+install-cliclassDATA: $(cliclass_DATA)
 	@$(NORMAL_INSTALL)
-	@list='$(pod_DATA)'; test -n "$(poddir)" || list=; \
+	@list='$(cliclass_DATA)'; test -n "$(cliclassdir)" || list=; \
 	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(poddir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(poddir)" || exit 1; \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(cliclassdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(cliclassdir)" || exit 1; \
 	fi; \
 	for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  echo "$$d$$p"; \
 	done | $(am__base_list) | \
 	while read files; do \
-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(poddir)'"; \
-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(poddir)" || exit $$?; \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(cliclassdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(cliclassdir)" || exit $$?; \
 	done
 
-uninstall-podDATA:
+uninstall-cliclassDATA:
 	@$(NORMAL_UNINSTALL)
-	@list='$(pod_DATA)'; test -n "$(poddir)" || list=; \
+	@list='$(cliclass_DATA)'; test -n "$(cliclassdir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(poddir)'; $(am__uninstall_files_from_dir)
+	dir='$(DESTDIR)$(cliclassdir)'; $(am__uninstall_files_from_dir)
 install-pvelibDATA: $(pvelib_DATA)
 	@$(NORMAL_INSTALL)
 	@list='$(pvelib_DATA)'; test -n "$(pvelibdir)" || list=; \
@@ -658,7 +659,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(MANS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(perlbindir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" "$(DESTDIR)$(poddir)" "$(DESTDIR)$(pvelibdir)"; do \
+	for dir in "$(DESTDIR)$(perlbindir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" "$(DESTDIR)$(cliclassdir)" "$(DESTDIR)$(pvelibdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -683,7 +684,6 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
-	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -694,7 +694,8 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-perlbinPROGRAMS mostlyclean-am
+clean-am: clean-generic clean-local clean-perlbinPROGRAMS \
+	mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -714,8 +715,8 @@ info: info-am
 
 info-am:
 
-install-data-am: install-man install-perlbinPROGRAMS install-podDATA \
-	install-pvelibDATA
+install-data-am: install-cliclassDATA install-man \
+	install-perlbinPROGRAMS install-pvelibDATA
 
 install-dvi: install-dvi-am
 
@@ -761,29 +762,29 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binSCRIPTS uninstall-man \
-	uninstall-perlbinPROGRAMS uninstall-podDATA \
-	uninstall-pvelibDATA
+uninstall-am: uninstall-binSCRIPTS uninstall-cliclassDATA \
+	uninstall-man uninstall-perlbinPROGRAMS uninstall-pvelibDATA
 
 uninstall-man: uninstall-man1 uninstall-man5
 
 .MAKE: install-am install-exec-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am check check-am clean clean-generic \
-	clean-perlbinPROGRAMS cscopelist-am ctags ctags-am distclean \
-	distclean-compile distclean-generic distclean-tags distdir dvi \
-	dvi-am html html-am info info-am install install-am \
-	install-binSCRIPTS install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-exec-hook \
-	install-html install-html-am install-info install-info-am \
-	install-man install-man1 install-man5 install-pdf \
-	install-pdf-am install-perlbinPROGRAMS install-podDATA \
-	install-ps install-ps-am install-pvelibDATA install-strip \
-	installcheck installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic pdf pdf-am ps ps-am tags tags-am uninstall \
-	uninstall-am uninstall-binSCRIPTS uninstall-man uninstall-man1 \
-	uninstall-man5 uninstall-perlbinPROGRAMS uninstall-podDATA \
+	clean-local clean-perlbinPROGRAMS cscopelist-am ctags ctags-am \
+	distclean distclean-compile distclean-generic distclean-tags \
+	distdir dvi dvi-am html html-am info info-am install \
+	install-am install-binSCRIPTS install-cliclassDATA \
+	install-data install-data-am install-dvi install-dvi-am \
+	install-exec install-exec-am install-exec-hook install-html \
+	install-html-am install-info install-info-am install-man \
+	install-man1 install-man5 install-pdf install-pdf-am \
+	install-perlbinPROGRAMS install-ps install-ps-am \
+	install-pvelibDATA install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
+	ps ps-am tags tags-am uninstall uninstall-am \
+	uninstall-binSCRIPTS uninstall-cliclassDATA uninstall-man \
+	uninstall-man1 uninstall-man5 uninstall-perlbinPROGRAMS \
 	uninstall-pvelibDATA
 
 
@@ -791,20 +792,21 @@ IPCC.c: IPCC.xs
 	xsubpp IPCC.xs > IPCC.xsc
 	mv IPCC.xsc IPCC.c
 
-%.1.gz: %.1.pod
-	cat $<|pod2man -n $* -s 1 -r ${VERSION} -c "Proxmox Documentation"|gzip -c9 >$@
+# this require package pve-doc-generator
+export NOVIEW=1
+include /usr/share/pve-doc-generator/pve-doc-generator.mk
 
-%.5.gz: %.5.pod
-	cat $<|pod2man -n $* -s 5 -r ${VERSION} -c "Proxmox Documentation"|gzip -c9 >$@
+%.bash-completion:
+	perl -I.. -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_bash_completions();" >$@.tmp
+	mv $@.tmp $@
 
-%.1.pod: %
-	perl -I.. ./$* printmanpod > $@
+install-exec-hook: pvecm.bash-completion
+	perl -I.. -T -e "use PVE::CLI::pvecm; PVE::CLI::pvecm->verify_api();"
+	install -m 0644 -D pvecm.bash-completion ${DESTDIR}/usr/share/bash-completion/completions/pvecm
 
-datacenter.cfg.5.pod: Cluster.pm gen-datacenter-pod.pl
-	perl -I.. ./gen-datacenter-pod.pl > $@
-
-install-exec-hook:
-	perl -I.. ./pvecm verifyapi
+clean-local:
+	make cleanup-docgen
+	rm -f IPCC.c *~ *.1.gz *.5.gz *.pod
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
