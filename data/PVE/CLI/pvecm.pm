@@ -824,23 +824,3 @@ our $cmddef = {
 };
 
 1;
-
-__END__
-
-=head1 NAME
-
-pvecm - Proxmox VE cluster manager toolkit
-
-=head1 SYNOPSIS
-
-=include synopsis
-
-=head1 DESCRIPTION
-
-pvecm is a program to manage the cluster configuration. It can be used
-to create a new cluster, join nodes to a cluster, leave the cluster,
-get status information and do various other cluster related tasks.
-
-=include pve_copyright
-
-
