@@ -806,7 +806,7 @@ install-exec-hook: pvecm.bash-completion
 
 clean-local:
 	make cleanup-docgen
-	rm -f IPCC.c *~ *.1.gz *.5.gz *.pod
+	rm -f IPCC.c *~ *.1 *.5
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

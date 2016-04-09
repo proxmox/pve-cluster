@@ -1,6 +1,12 @@
 noinst_PROGRAMS = logtest
 logtest_SOURCES = logtest.c
 
+# this requires package pve-doc-generator
+export NOVIEW=1
+include /usr/share/pve-doc-generator/pve-doc-generator.mk
+
+man8_MANS = pmxcfs.8
+
 bin_PROGRAMS = pmxcfs create_pmxcfs_db
 pmxcfs_SOURCES = pmxcfs.c
 create_pmxcfs_db_SOURCES = create_pmxcfs_db.c
@@ -45,4 +51,6 @@ libpmxcfs_a_SOURCES = 		\
 AM_CFLAGS =  -g -O -Wl,-z,relro -std=gnu99 -Wall -Werror -Wno-strict-aliasing $(COROSYNC_CFLAGS) $(SQLITE3_CFLAGS) $(FUSE_CFLAGS) $(QB_CFLAGS) $(GLIB_CFLAGS) $(LIBRRD_CFLAGS) 
 LDADD = libpmxcfs.a $(COROSYNC_LIBS) $(SQLITE3_LIBS) $(FUSE_LIBS) $(QB_LIBS) $(GLIB_LIBS) $(LIBRRD_LIBS) 
 
-CLEANFILES = *~
+clean-local:
+	make cleanup-docgen
+	rm -f *~
