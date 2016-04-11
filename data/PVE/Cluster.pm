@@ -1507,7 +1507,7 @@ sub check_corosync_conf_exists {
     my $exists = -f "$basedir/corosync.conf";
 
     warn "Corosync config '$basedir/corosync.conf' does not exist - is this node part of a cluster?\n"
-	if !$silent;
+	if !$silent && !$exists;
 
     return $exists;
 }
