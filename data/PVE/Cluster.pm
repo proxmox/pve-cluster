@@ -1342,8 +1342,8 @@ my $datacenter_schema = {
 	    enum => [ 'watchdog', 'hardware', 'both' ],
 	    description => "Set the fencing mode of the HA cluster. Hardware mode " .
 	      "needs a valid configuration of fence devices in /etc/pve/ha/fence.cfg." .
-	      " With both all two modes are used. " .
-	      " NOTE: 'hardware' and 'both' are EXPERIMENTAL & WIP",
+	      " With both all two modes are used." .
+	      "\n\nWARNING: 'hardware' and 'both' are EXPERIMENTAL & WIP",
 	},
     },
 };
