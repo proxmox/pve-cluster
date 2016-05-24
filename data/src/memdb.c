@@ -23,6 +23,7 @@
 #endif /* HAVE_CONFIG_H */
 
 #include <stdio.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -530,7 +531,7 @@ memdb_open(const char *dbfilename)
 
 	memdb_update_locks(memdb);
 
-	cfs_debug("memdb open '%s' successful (version = %016zX)", 
+	cfs_debug("memdb open '%s' successful (version = %016" PRIX64 ")",
 		  dbfilename, memdb->root->version);
 
 	return memdb;
@@ -630,7 +631,7 @@ int memdb_mkdir(
 	g_hash_table_replace(parent->data.entries, te->name, te);
 	g_hash_table_replace(memdb->index, &te->inode, te);
 
-	cfs_debug("memdb_mkdir %s %s %016zX", dirname, base, memdb->root->version);
+	cfs_debug("memdb_mkdir %s %s %016" PRIX64, dirname, base, memdb->root->version);
 
 	if (bdb_backend_write(memdb->bdb, te->inode, te->parent, te->version, 
 			      te->writer, te->mtime, 0, DT_DIR, te->name, NULL, 0)) {
@@ -832,7 +833,7 @@ memdb_pwrite(
 
 	record_memdb_change(path);
 
-	cfs_debug("memdb_pwrite %s %s %016zX %016zX", dirname, te->name, te->inode, te->version);
+	cfs_debug("memdb_pwrite %s %s %016" PRIX64 " %016" PRIX64, dirname, te->name, te->inode, te->version);
 
 	if (bdb_backend_write(memdb->bdb, te->inode, te->parent, te->version, 
 			      te->writer, te->mtime, te->size, te->type, te->name, 
@@ -935,7 +936,7 @@ memdb_mtime(
 
 	record_memdb_change(path);
 
-	cfs_debug("memdb_mtime %s %s %016zX %016zX", dirname, te->name, te->inode, te->version);
+	cfs_debug("memdb_mtime %s %s %016" PRIX64 " %016" PRIX64, dirname, te->name, te->inode, te->version);
 
 	if (bdb_backend_write(memdb->bdb, te->inode, te->parent, te->version, 
 			      te->writer, te->mtime, te->size, te->type, te->name, 
@@ -1365,7 +1366,7 @@ tree_entry_debug(memdb_tree_entry_t *te)
 
 	// same as  tree_entry_print(), but use cfs_debug() instead of g_print()
 
-	cfs_debug("%016zX %c %016zX %016zX %08X %08X %08X %s\n", 
+	cfs_debug("%016" PRIX64 " %c %016" PRIX64 " %016" PRIX64 " %08X %08X %08X %s\n",
 		te->inode, te->type == DT_DIR ? 'D' : 'R', te->parent, te->version,
 		te->writer, te->mtime, te->size, te->name); 
 }
@@ -1375,7 +1376,7 @@ tree_entry_print(memdb_tree_entry_t *te)
 {
 	g_return_if_fail(te != NULL);
 
-	g_print("%016zX %c %016zX %016zX %08X %08X %08X %s\n", 
+	g_print("%016" PRIX64 " %c %016" PRIX64 " %016" PRIX64 " %08X %08X %08X %s\n",
 		te->inode, te->type == DT_DIR ? 'D' : 'R', te->parent, te->version,
 		te->writer, te->mtime, te->size, te->name); 
 }
@@ -1413,11 +1414,11 @@ memdb_dump_index (memdb_index_t *idx)
 {
 	g_return_if_fail(idx != NULL);
 
-	g_print ("INDEX DUMP %016zX\n", idx->version);
+	g_print ("INDEX DUMP %016" PRIX64 "\n", idx->version);
 
 	int i;
 	for (i = 0; i < idx->size; i++) {
-		g_print ("%016zX %016zX%016zX%016zX%016zX\n", idx->entries[i].inode,
+		g_print ("%016" PRIX64 " %016" PRIX64 "%016" PRIX64 "%016" PRIX64 "%016" PRIX64 "\n", idx->entries[i].inode,
 			 *((guint64 *)idx->entries[i].digest),
 			 *((guint64 *)(idx->entries[i].digest + 8)),
 			 *((guint64 *)(idx->entries[i].digest + 16)),

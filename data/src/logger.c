@@ -27,6 +27,7 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include <inttypes.h>
 #include <stdint.h>
 #include <glib.h>
 #include <string.h>
@@ -121,7 +122,7 @@ clog_dump_entry(clog_entry_t *cur, uint32_t cpos)
 	char tbuf[256];
 	strftime(tbuf, sizeof(tbuf), "%F %T", localtime(&lt));
 	printf("cpos %05d %08x %s", cpos, cur->uid, tbuf);
-	printf(" %s{%016zX} %s[%s{%016zX}]: %s\n", node, cur->node_digest, tag, ident, cur->ident_digest, msg);
+	printf(" %s{%016" PRIX64 "} %s[%s{%016" PRIX64 "}]: %s\n", node, cur->node_digest, tag, ident, cur->ident_digest, msg);
 	
 }
 

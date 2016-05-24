@@ -295,7 +295,7 @@ static int cfs_fuse_read(const char *path, char *buf, size_t size, off_t offset,
 {
 	(void) fi;
 
-	cfs_debug("enter cfs_fuse_read %s %lu %ld", path, size, offset);
+	cfs_debug("enter cfs_fuse_read %s %zu %jd", path, size, offset);
 
 	int ret = -EACCES;
 
@@ -320,7 +320,7 @@ static int cfs_fuse_write(const char *path, const char *buf, size_t size,
 {
 	(void) fi;
 
-	cfs_debug("enter cfs_fuse_write %s %lu %ld", path, size, offset);
+	cfs_debug("enter cfs_fuse_write %s %zu %jd", path, size, offset);
 
 	int ret = -EACCES;
 
@@ -343,7 +343,7 @@ static int cfs_fuse_write(const char *path, const char *buf, size_t size,
 
 static int cfs_fuse_truncate(const char *path, off_t size)
 {
-	cfs_debug("enter cfs_fuse_truncate %s %ld", path, size);
+	cfs_debug("enter cfs_fuse_truncate %s %jd", path, size);
 
 	int ret = -EACCES;
 

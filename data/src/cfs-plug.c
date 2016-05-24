@@ -268,7 +268,7 @@ static int cfs_plug_base_read(cfs_plug_t *plug, const char *path, char *buf,
 	g_return_val_if_fail(buf != NULL, PARAM_CHECK_ERRNO);
 	g_return_val_if_fail(fi != NULL, PARAM_CHECK_ERRNO);
 
-	cfs_debug("enter cfs_plug_base_read %s %lu %ld", path, size, offset);
+	cfs_debug("enter cfs_plug_base_read %s %zu %jd", path, size, offset);
 
 	int ret = -EACCES;
 
@@ -291,7 +291,7 @@ static int cfs_plug_base_write(cfs_plug_t *plug, const char *path, const char *b
 	g_return_val_if_fail(buf != NULL, PARAM_CHECK_ERRNO);
 	g_return_val_if_fail(fi != NULL, PARAM_CHECK_ERRNO);
 
-	cfs_debug("enter cfs_plug_base_write %s %lu %ld", path, size, offset);
+	cfs_debug("enter cfs_plug_base_write %s %zu %jd", path, size, offset);
 
 	int ret = -EACCES;
 
@@ -309,7 +309,7 @@ static int cfs_plug_base_truncate(cfs_plug_t *plug, const char *path, off_t size
 	g_return_val_if_fail(plug->ops == &cfs_ops, PARAM_CHECK_ERRNO);
 	g_return_val_if_fail(path != NULL, PARAM_CHECK_ERRNO);
 
-	cfs_debug("enter cfs_plug_base_truncate %s %ld", path, size);
+	cfs_debug("enter cfs_plug_base_truncate %s %jd", path, size);
 
 	int ret = -EACCES;
 

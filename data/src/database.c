@@ -25,6 +25,7 @@
 #endif /* HAVE_CONFIG_H */
 
 #include <stdlib.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -153,7 +154,7 @@ static int backend_write_inode(
 {
 	int rc;
 
-	cfs_debug("enter backend_write_inode %016zX", inode);
+	cfs_debug("enter backend_write_inode %016" PRIX64, inode);
 
 	if ((rc = sqlite3_bind_int64(stmt, 1, inode)) !=  SQLITE_OK) {
 		cfs_critical("sqlite3_bind failed: %s\n", sqlite3_errmsg(db));
@@ -271,7 +272,7 @@ int bdb_backend_write(
 			goto rollback;
 
 		if (sqlite3_changes(bdb->db) != 1) {
-			cfs_critical("no such inode %016zX", inode);
+			cfs_critical("no such inode %016" PRIX64, inode);
 			goto rollback;
 		}
 	}
@@ -332,7 +333,7 @@ static gboolean bdb_backend_load_index(
 		const char *name = (const char *)sqlite3_column_text(stmt, 6);
 		int namelen = sqlite3_column_bytes(stmt, 6);
 		if (name == NULL || namelen == 0) {
-			cfs_critical("inode has no name (inode = %016zX)", inode);
+			cfs_critical("inode has no name (inode = %016" PRIX64 ")", inode);
 			goto fail;
 		} 
 		te = g_malloc0(sizeof(memdb_tree_entry_t) + namelen + 1);
@@ -355,20 +356,20 @@ static gboolean bdb_backend_load_index(
 				te->data.value = g_memdup(value, size);
 		} else if (te->type == DT_DIR) {
 			if (size) {
-				cfs_critical("directory inode contains data (inode = %016zX)",
+				cfs_critical("directory inode contains data (inode = %016" PRIX64 ")",
 					   te->inode);
 				g_free(te);
 				goto fail;
 			}
 			te->data.entries = NULL;
 		} else {
-			cfs_critical("inode has unknown type (inode = %016zX, type = %d)",
+			cfs_critical("inode has unknown type (inode = %016" PRIX64 ", type = %d)",
 				   te->inode, te->type);
 			g_free(te);
 			goto fail;
 		}
 
-		cfs_debug("name %s (inode = %016zX, parent = %016zX)", 
+		cfs_debug("name %s (inode = %016" PRIX64 ", parent = %016" PRIX64 ")",
 			te->name, te->inode, te->parent);
 
 		if (te->inode == 0) {
@@ -396,7 +397,7 @@ static gboolean bdb_backend_load_index(
 
 			} else if (!(pte->type == DT_DIR || pte->type == 0)) {
 				cfs_critical("parent is not a directory "
-					     "(inode = %016zX, parent = %016zX, name = '%s')", 
+					     "(inode = %016" PRIX64 ", parent = %016" PRIX64 ", name = '%s')",
 					     te->inode, te->parent, te->name);
 				memdb_tree_entry_free(te);
 				goto fail;
@@ -408,7 +409,7 @@ static gboolean bdb_backend_load_index(
 				if ((tmpte = g_hash_table_lookup(index, &te->inode))) {
 					if (tmpte->type != 0) {
 						cfs_critical("found strange placeholder for "
-							     "(inode = %016zX, parent = %016zX, name = '%s', type = '%d')", 
+							     "(inode = %016" PRIX64 ", parent = %016" PRIX64 ", name = '%s', type = '%d')",
 							     te->inode, te->parent, te->name, tmpte->type);
 						memdb_tree_entry_free(te);
 						goto fail;
@@ -423,7 +424,7 @@ static gboolean bdb_backend_load_index(
 				
 			if (g_hash_table_lookup(pte->data.entries, te->name)) {
 				cfs_critical("found entry with duplicate name "
-					     "(inode = %016zX, parent = %016zX, name = '%s')", 
+					     "(inode = %016" PRIX64 ", parent = %016" PRIX64 ", name = '%s')",
 					     te->inode, te->parent, te->name);
 				goto fail;
 			}
@@ -444,7 +445,7 @@ static gboolean bdb_backend_load_index(
 	while (g_hash_table_iter_next (&iter, &key, &value)) {
 		memdb_tree_entry_t *te = (memdb_tree_entry_t *)value;
 		if (te->type == 0) {
-			cfs_critical("missing directory inode (inode = %016zX)", te->inode);
+			cfs_critical("missing directory inode (inode = %016" PRIX64 ")", te->inode);
 			goto fail;
 		}
 	}
@@ -505,7 +506,7 @@ gboolean bdb_backend_commit_update(
 				if (bdb_backend_delete_inode(bdb, slave_inode) != SQLITE_OK)
 					goto abort;
 
-				cfs_debug("deleted inode %016zX", slave_inode);
+				cfs_debug("deleted inode %016" PRIX64, slave_inode);
 			}
 			j++;
 		}
@@ -519,7 +520,7 @@ gboolean bdb_backend_commit_update(
 		if (bdb_backend_delete_inode(bdb, slave_inode) != SQLITE_OK)
 			goto abort;
 	       
-		cfs_debug("deleted inode %016zX", slave_inode);
+		cfs_debug("deleted inode %016" PRIX64, slave_inode);
 
 		j++;
 	}

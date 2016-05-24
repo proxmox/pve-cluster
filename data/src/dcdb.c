@@ -26,6 +26,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
 #include <glib.h>
@@ -88,7 +89,7 @@ dcdb_parse_unlock_request(
 	g_return_val_if_fail(csum != NULL, FALSE);
 
 	if (msg_len < 33) {
-		cfs_critical("received short unlock message (%lu < 33)", msg_len);
+		cfs_critical("received short unlock message (%zu < 33)", msg_len);
 		return FALSE;
 	}
 
@@ -178,7 +179,7 @@ dcdb_parse_fuse_message(
 	g_return_val_if_fail(flags != NULL, FALSE);
 
 	if (msg_len < 20) {
-		cfs_critical("received short fuse message (%lu < 20)", msg_len);
+		cfs_critical("received short fuse message (%zu < 20)", msg_len);
 		return FALSE;
 	}
 
@@ -399,7 +400,7 @@ dcdb_sync_corosync_conf(
 	if (!atomic_write_file(HOST_CLUSTER_CONF_FN, data, len, 0644, 0))
 		goto ret;
 
-	cfs_message("wrote new corosync config '%s' (version = %zd)",
+	cfs_message("wrote new corosync config '%s' (version = %" G_GUINT64_FORMAT ")",
 		    HOST_CLUSTER_CONF_FN, new_version);
 	
 	if (notify_corosync && old_version) {
@@ -434,7 +435,7 @@ dcdb_get_state(
 
 	g_return_val_if_fail(memdb->root != NULL, FALSE);
 
-	cfs_debug("enter %s %016zX %08X", __func__, memdb->root->version, memdb->root->mtime);
+	cfs_debug("enter %s %016" PRIX64 " %08X", __func__, (uint64_t) memdb->root->version, memdb->root->mtime);
 
 	g_mutex_lock (&memdb->mutex);
 	memdb_index_t *idx = memdb_encode_index(memdb->index, memdb->root);
@@ -524,12 +525,12 @@ dcdb_create_and_send_updates(
 			if (g_hash_table_lookup(updates, &inode))
 				continue;
 			
-			cfs_debug("found different inode %d %016zX", i, inode);
+			cfs_debug("found different inode %d %016" PRIX64, i, (uint64_t) inode);
 			
 			memdb_tree_entry_t *te, *cpy;
 
 			if (!(te = g_hash_table_lookup(memdb->index, &inode))) {
-				cfs_critical("can get inode data for inode %016zX", inode);
+				cfs_critical("can get inode data for inode %016" PRIX64, (uint64_t) inode);
 				goto ret;
 			}
 			
@@ -555,9 +556,9 @@ dcdb_create_and_send_updates(
 
 		if (!dcdb_send_update_inode(dfsm, te)) {
 			/* tolerate error here */
-			cfs_critical("sending update inode failed %016zX", te->inode);
+			cfs_critical("sending update inode failed %016" PRIX64, (uint64_t) te->inode);
 		} else {
-			cfs_debug("sent update inode %016zX", te->inode);
+			cfs_debug("sent update inode %016" PRIX64, (uint64_t) te->inode);
 		}
 			
 		memdb_tree_entry_free(te);
@@ -683,8 +684,8 @@ dcdb_process_update(
 	if (!(te = dcdb_parse_update_inode(msg, msg_len)))
 		return -1;
 
-	cfs_debug("received inode update %016zX from node %d", 
-		  te->inode, nodeid);
+	cfs_debug("received inode update %016" PRIX64 " from node %d",
+		  (uint64_t) te->inode, nodeid);
 
 	dcdb_sync_info_t *localsi = (dcdb_sync_info_t *)syncinfo->data;
 
@@ -764,13 +765,13 @@ dcdb_checksum(
 
 	g_return_val_if_fail(memdb != NULL, FALSE);
 
-	cfs_debug("enter %s %016zX %08X", __func__, memdb->root->version, memdb->root->mtime);
+	cfs_debug("enter %s %016" PRIX64 " %08X", __func__, memdb->root->version, memdb->root->mtime);
 
 	g_mutex_lock (&memdb->mutex);
 	gboolean res = memdb_compute_checksum(memdb->index, memdb->root, csum, csum_len);
 	g_mutex_unlock (&memdb->mutex);
 
-	cfs_debug("leave %s %016zX (%d)", __func__, *(uint64_t *)csum, res); 
+	cfs_debug("leave %s %016" PRIX64 " (%d)", __func__, *( (uint64_t *) csum), res);
 
 	return res;
 }
@@ -802,7 +803,7 @@ dcdb_deliver(
 	if (!DCDB_VALID_MESSAGE_TYPE(msg_type)) 
 		goto unknown;
 
-	cfs_debug("process message %d (length = %ld)", msg_type, msg_len); 
+	cfs_debug("process message %u (length = %zd)", msg_type, msg_len);
 	
 	if (!cfs_is_quorate()) {
 		cfs_critical("received write while not quorate - trigger resync");
@@ -920,7 +921,7 @@ ret:
 	return res;
 
 unknown:
-	cfs_critical("received unknown message type (msg_type == %d)", msg_type);
+	cfs_critical("received unknown message type (msg_type == %u)", msg_type);
 leave:
 	res = -1;
 	goto ret;

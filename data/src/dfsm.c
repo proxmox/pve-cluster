@@ -30,6 +30,7 @@
 #endif /* HAVE_CONFIG_H */
 
 #include <sys/types.h>
+#include <inttypes.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
@@ -667,7 +668,7 @@ dfsm_cpg_deliver_callback(
 	}
 
 	if (msg_len < sizeof(dfsm_message_header_t)) {
-		cfs_dom_critical(dfsm->log_domain, "received short message (%ld bytes)", msg_len);
+		cfs_dom_critical(dfsm->log_domain, "received short message (%zd bytes)", msg_len);
 		goto leave;
 	}
 
@@ -689,13 +690,13 @@ dfsm_cpg_deliver_callback(
 		dfsm_message_normal_header_t *header = (dfsm_message_normal_header_t *)msg;
 
 		if (msg_len < sizeof(dfsm_message_normal_header_t)) {
-			cfs_dom_critical(dfsm->log_domain, "received short message (type = %d, subtype = %d, %ld bytes)",
+			cfs_dom_critical(dfsm->log_domain, "received short message (type = %d, subtype = %d, %zd bytes)",
 					 base_header->type, base_header->subtype, msg_len);
 			goto leave;
 		}
 
 		if (mode != DFSM_MODE_SYNCED) {
-			cfs_dom_debug(dfsm->log_domain, "queue message %zu (subtype = %d, length = %ld)", 
+			cfs_dom_debug(dfsm->log_domain, "queue message %" PRIu64 " (subtype = %d, length = %zd)",
 				      header->count, base_header->subtype, msg_len); 
 
 			if (!dfsm_queue_add_message(dfsm, nodeid, pid, header->count, msg, msg_len))
@@ -725,7 +726,7 @@ dfsm_cpg_deliver_callback(
 	dfsm_message_state_header_t *header = (dfsm_message_state_header_t *)msg;
 
 	if (msg_len < sizeof(dfsm_message_state_header_t)) {
-		cfs_dom_critical(dfsm->log_domain, "received short state message (type = %d, subtype = %d, %ld bytes)",
+		cfs_dom_critical(dfsm->log_domain, "received short state message (type = %d, subtype = %d, %zd bytes)",
 				 base_header->type, base_header->subtype, msg_len);
 		goto leave;
 	}
@@ -755,14 +756,14 @@ dfsm_cpg_deliver_callback(
 		} else if (base_header->type == DFSM_MESSAGE_VERIFY_REQUEST) {
 
 			if (msg_len != sizeof(dfsm->csum_counter)) {
-				cfs_dom_critical(dfsm->log_domain, "cpg received verify request with wrong length (%ld bytes) form node %d/%d", msg_len, nodeid, pid);
+				cfs_dom_critical(dfsm->log_domain, "cpg received verify request with wrong length (%zd bytes) form node %d/%d", msg_len, nodeid, pid);
 				goto leave;
 			}
 
 			uint64_t csum_id = *((uint64_t *)msg);
 			msg += 8; msg_len -= 8;
 
-			cfs_dom_debug(dfsm->log_domain, "got verify request from node %d %016zX", nodeid, csum_id);
+			cfs_dom_debug(dfsm->log_domain, "got verify request from node %d %016" PRIX64, nodeid, csum_id);
 
 			if (dfsm->dfsm_callbacks->dfsm_checksum_fn) {
 				if (!dfsm->dfsm_callbacks->dfsm_checksum_fn(
@@ -789,7 +790,7 @@ dfsm_cpg_deliver_callback(
 			if (dfsm->dfsm_callbacks->dfsm_checksum_fn) {
 
 				if (msg_len != (sizeof(dfsm->csum_id) + sizeof(dfsm->csum))) {
-					cfs_dom_critical(dfsm->log_domain, "cpg received verify message with wrong length (%ld bytes)", msg_len);
+					cfs_dom_critical(dfsm->log_domain, "cpg received verify message with wrong length (%zd bytes)", msg_len);
 					goto leave;
 				}
 
@@ -799,7 +800,7 @@ dfsm_cpg_deliver_callback(
 				if (dfsm->csum_id == csum_id &&
 				    (memcmp(&dfsm->csum_epoch, &header->epoch, sizeof(dfsm_sync_epoch_t)) == 0)) {
 					if (memcmp(msg, dfsm->csum, sizeof(dfsm->csum)) != 0) {
-						cfs_dom_critical(dfsm->log_domain, "wrong checksum %016zX != %016zX - restarting",
+						cfs_dom_critical(dfsm->log_domain, "wrong checksum %016" PRIX64 " != %016" PRIX64 " - restarting",
 								 *(uint64_t *)msg, *(uint64_t *)dfsm->csum);
 						goto leave;
 					} else {
@@ -957,7 +958,7 @@ dfsm_cpg_deliver_callback(
 		cfs_dom_debug(dfsm->log_domain, "ignore verify message %d while not synced", base_header->type);
     
 	} else {
-		cfs_dom_critical(dfsm->log_domain, "received unknown state message type (type = %d, %ld bytes)", 
+		cfs_dom_critical(dfsm->log_domain, "received unknown state message type (type = %d, %zd bytes)",
 				 base_header->type, msg_len);
 		goto leave;
 	}
@@ -1309,7 +1310,7 @@ dfsm_verify_request(dfsm_t *dfsm)
 	struct iovec iov[len];
 
 	if (dfsm->csum_counter != dfsm->csum_id) {
-		g_message("delay verify request %016zX", dfsm->csum_counter + 1);
+		g_message("delay verify request %016" PRIX64, dfsm->csum_counter + 1);
 		return CS_OK;
 	};
 
@@ -1317,7 +1318,7 @@ dfsm_verify_request(dfsm_t *dfsm)
 	iov[0].iov_base = (char *)&dfsm->csum_counter;
 	iov[0].iov_len = sizeof(dfsm->csum_counter);
 	
-	cfs_debug("send verify request %016zX", dfsm->csum_counter);
+	cfs_debug("send verify request %016" PRIX64, dfsm->csum_counter);
 
 	cs_error_t result;
 	result = dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_VERIFY_REQUEST, iov, len);

@@ -1204,7 +1204,7 @@ kvstore_parse_log_message(
 	g_return_val_if_fail(msg != NULL, NULL);
 
 	if (msg_len < sizeof(clog_entry_t)) {
-		cfs_critical("received short log message (%lu < %lu)", msg_len, sizeof(clog_entry_t));
+		cfs_critical("received short log message (%zu < %zu)", msg_len, sizeof(clog_entry_t));
 		return NULL;
 	}
 
@@ -1214,7 +1214,7 @@ kvstore_parse_log_message(
 		entry->ident_len + entry->tag_len + entry->msg_len;
 
 	if (msg_len != size) {
-		cfs_critical("received log message with wrong size (%lu != %u)", msg_len, size);
+		cfs_critical("received log message with wrong size (%zu != %u)", msg_len, size);
 		return NULL;
 	}
 
@@ -1260,7 +1260,7 @@ kvstore_parse_update_message(
 	g_return_val_if_fail(len != NULL, FALSE);
 
 	if (msg_len < 256) {
-		cfs_critical("received short kvstore message (%lu < 256)", msg_len);
+		cfs_critical("received short kvstore message (%zu < 256)", msg_len);
 		return FALSE;
 	}
 
