@@ -19,6 +19,10 @@ include /usr/share/pve-doc-generator/pve-doc-generator.mk
 	perl -I.. -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_bash_completions();" >$@.tmp
 	mv $@.tmp $@
 
+# overwrite rule from pve-doc-generator.mk, use -I.. (instead of -I.)
+%.1-synopsis.adoc:
+	perl -I.. -e "use PVE::CLI::$(subst -,_,$*);print PVE::CLI::$(subst -,_,$*)->generate_asciidoc_synopsys();" > $@.tmp
+	mv $@.tmp $@
 
 man1_MANS = pvecm.1
 man5_MANS = datacenter.cfg.5
