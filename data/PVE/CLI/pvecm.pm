@@ -13,7 +13,6 @@ use PVE::Tools;
 use PVE::Cluster;
 use PVE::INotify;
 use PVE::JSONSchema;
-use PVE::RPCEnvironment;
 use PVE::CLIHandler;
 
 use base qw(PVE::CLIHandler);

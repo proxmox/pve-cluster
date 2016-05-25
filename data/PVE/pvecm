@@ -17,4 +17,4 @@ my $prepare = sub {
     my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
 };
 
-PVE::CLI::pvecm->run_cli(undef, undef, $prepare);
+PVE::CLI::pvecm->run_cli_handler(prepare => $prepare, no_rpcenv => 1);
