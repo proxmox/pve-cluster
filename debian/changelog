@@ -1,3 +1,15 @@
+pve-cluster (4.0-40) unstable; urgency=medium
+
+  * pvecm: remove RPCEnvironment use clause
+
+  * fix rule for %.1-synopsis.adoc
+
+  * docs: replace NOTE: with WARNING:
+
+  * Fix #935: fix corosync.conf check
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 25 May 2016 11:37:08 +0200
+
 pve-cluster (4.0-39) unstable; urgency=medium
 
   * Build-Depend on pve-doc-generator
