@@ -1,3 +1,9 @@
+pve-cluster (3.0-20) unstable; urgency=low
+
+  * cleanup calls to external programs
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 10 Jun 2016 12:36:17 +0200
+
 pve-cluster (3.0-19) unstable; urgency=low
 
   * fix bug #686: Fix escaping of XML attributes in cluster.conf
