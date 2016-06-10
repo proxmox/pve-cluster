@@ -33,12 +33,13 @@ sub backup_database {
     mkdir $backupdir;
     
     my $ctime = time();
-    my $cmd = "echo '.dump' |";
-    $cmd .= "sqlite3 '$dbfile' |";
-    $cmd .= "gzip - >'${backupdir}/config-${ctime}.sql.gz'";
+    my $cmd = [
+	['echo', '.dump'],
+	['sqlite3', $dbfile],
+	['gzip', '-', \">${backupdir}/config-${ctime}.sql.gz"],
+    ];
 
-    system($cmd) == 0 ||
-	die "can't backup old database: $!\n";
+    PVE::Tools::run_command($cmd, 'errmsg' => "can't backup old database\n");
 
     # purge older backup
     my $maxfiles = 10;
@@ -492,9 +493,9 @@ __PACKAGE__->register_method ({
 	# make sure known_hosts is on local filesystem
 	PVE::Cluster::ssh_unmerge_known_hosts();
 
-	my $cmd = "ssh-copy-id -i /root/.ssh/id_rsa 'root\@$host' >/dev/null 2>&1";
-	system ($cmd) == 0 ||
-	    die "unable to copy ssh ID\n";
+	my $cmd = ['ssh-copy-id', '-i', '/root/.ssh/id_rsa', "root\@$host"];
+	PVE::Tools::run_command($cmd, 'outfunc' => sub {}, 'errfunc' => sub {},
+				'errmsg' => "unable to copy ssh ID");
 
 	$cmd = ['ssh', $host, '-o', 'BatchMode=yes',
 		'pvecm', 'addnode', $nodename, '--force', 1];

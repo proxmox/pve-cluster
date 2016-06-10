@@ -153,11 +153,9 @@ sub gen_auth_key {
 
     mkdir $authdir || $! == EEXIST || die "unable to create dir '$authdir' - $!\n";
 
-    my $cmd = "openssl genrsa -out '$authprivkeyfn' 2048";
-    run_silent_cmd($cmd);
+    run_silent_cmd(['openssl', 'genrsa -out', $authprivkeyfn, '2048']);
 
-    $cmd = "openssl rsa -in '$authprivkeyfn' -pubout -out '$authpubkeyfn'";
-    run_silent_cmd($cmd)
+    run_silent_cmd(['openssl', 'rsa', '-in', $authprivkeyfn, '-pubout', '-out', $authpubkeyfn]);
 }
 
 sub gen_pveca_key {
