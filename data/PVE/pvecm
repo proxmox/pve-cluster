@@ -398,9 +398,9 @@ __PACKAGE__->register_method ({
 	# make sure known_hosts is on local filesystem
 	PVE::Cluster::ssh_unmerge_known_hosts();
 
-	my $cmd = "ssh-copy-id -i /root/.ssh/id_rsa 'root\@$host' >/dev/null 2>&1";
-	system ($cmd) == 0 ||
-	    die "unable to copy ssh ID\n";
+	my $cmd = ['ssh-copy-id', '-i', '/root/.ssh/id_rsa', "root\@$host"];
+	PVE::Tools::run_command($cmd, 'outfunc' => sub {}, 'errfunc' => sub {},
+				'errmsg' => "unable to copy ssh ID");
 
 	$cmd = ['ssh', $host, '-o', 'BatchMode=yes',
 		'pvecm', 'addnode', $nodename, '--force', 1];
