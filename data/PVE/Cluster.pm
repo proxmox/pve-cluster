@@ -19,6 +19,7 @@ use PVE::JSONSchema;
 use JSON;
 use RRDs;
 use Encode;
+use UUID;
 use base 'Exporter';
 
 our @EXPORT_OK = qw(
@@ -179,14 +180,17 @@ sub gen_pveca_cert {
 
     # we try to generate an unique 'subject' to avoid browser problems
     # (reused serial numbers, ..)
-    my $nid = (split (/\s/, `md5sum '$pveca_key_fn'`))[0] || time();
+    my $uuid;
+    UUID::generate($uuid);
+    my $uuid_str;
+    UUID::unparse($uuid, $uuid_str);
 
     eval {
 	# wrap openssl with faketime to prevent bug #904
 	run_silent_cmd(['faketime', 'yesterday', 'openssl', 'req', '-batch',
 			'-days', '3650', '-new', '-x509', '-nodes', '-key',
 			$pveca_key_fn, '-out', $pveca_cert_fn, '-subj',
-			"/CN=Proxmox Virtual Environment/OU=$nid/O=PVE Cluster Manager CA/"]);
+			"/CN=Proxmox Virtual Environment/OU=$uuid_str/O=PVE Cluster Manager CA/"]);
     };
 
     die "generating pve root certificate failed:\n$@" if $@;
