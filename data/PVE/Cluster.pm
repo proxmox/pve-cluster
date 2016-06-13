@@ -154,7 +154,7 @@ sub gen_auth_key {
 
     mkdir $authdir || $! == EEXIST || die "unable to create dir '$authdir' - $!\n";
 
-    run_silent_cmd(['openssl', 'genrsa -out', $authprivkeyfn, '2048']);
+    run_silent_cmd(['openssl', 'genrsa', '-out', $authprivkeyfn, '2048']);
 
     run_silent_cmd(['openssl', 'rsa', '-in', $authprivkeyfn, '-pubout', '-out', $authpubkeyfn]);
 }
