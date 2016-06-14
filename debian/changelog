@@ -1,3 +1,9 @@
+pve-cluster (4.0-42) unstable; urgency=medium
+
+  * Fix command line arguments when creating the ssl private key
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 14 Jun 2016 09:56:01 +0200
+
 pve-cluster (4.0-41) unstable; urgency=medium
 
   * use UUID for CA certificate subject
