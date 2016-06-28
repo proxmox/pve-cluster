@@ -21,8 +21,9 @@ cpgtest: cpgtest.c
 dinstall: ${DEB}
 	dpkg -i ${DEB} 
 
-.PHONY: ${DEB} ${DBG_DEB}
-${DEB} ${DBG_DEB}:
+.PHONY: deb
+deb ${DEB} ${DBG_DEB}:
+	rm -f *.deb
 	rm -rf build
 	rsync -a --exclude .svn data/ build
 	cp -a debian build/debian
