@@ -146,6 +146,7 @@ static int service_quorum_initialize(
 	return quorum_fd;
 
  err_finalize:
+	cfs_set_quorate(0, FALSE);
 	quorum_finalize(handle);
  err_reset_handle:
 	private->handle = 0;
@@ -181,6 +182,7 @@ loop:
 
 	cfs_critical("quorum_dispatch failed: %d", result);
 
+	cfs_set_quorate(0, FALSE);
 	quorum_finalize(handle);
 	private->handle = 0;
 	return FALSE;
