@@ -361,7 +361,7 @@ cfs_loop_start_worker(cfs_loop_t *loop)
 void
 cfs_loop_stop_worker(cfs_loop_t *loop)
 {
-	g_return_val_if_fail(loop != NULL, NULL);
+	g_return_if_fail(loop != NULL);
 
 	cfs_debug("cfs_loop_stop_worker");
 
