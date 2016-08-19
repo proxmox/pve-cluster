@@ -1,3 +1,9 @@
+pve-cluster (4.0-44) unstable; urgency=medium
+
+  * add mac_prefix option to datacenter.cfg
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 19 Aug 2016 14:51:35 +0200
+
 pve-cluster (4.0-43) unstable; urgency=medium
 
   * ensure quorum is set false when corosync fails
