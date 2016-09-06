@@ -392,7 +392,10 @@ __PACKAGE__->register_method ({
     parameters => {
     	additionalProperties => 0,
 	properties => {
-	    node => PVE::JSONSchema::get_standard_option('pve-node'),
+	    node => {
+		type => 'string',
+		description => "Hostname or IP of the corosync ring0 address of this node.",
+	    },
 	},
     },
     returns => { type => 'null' },
@@ -406,9 +409,24 @@ __PACKAGE__->register_method ({
 
 	my $nodelist = corosync_nodelist($conf);
 
-	my $nd = delete $nodelist->{$param->{node}};
-	die "no such node '$param->{node}'\n" if !$nd;
-	
+	my $node;
+
+	foreach my $tmp_node (keys %$nodelist) {
+	    my $ring0_addr = $nodelist->{$tmp_node}->{ring0_addr};
+	    my $ring1_addr = $nodelist->{$tmp_node}->{ring1_addr};
+	    if (($tmp_node eq $param->{node}) ||
+		(defined($ring0_addr) && ($ring0_addr eq $param->{node})) ||
+		(defined($ring1_addr) && ($ring1_addr eq $param->{node}))) {
+		$node = $tmp_node;
+		last;
+	    }
+	}
+
+	die "Node/IP: $param->{node} is not a known host of the cluster.\n"
+		if !defined($node);
+
+	delete $nodelist->{$node};
+
 	corosync_update_nodelist($conf, $nodelist);
 
 	return undef;
