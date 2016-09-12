@@ -28,7 +28,7 @@
 #include <glib.h>
 #include <sys/statvfs.h>
 
-#define MEMDB_MAX_FILE_SIZE (128*1024)
+#define MEMDB_MAX_FILE_SIZE (512*1024)
 #define MEMDB_MAX_FSSIZE (30*1024*1024)
 #define MEMDB_MAX_INODES 10000
 
