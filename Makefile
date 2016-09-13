@@ -35,13 +35,7 @@ deb ${DEB} ${DBG_DEB}:
 
 .PHONY: upload
 upload: ${DEB} ${DBG_DEB}
-	umount /pve/${RELEASE}; mount /pve/${RELEASE} -o rw 
-	mkdir -p /pve/${RELEASE}/extra
-	rm -f /pve/${RELEASE}/extra/${PACKAGE}*.deb
-	rm -f /pve/${RELEASE}/extra/Packages*
-	cp ${DEB} ${DBG_DEB} /pve/${RELEASE}/extra
-	cd /pve/${RELEASE}/extra; dpkg-scanpackages . /dev/null > Packages; gzip -9c Packages > Packages.gz
-	umount /pve/${RELEASE}; mount /pve/${RELEASE} -o ro
+	tar cf - ${DEB} ${DBG_DEB}| ssh repoman@repo.proxmox.com upload
 
 .PHONY: clean
 clean:
