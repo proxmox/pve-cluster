@@ -1,3 +1,9 @@
+pve-cluster (4.0-45) unstable; urgency=medium
+
+  * pmxcfs: increase max filesize from 128k to 512k
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 13 Sep 2016 06:30:13 +0200
+
 pve-cluster (4.0-44) unstable; urgency=medium
 
   * add mac_prefix option to datacenter.cfg
