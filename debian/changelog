@@ -1,3 +1,11 @@
+pve-cluster (4.0-46) unstable; urgency=medium
+
+  * Fix #1093: allow also delete node by IP
+
+  * reload corosync.conf after removing a node
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 20 Sep 2016 09:36:22 +0200
+
 pve-cluster (4.0-45) unstable; urgency=medium
 
   * pmxcfs: increase max filesize from 128k to 512k
