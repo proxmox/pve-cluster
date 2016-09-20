@@ -410,14 +410,17 @@ __PACKAGE__->register_method ({
 	my $nodelist = corosync_nodelist($conf);
 
 	my $node;
+	my $nodeid;
 
 	foreach my $tmp_node (keys %$nodelist) {
-	    my $ring0_addr = $nodelist->{$tmp_node}->{ring0_addr};
-	    my $ring1_addr = $nodelist->{$tmp_node}->{ring1_addr};
+	    my $d = $nodelist->{$tmp_node};
+	    my $ring0_addr = $d->{ring0_addr};
+	    my $ring1_addr = $d->{ring1_addr};
 	    if (($tmp_node eq $param->{node}) ||
 		(defined($ring0_addr) && ($ring0_addr eq $param->{node})) ||
 		(defined($ring1_addr) && ($ring1_addr eq $param->{node}))) {
 		$node = $tmp_node;
+		$nodeid = $d->{nodeid};
 		last;
 	    }
 	}
@@ -428,6 +431,9 @@ __PACKAGE__->register_method ({
 	delete $nodelist->{$node};
 
 	corosync_update_nodelist($conf, $nodelist);
+
+	PVE::Tools::run_command(['corosync-cfgtool','-k', $nodeid])
+	    if defined($nodeid);
 
 	return undef;
     }});
