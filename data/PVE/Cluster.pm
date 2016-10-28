@@ -16,6 +16,7 @@ use PVE::INotify;
 use PVE::IPCC;
 use PVE::SafeSyslog;
 use PVE::JSONSchema;
+use PVE::Network;
 use JSON;
 use RRDs;
 use Encode;
@@ -1047,6 +1048,32 @@ sub remote_node_ip {
 
     return wantarray ? ($ip, $family) : $ip;
 }
+
+sub get_local_migration_ip {
+    my ($migration_network, $noerr) = @_;
+
+    my $cidr = $migration_network;
+
+    if (!defined($cidr)) {
+	my $dc_conf = cfs_read_file('datacenter.cfg');
+	$cidr = $dc_conf->{migration}->{network}
+	  if defined($dc_conf->{migration}->{network});
+    }
+
+    if (defined($cidr)) {
+	my $ips = PVE::Network::get_local_ip_from_cidr($cidr);
+
+	die "no IP address configured on local node for network '$cidr'\n" 
+	    if !$noerr && (scalar(@$ips) == 0);
+
+	die "multiple IP address configured for network '$cidr'\n" 
+	    if !$noerr && (scalar(@$ips) > 1);
+
+	return @$ips[0];
+    }
+
+    return undef;
+};
 
 # ssh related utility functions
 
