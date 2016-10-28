@@ -841,7 +841,20 @@ __PACKAGE__->register_method ({
     description => "Used by VM/CT migration - do not use manually.",
     parameters => {
 	additionalProperties => 0,
-	properties => {},
+	properties => {
+	    get_migration_ip => {
+		type => 'boolean',
+		default => 0,
+		description => 'return the migration IP, if configured',
+		optional => 1,
+	    },
+	    migration_network => {
+		type => 'string',
+		format => 'CIDR',
+		description => 'the migration network used to detect the local migration IP',
+		optional => 1,
+	    },
+	},
     },
     returns => { type => 'null'},
     code => sub {
@@ -849,6 +862,17 @@ __PACKAGE__->register_method ({
 
 	if (!PVE::Cluster::check_cfs_quorum(1)) {
 	    print "no quorum\n";
+	    return undef;
+	}
+
+	if ($param->{get_migration_ip}) {
+	    my $network = $param->{migration_network};
+	    if (my $ip = PVE::Cluster::get_local_migration_ip($network, 1)) {
+		print "ip: '$ip'\n";
+	    } else {
+		print "no ip\n"
+	    }
+	    # do not keep tunnel open when asked for migration ip
 	    return undef;
 	}
 
