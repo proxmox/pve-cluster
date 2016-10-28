@@ -834,6 +834,35 @@ __PACKAGE__->register_method ({
 	return undef;
     }});
 
+__PACKAGE__->register_method ({
+    name => 'mtunnel',
+    path => 'mtunnel',
+    method => 'POST',
+    description => "Used by VM/CT migration - do not use manually.",
+    parameters => {
+	additionalProperties => 0,
+	properties => {},
+    },
+    returns => { type => 'null'},
+    code => sub {
+	my ($param) = @_;
+
+	if (!PVE::Cluster::check_cfs_quorum(1)) {
+	    print "no quorum\n";
+	    return undef;
+	}
+
+	print "tunnel online\n";
+	*STDOUT->flush();
+
+	while (my $line = <>) {
+	    chomp $line;
+	    last if $line =~ m/^quit$/;
+	}
+
+	return undef;
+    }});
+
 
 our $cmddef = {
     keygen => [ __PACKAGE__, 'keygen', ['filename']],
@@ -845,6 +874,7 @@ our $cmddef = {
     nodes => [ __PACKAGE__, 'nodes' ],
     expected => [ __PACKAGE__, 'expected', ['expected']],
     updatecerts => [ __PACKAGE__, 'updatecerts', []],
+    mtunnel => [ __PACKAGE__, 'mtunnel', []],
 };
 
 1;
