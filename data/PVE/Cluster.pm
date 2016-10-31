@@ -1318,6 +1318,25 @@ sub ssh_merge_known_hosts {
 
 }
 
+my $migration_format = {
+    type => {
+	default_key => 1,
+	type => 'string',
+	enum => ['secure', 'insecure'],
+	description => "Migration traffic is encrypted using an SSH tunnel by " .
+	  "default. On secure, completely private networks this can be " .
+	  "disabled to increase performance.",
+	default => 'secure',
+	format_description => 'migration type',
+    },
+    network => {
+	optional => 1,
+	type => 'string', format => 'CIDR',
+	format_description => 'CIDR',
+	description => "CIDR of the (sub) network that is used for migration."
+    },
+};
+
 my $datacenter_schema = {
     type => "object",
     additionalProperties => 0,
@@ -1343,7 +1362,14 @@ my $datacenter_schema = {
 	migration_unsecure => {
 	    optional => 1,
 	    type => 'boolean',
-	    description => "Migration is secure using SSH tunnel by default. For secure private networks you can disable it to speed up migration.",
+	    description => "Migration is secure using SSH tunnel by default. " .
+	      "For secure private networks you can disable it to speed up " .
+	      "migration. Deprecated, use the 'migration' property instead!",
+	},
+	migration => {
+	    optional => 1,
+	    type => 'string', format => $migration_format,
+	    description => "For cluster wide migration settings.",
 	},
 	console => {
 	    optional => 1,
@@ -1389,12 +1415,34 @@ sub get_datacenter_schema { return $datacenter_schema };
 sub parse_datacenter_config {
     my ($filename, $raw) = @_;
 
-    return PVE::JSONSchema::parse_config($datacenter_schema, $filename, $raw // '');
+    my $res = PVE::JSONSchema::parse_config($datacenter_schema, $filename, $raw // '');
+
+    if (my $migration = $res->{migration}) {
+	$res->{migration} = PVE::JSONSchema::parse_property_string($migration_format, $migration);
+    }
+
+    # for backwards compatibility only, new migration property has precedence
+    if (defined($res->{migration_unsecure})) {
+	if (defined($res->{migration}->{type})) {
+	    warn "deprecated setting 'migration_unsecure' and new 'migration: type' " .
+	      "set at same time! Ignore 'migration_unsecure'\n";
+	} else {
+	    $res->{migration}->{type} = ($res->{migration_unsecure}) ? 'insecure' : 'secure';
+	}
+    }
+
+    return $res;
 }
 
 sub write_datacenter_config {
     my ($filename, $cfg) = @_;
-    
+
+    # map deprecated setting to new one
+    if (defined($cfg->{migration_unsecure})) {
+	my $migration_unsecure = delete $cfg->{migration_unsecure};
+	$cfg->{migration}->{type} = ($migration_unsecure) ? 'insecure' : 'secure';
+    }
+
     return PVE::JSONSchema::dump_config($datacenter_schema, $filename, $cfg);
 }
 
