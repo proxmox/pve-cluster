@@ -1327,7 +1327,6 @@ my $migration_format = {
 	  "default. On secure, completely private networks this can be " .
 	  "disabled to increase performance.",
 	default => 'secure',
-	format_description => 'migration type',
     },
     network => {
 	optional => 1,
