@@ -1438,7 +1438,7 @@ sub write_datacenter_config {
     my ($filename, $cfg) = @_;
 
     # map deprecated setting to new one
-    if (defined($cfg->{migration_unsecure})) {
+    if (defined($cfg->{migration_unsecure}) && !defined($cfg->{migration})) {
 	my $migration_unsecure = delete $cfg->{migration_unsecure};
 	$cfg->{migration}->{type} = ($migration_unsecure) ? 'insecure' : 'secure';
     }
