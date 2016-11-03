@@ -1,5 +1,3 @@
-RELEASE=4.2
-
 PACKAGE=pve-cluster
 PKGVER=4.0
 PKGREL=47
