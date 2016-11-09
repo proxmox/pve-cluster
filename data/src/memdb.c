@@ -306,8 +306,8 @@ path_contain_vm_config(
 	if (name_is_vm_config(base, vmid_ret))
 		nodename = dir_contain_vm_config(dirname, vmtype_ret);
 	
-	if (dirname) g_free (dirname);
-	if (base) g_free (base);
+	g_free (dirname);
+	g_free (base);
 
 	return nodename;
 }
@@ -653,8 +653,8 @@ int memdb_mkdir(
  ret:
 	g_mutex_unlock (&memdb->mutex);
 
-	if (dirname) g_free (dirname);
-	if (base) g_free (base);
+	g_free (dirname);
+	g_free (base);
 
 	return ret;
 }
@@ -851,9 +851,9 @@ memdb_pwrite(
  ret:
 	g_mutex_unlock (&memdb->mutex);
 
-	if (nodename) g_free (nodename);
-	if (dirname) g_free (dirname);
-	if (base) g_free (base);
+	g_free (nodename);
+	g_free (dirname);
+	g_free (base);
 
 	return ret;
 }
@@ -960,8 +960,8 @@ memdb_mtime(
  ret:
 	g_mutex_unlock (&memdb->mutex);
 
-	if (dirname) g_free (dirname);
-	if (base) g_free (base);
+	g_free (dirname);
+	g_free (base);
 
 	return ret;
 }
@@ -1241,10 +1241,10 @@ memdb_rename(
  ret:
 	g_mutex_unlock (&memdb->mutex);
 
-	if (from_node) g_free(from_node);
-	if (nodename) g_free (nodename);
-	if (dirname) g_free (dirname);
-	if (base) g_free (base);
+	g_free(from_node);
+	g_free (nodename);
+	g_free (dirname);
+	g_free (base);
 
 	return ret;
 }

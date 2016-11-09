@@ -82,7 +82,7 @@ cmap_read_clusternodes(
 				cfs_clinfo_add_node(clinfo, clnode);
 			}
 			last_id = id;
-			if (name) free(name);
+			free(name);
 			name = NULL;
 			nodeid = 0;
 			votes = 0;
@@ -116,7 +116,7 @@ cmap_read_clusternodes(
 		cfs_clnode_t *clnode = cfs_clnode_new(name, nodeid, votes);
 		cfs_clinfo_add_node(clinfo, clnode);
 	}
-	if (name) free(name);
+	free(name);
 
         result = cmap_iter_finalize(handle, iter);
  	if (result != CS_OK) {
