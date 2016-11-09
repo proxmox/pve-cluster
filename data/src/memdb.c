@@ -1226,7 +1226,7 @@ memdb_rename(
 
 	if (new->type == DT_REG) {
 
-		if (from_vmid)
+		if (from_node)
 			vmlist_delete_vm(from_vmid);
 
 		if (nodename)
