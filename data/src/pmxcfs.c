@@ -800,9 +800,9 @@ int main(int argc, char *argv[])
 		exit (-1);
 	}
 
-	for (int i=0; i < sizeof(utsname.nodename); i++) {
-		if (utsname.nodename[i] =='.') utsname.nodename[i] = 0;
-	}
+	char *dot = strchr(utsname.nodename, '.');
+	if (dot)
+		*dot = 0;
 
 	cfs.nodename = g_strdup(utsname.nodename);
 
