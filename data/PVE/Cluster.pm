@@ -1063,11 +1063,11 @@ sub get_local_migration_ip {
     if (defined($cidr)) {
 	my $ips = PVE::Network::get_local_ip_from_cidr($cidr);
 
-	die "no IP address configured on local node for network '$cidr'\n" 
-	    if !$noerr && (scalar(@$ips) == 0);
+	die "could not get migration ip: no IP address configured on local " .
+	    "node for network '$cidr'\n" if !$noerr && (scalar(@$ips) == 0);
 
-	die "multiple IP address configured for network '$cidr'\n" 
-	    if !$noerr && (scalar(@$ips) > 1);
+	die "could not get migration ip: multiple IP address configured for " .
+	    "network '$cidr'\n" if !$noerr && (scalar(@$ips) > 1);
 
 	return @$ips[0];
     }
