@@ -867,10 +867,10 @@ __PACKAGE__->register_method ({
 
 	if ($param->{get_migration_ip}) {
 	    my $network = $param->{migration_network};
-	    if (my $ip = PVE::Cluster::get_local_migration_ip($network, 1)) {
+	    if (my $ip = PVE::Cluster::get_local_migration_ip($network)) {
 		print "ip: '$ip'\n";
 	    } else {
-		print "no ip\n"
+		print "no ip\n";
 	    }
 	    # do not keep tunnel open when asked for migration ip
 	    return undef;
