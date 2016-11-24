@@ -36,7 +36,7 @@ sub backup_database {
     my $cmd = [
 	['echo', '.dump'],
 	['sqlite3', $dbfile],
-	['gzip', '-', \">${backupdir}/config-${ctime}.sql.gz"],
+	['gzip', '-', \ ">${backupdir}/config-${ctime}.sql.gz"],
     ];
 
     PVE::Tools::run_command($cmd, 'errmsg' => "cannot backup old database\n");
