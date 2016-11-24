@@ -39,7 +39,7 @@ sub backup_database {
 	['gzip', '-', \">${backupdir}/config-${ctime}.sql.gz"],
     ];
 
-    PVE::Tools::run_command($cmd, 'errmsg' => "can't backup old database\n");
+    PVE::Tools::run_command($cmd, 'errmsg' => "cannot backup old database\n");
 
     # purge older backup
     my $maxfiles = 10;
