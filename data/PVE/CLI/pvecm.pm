@@ -163,7 +163,7 @@ __PACKAGE__->register_method ({
 
 	-f $clusterconf && die "cluster config '$clusterconf' already exists\n";
 
-	PVE::Cluster::setup_sshd_config();
+	PVE::Cluster::setup_sshd_config(1);
 	PVE::Cluster::setup_rootsshconfig();
 	PVE::Cluster::setup_ssh_keys();
 
@@ -488,7 +488,7 @@ __PACKAGE__->register_method ({
 
 	my $nodename = PVE::INotify::nodename();
 
-	PVE::Cluster::setup_sshd_config();
+	PVE::Cluster::setup_sshd_config(1);
 	PVE::Cluster::setup_rootsshconfig();
 	PVE::Cluster::setup_ssh_keys();
 
@@ -811,6 +811,7 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
+	PVE::Cluster::setup_sshd_config(0);
 	PVE::Cluster::setup_rootsshconfig();
 
 	PVE::Cluster::gen_pve_vzdump_symlink();
