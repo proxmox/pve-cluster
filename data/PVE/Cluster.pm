@@ -1661,6 +1661,14 @@ sub update_cert_cache {
     }
 }
 
+# load and cache cert fingerprint once
+sub initialize_cert_cache {
+    my ($node) = @_;
+
+    update_cert_cache($node)
+	if defined($node) && !defined($cert_cache_nodes->{$node});
+}
+
 sub check_cert_fingerprint {
     my ($cert) = @_;
 
