@@ -1597,6 +1597,106 @@ sub check_corosync_conf_exists {
     return $exists;
 }
 
+sub corosync_update_nodelist {
+    my ($conf, $nodelist) = @_;
+
+    delete $conf->{digest};
+
+    my $version = corosync_conf_version($conf);
+    corosync_conf_version($conf, undef, $version + 1);
+
+    my $children = [];
+    foreach my $v (values %$nodelist) {
+	next if !($v->{ring0_addr} || $v->{name});
+	my $kv = [];
+	foreach my $k (keys %$v) {
+	    push @$kv, { key => $k, value => $v->{$k} };
+	}
+	my $ns = { section => 'node', children => $kv };
+	push @$children, $ns;
+    }
+
+    foreach my $main (@{$conf->{children}}) {
+	next if !defined($main->{section});
+	if ($main->{section} eq 'nodelist') {
+	    $main->{children} = $children;
+	    last;
+	}
+    }
+
+
+    cfs_write_file("corosync.conf.new", $conf);
+
+    rename("/etc/pve/corosync.conf.new", "/etc/pve/corosync.conf")
+	|| die "activate  corosync.conf.new failed - $!\n";
+}
+
+sub corosync_nodelist {
+    my ($conf) = @_;
+
+    my $nodelist = {};
+
+    foreach my $main (@{$conf->{children}}) {
+	next if !defined($main->{section});
+	if ($main->{section} eq 'nodelist') {
+	    foreach my $ne (@{$main->{children}}) {
+		next if !defined($ne->{section}) || ($ne->{section} ne 'node');
+		my $node = { quorum_votes => 1 };
+		my $name;
+		foreach my $child (@{$ne->{children}}) {
+		    next if !defined($child->{key});
+		    $node->{$child->{key}} = $child->{value};
+		    # use 'name' over 'ring0_addr' if set
+		    if ($child->{key} eq 'name') {
+			delete $nodelist->{$name} if $name;
+			$name = $child->{value};
+			$nodelist->{$name} = $node;
+		    } elsif(!$name && $child->{key} eq 'ring0_addr') {
+			$name = $child->{value};
+			$nodelist->{$name} = $node;
+		    }
+		}
+	    }
+	}
+    }
+
+    return $nodelist;
+}
+
+# get a hash representation of the corosync config totem section
+sub corosync_totem_config {
+    my ($conf) = @_;
+
+    my $res = {};
+
+    foreach my $main (@{$conf->{children}}) {
+	next if !defined($main->{section}) ||
+	    $main->{section} ne 'totem';
+
+	foreach my $e (@{$main->{children}}) {
+
+	    if ($e->{section} && $e->{section} eq 'interface') {
+		my $entry = {};
+
+		$res->{interface} = {};
+
+		foreach my $child (@{$e->{children}}) {
+		    next if !defined($child->{key});
+		    $entry->{$child->{key}} = $child->{value};
+		    if($child->{key} eq 'ringnumber') {
+			$res->{interface}->{$child->{value}} = $entry;
+		    }
+		}
+
+	    } elsif  ($e->{key}) {
+		$res->{$e->{key}} = $e->{value};
+	    }
+	}
+    }
+
+    return $res;
+}
+
 # X509 Certificate cache helper
 
 my $cert_cache_nodes = {};

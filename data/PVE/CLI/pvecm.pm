@@ -319,9 +319,9 @@ __PACKAGE__->register_method ({
 
 	my $conf = PVE::Cluster::cfs_read_file("corosync.conf");
 
-	my $nodelist = corosync_nodelist($conf);
+	my $nodelist = PVE::Cluster::corosync_nodelist($conf);
 
-	my $totem_cfg = corosync_totem_config($conf);
+	my $totem_cfg = PVE::Cluster::corosync_totem_config($conf);
 
 	my $name = $param->{node};
 
@@ -378,7 +378,7 @@ __PACKAGE__->register_method ({
 	$nodelist->{$name}->{ring1_addr} = $param->{ring1_addr} if $param->{ring1_addr};
 	$nodelist->{$name}->{quorum_votes} = $param->{votes} if $param->{votes};
 
-	corosync_update_nodelist($conf, $nodelist);
+	PVE::Cluster::corosync_update_nodelist($conf, $nodelist);
 
 	exit (0);
     }});
@@ -407,7 +407,7 @@ __PACKAGE__->register_method ({
 
 	my $conf = PVE::Cluster::cfs_read_file("corosync.conf");
 
-	my $nodelist = corosync_nodelist($conf);
+	my $nodelist = PVE::Cluster::corosync_nodelist($conf);
 
 	my $node;
 	my $nodeid;
@@ -430,7 +430,7 @@ __PACKAGE__->register_method ({
 
 	delete $nodelist->{$node};
 
-	corosync_update_nodelist($conf, $nodelist);
+	PVE::Cluster::corosync_update_nodelist($conf, $nodelist);
 
 	PVE::Tools::run_command(['corosync-cfgtool','-k', $nodeid])
 	    if defined($nodeid);
@@ -686,106 +686,6 @@ __PACKAGE__->register_method ({
 	exit (-1); # should not be reached
 
     }});
-
-sub corosync_update_nodelist {
-    my ($conf, $nodelist) = @_;
-
-    delete $conf->{digest};
-
-    my $version = PVE::Cluster::corosync_conf_version($conf);
-    PVE::Cluster::corosync_conf_version($conf, undef, $version + 1);
-
-    my $children = [];
-    foreach my $v (values %$nodelist) {
-	next if !($v->{ring0_addr} || $v->{name});
-	my $kv = [];
-	foreach my $k (keys %$v) {
-	    push @$kv, { key => $k, value => $v->{$k} };
-	}
-	my $ns = { section => 'node', children => $kv };
-	push @$children, $ns;
-    }
-
-    foreach my $main (@{$conf->{children}}) {
-	next if !defined($main->{section});
-	if ($main->{section} eq 'nodelist') {
-	    $main->{children} = $children;
-	    last;
-	}
-    }
-
-
-    PVE::Cluster::cfs_write_file("corosync.conf.new", $conf);
-
-    rename("/etc/pve/corosync.conf.new", "/etc/pve/corosync.conf")
-	|| die "activate  corosync.conf.new failed - $!\n";
-}
-
-sub corosync_nodelist {
-    my ($conf) = @_;
-
-    my $nodelist = {};
-
-    foreach my $main (@{$conf->{children}}) {
-	next if !defined($main->{section});
-	if ($main->{section} eq 'nodelist') {
-	    foreach my $ne (@{$main->{children}}) {
-		next if !defined($ne->{section}) || ($ne->{section} ne 'node');
-		my $node = { quorum_votes => 1 };
-		my $name;
-		foreach my $child (@{$ne->{children}}) {
-		    next if !defined($child->{key});
-		    $node->{$child->{key}} = $child->{value};
-		    # use 'name' over 'ring0_addr' if set
-		    if ($child->{key} eq 'name') {
-			delete $nodelist->{$name} if $name;
-			$name = $child->{value};
-			$nodelist->{$name} = $node;
-		    } elsif(!$name && $child->{key} eq 'ring0_addr') {
-			$name = $child->{value};
-			$nodelist->{$name} = $node;
-		    }
-		}
-	    }
-	}
-    }
-
-    return $nodelist;
-}
-
-# get a hash representation of the corosync config totem section
-sub corosync_totem_config {
-    my ($conf) = @_;
-
-    my $res = {};
-
-    foreach my $main (@{$conf->{children}}) {
-	next if !defined($main->{section}) ||
-	    $main->{section} ne 'totem';
-
-	foreach my $e (@{$main->{children}}) {
-
-	    if ($e->{section} && $e->{section} eq 'interface') {
-		my $entry = {};
-
-		$res->{interface} = {};
-
-		foreach my $child (@{$e->{children}}) {
-		    next if !defined($child->{key});
-		    $entry->{$child->{key}} = $child->{value};
-		    if($child->{key} eq 'ringnumber') {
-			$res->{interface}->{$child->{value}} = $entry;
-		    }
-		}
-
-	    } elsif  ($e->{key}) {
-		$res->{$e->{key}} = $e->{value};
-	    }
-	}
-    }
-
-    return $res;
-}
 
 __PACKAGE__->register_method ({
     name => 'updatecerts',
