@@ -1,3 +1,33 @@
+pve-cluster (4.0-48) unstable; urgency=medium
+
+  * add API class for cluster configuration
+
+  * move corosync config helpers to PVE::Cluster
+
+  * Fix #1199: pmxcfs: vmlist cache update condition in rename
+
+  * pmxcfs: cleanup: remove unnecessary checks before free
+
+  * new helper initialize_cert_cache()
+
+  * moved x509 certificate cache helpers from pve-manager package
+
+  * setup_sshd_config: add start_sshd flag
+
+  * pvecm.pm: add space after perl reference operator
+
+  * error out when getting remote ip address fails
+
+  * get_local_migration_ip: change to a reasonable error message
+
+  * set PERLIB=.. instead of overwriting rules from pve-doc-generator.mk
+
+  * do not set format_description for migration type property
+
+  * removed unused script gen-datacenter-pod.pl
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 29 Nov 2016 12:00:11 +0100
+
 pve-cluster (4.0-47) unstable; urgency=medium
 
   * add migration format to datacenter config
