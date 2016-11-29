@@ -33,6 +33,9 @@ noinst_DATA = pvecm.bash-completion
 cliclass_DATA = CLI/pvecm.pm
 cliclassdir = $(PERL_VENDORLIB)/PVE/CLI
 
+apiclass_DATA = API2/ClusterConfig.pm
+apiclassdir = $(PERL_VENDORLIB)/PVE/API2
+
 install-exec-hook: pvecm.bash-completion
 	perl -I.. -T -e "use PVE::CLI::pvecm; PVE::CLI::pvecm->verify_api();"
 	install -m 0644 -D pvecm.bash-completion ${DESTDIR}/usr/share/bash-completion/completions/pvecm
