@@ -8,7 +8,7 @@ use IO::File;
 use Net::IP;
 use File::Path;
 use File::Basename;
-use Data::Dumper; # fixme: remove 
+use Data::Dumper; # fixme: remove
 use PVE::Tools;
 use PVE::Cluster;
 use PVE::INotify;
@@ -31,7 +31,7 @@ sub backup_database {
     print "backup old database\n";
 
     mkdir $backupdir;
-    
+
     my $ctime = time();
     my $cmd = [
 	['echo', '.dump'],
@@ -50,7 +50,7 @@ sub backup_database {
 	    push @bklist, [$fn, $1];
 	}
     }
-	
+
     @bklist = sort { $b->[1] <=> $a->[1] } @bklist;
 
     while (scalar (@bklist) >= $maxfiles) {
@@ -61,7 +61,7 @@ sub backup_database {
 }
 
 __PACKAGE__->register_method ({
-    name => 'keygen', 
+    name => 'keygen',
     path => 'keygen',
     method => 'PUT',
     description => "Generate new cryptographic key for corosync.",
@@ -75,7 +75,7 @@ __PACKAGE__->register_method ({
 	},
     },
     returns => { type => 'null' },
-    
+
     code => sub {
 	my ($param) = @_;
 
@@ -91,13 +91,13 @@ __PACKAGE__->register_method ({
 	File::Path::make_path($dirname) if $dirname;
 
 	my $cmd = ['corosync-keygen', '-l', '-k', $filename];
-	PVE::Tools::run_command($cmd);   
+	PVE::Tools::run_command($cmd);
 
 	return undef;
     }});
 
 __PACKAGE__->register_method ({
-    name => 'create', 
+    name => 'create',
     path => 'create',
     method => 'PUT',
     description => "Generate new cluster configuration.",
@@ -157,7 +157,7 @@ __PACKAGE__->register_method ({
 	},
     },
     returns => { type => 'null' },
-    
+
     code => sub {
 	my ($param) = @_;
 
@@ -178,7 +178,7 @@ __PACKAGE__->register_method ({
 	$param->{votes} = 1 if !defined($param->{votes});
 
 	my $nodename = PVE::INotify::nodename();
-	
+
 	my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
 
 	$param->{bindnet0_addr} = $local_ip_address
@@ -266,12 +266,12 @@ _EOD
 	PVE::Tools::run_command('systemctl restart pve-cluster'); # restart
 
 	PVE::Tools::run_command('systemctl restart corosync'); # restart
-	
+
 	return undef;
 }});
 
 __PACKAGE__->register_method ({
-    name => 'addnode', 
+    name => 'addnode',
     path => 'addnode',
     method => 'PUT',
     description => "Adds a node to the cluster configuration.",
@@ -311,7 +311,7 @@ __PACKAGE__->register_method ({
 	},
     },
     returns => { type => 'null' },
-    
+
     code => sub {
 	my ($param) = @_;
 
@@ -347,9 +347,9 @@ __PACKAGE__->register_method ({
 	    }
 	} elsif (!$param->{nodeid}) {
 	    my $nodeid = 1;
-	    
+
 	    while(1) {
-		my $found = 0; 
+		my $found = 0;
 		foreach my $v (values %$nodelist) {
 		    if ($v->{nodeid} eq $nodeid) {
 			$found = 1;
@@ -377,15 +377,15 @@ __PACKAGE__->register_method ({
 	};
 	$nodelist->{$name}->{ring1_addr} = $param->{ring1_addr} if $param->{ring1_addr};
 	$nodelist->{$name}->{quorum_votes} = $param->{votes} if $param->{votes};
-	
+
 	corosync_update_nodelist($conf, $nodelist);
-	
+
 	exit (0);
     }});
 
 
 __PACKAGE__->register_method ({
-    name => 'delnode', 
+    name => 'delnode',
     path => 'delnode',
     method => 'PUT',
     description => "Removes a node to the cluster configuration.",
@@ -399,7 +399,7 @@ __PACKAGE__->register_method ({
 	},
     },
     returns => { type => 'null' },
-    
+
     code => sub {
 	my ($param) = @_;
 
@@ -439,7 +439,7 @@ __PACKAGE__->register_method ({
     }});
 
 __PACKAGE__->register_method ({
-    name => 'add', 
+    name => 'add',
     path => 'add',
     method => 'PUT',
     description => "Adds the current node to an existing cluster.",
@@ -482,7 +482,7 @@ __PACKAGE__->register_method ({
 	},
     },
     returns => { type => 'null' },
-    
+
     code => sub {
 	my ($param) = @_;
 
@@ -495,7 +495,7 @@ __PACKAGE__->register_method ({
 	my $host = $param->{hostname};
 
 	if (!$param->{force}) {
-	    
+
 	    if (-f $authfile) {
 		die "authentication key already exists\n";
 	    }
@@ -542,7 +542,7 @@ __PACKAGE__->register_method ({
 
 	eval {
 	    print "copy corosync auth key\n";
-	    $cmd = ['rsync', '--rsh=ssh -l root -o BatchMode=yes', '-lpgoq', 
+	    $cmd = ['rsync', '--rsh=ssh -l root -o BatchMode=yes', '-lpgoq',
 		    "[$host]:$authfile $clusterconf", $tmpdir];
 
 	    system(@$cmd) == 0 || die "can't rsync data from host '$host'\n";
@@ -589,7 +589,7 @@ __PACKAGE__->register_method ({
 	    my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
 
 	    print "generating node certificates\n";
-	    PVE::Cluster::gen_pve_node_files($nodename, $local_ip_address); 
+	    PVE::Cluster::gen_pve_node_files($nodename, $local_ip_address);
 
 	    print "merge known_hosts file\n";
 	    PVE::Cluster::ssh_merge_known_hosts($nodename, $local_ip_address, 1);
@@ -612,7 +612,7 @@ __PACKAGE__->register_method ({
     }});
 
 __PACKAGE__->register_method ({
-    name => 'status', 
+    name => 'status',
     path => 'status',
     method => 'GET',
     description => "Displays the local view of the cluster status.",
@@ -621,7 +621,7 @@ __PACKAGE__->register_method ({
 	properties => {},
     },
     returns => { type => 'null' },
-    
+
     code => sub {
 	my ($param) = @_;
 
@@ -635,7 +635,7 @@ __PACKAGE__->register_method ({
     }});
 
 __PACKAGE__->register_method ({
-    name => 'nodes', 
+    name => 'nodes',
     path => 'nodes',
     method => 'GET',
     description => "Displays the local view of the cluster nodes.",
@@ -644,7 +644,7 @@ __PACKAGE__->register_method ({
 	properties => {},
     },
     returns => { type => 'null' },
-    
+
     code => sub {
 	my ($param) = @_;
 
@@ -658,7 +658,7 @@ __PACKAGE__->register_method ({
     }});
 
 __PACKAGE__->register_method ({
-    name => 'expected', 
+    name => 'expected',
     path => 'expected',
     method => 'PUT',
     description => "Tells corosync a new value of expected votes.",
@@ -673,7 +673,7 @@ __PACKAGE__->register_method ({
 	},
     },
     returns => { type => 'null' },
-    
+
     code => sub {
 	my ($param) = @_;
 
@@ -691,7 +691,7 @@ sub corosync_update_nodelist {
     my ($conf, $nodelist) = @_;
 
     delete $conf->{digest};
-    
+
     my $version = PVE::Cluster::corosync_conf_version($conf);
     PVE::Cluster::corosync_conf_version($conf, undef, $version + 1);
 
@@ -701,11 +701,11 @@ sub corosync_update_nodelist {
 	my $kv = [];
 	foreach my $k (keys %$v) {
 	    push @$kv, { key => $k, value => $v->{$k} };
-	} 
+	}
 	my $ns = { section => 'node', children => $kv };
 	push @$children, $ns;
     }
-    
+
     foreach my $main (@{$conf->{children}}) {
 	next if !defined($main->{section});
 	if ($main->{section} eq 'nodelist') {
@@ -714,9 +714,9 @@ sub corosync_update_nodelist {
 	}
     }
 
-    
+
     PVE::Cluster::cfs_write_file("corosync.conf.new", $conf);
-    
+
     rename("/etc/pve/corosync.conf.new", "/etc/pve/corosync.conf")
 	|| die "activate  corosync.conf.new failed - $!\n";
 }
@@ -748,7 +748,7 @@ sub corosync_nodelist {
 		}
 	    }
 	}
-    }   
+    }
 
     return $nodelist;
 }
@@ -788,7 +788,7 @@ sub corosync_totem_config {
 }
 
 __PACKAGE__->register_method ({
-    name => 'updatecerts', 
+    name => 'updatecerts',
     path => 'updatecerts',
     method => 'PUT',
     description => "Update node certificates (and generate all needed files/directories).",

@@ -91,7 +91,7 @@ sub run_silent_cmd {
     };
 
     eval {
-	PVE::Tools::run_command($cmd, outfunc => $record_output, 
+	PVE::Tools::run_command($cmd, outfunc => $record_output,
 				errfunc => $record_output);
     };
 
@@ -134,13 +134,13 @@ sub gen_local_dirs {
 
     my @required_dirs = (
 	"$basedir/priv",
-	"$basedir/nodes", 
+	"$basedir/nodes",
 	"$basedir/nodes/$nodename",
 	"$basedir/nodes/$nodename/lxc",
 	"$basedir/nodes/$nodename/qemu-server",
 	"$basedir/nodes/$nodename/openvz",
 	"$basedir/nodes/$nodename/priv");
-	       
+
     foreach my $dir (@required_dirs) {
 	if (! -d $dir) {
 	    mkdir($dir) || $! == EEXIST || die "unable to create directory '$dir' - $!\n";
@@ -248,7 +248,7 @@ sub gen_pve_ssl_cert {
     my $rc = PVE::INotify::read_file('resolvconf');
 
     $names .= ",IP:$ip";
-  
+
     my $fqdn = $nodename;
 
     $names .= ",DNS:$nodename";
@@ -548,7 +548,7 @@ sub get_tasklist {
 	eval {
 	    my $ver = $kvstore->{$node}->{tasklist} if $kvstore->{$node};
 	    my $cd = $tasklistcache->{$node};
-	    if (!$cd || !$ver || !$cd->{version} || 
+	    if (!$cd || !$ver || !$cd->{version} ||
 		($cd->{version} != $ver)) {
 		my $raw = &$ipcc_get_status("tasklist", $node) || '[]';
 		my $data = decode_json($raw);
@@ -653,8 +653,8 @@ sub create_rrd_data {
 
     my $err = RRDs::error;
     die "RRD error: $err\n" if $err;
-    
-    die "got wrong time resolution ($step != $reso)\n" 
+
+    die "got wrong time resolution ($step != $reso)\n"
 	if $step != $reso;
 
     my $res = [];
@@ -683,7 +683,7 @@ sub create_rrd_graph {
     # Using RRD graph is clumsy - maybe it
     # is better to simply fetch the data, and do all display
     # related things with javascript (new extjs html5 graph library).
-	
+
     my $rrddir = "/var/lib/rrdcached/db";
 
     my $rrd = "$rrddir/$rrdname";
@@ -817,7 +817,7 @@ sub cfs_file_version {
 sub cfs_read_file {
     my ($filename) = @_;
 
-    my ($version, $info) = cfs_file_version($filename); 
+    my ($version, $info) = cfs_file_version($filename);
     my $parser = $info->{parser};
 
     return &$ccache_read($filename, $parser, $version);
@@ -826,7 +826,7 @@ sub cfs_read_file {
 sub cfs_write_file {
     my ($filename, $data) = @_;
 
-    my ($version, $info) = cfs_file_version($filename); 
+    my ($version, $info) = cfs_file_version($filename);
 
     my $writer = $info->{writer} || die "no writer defined";
 
@@ -897,7 +897,7 @@ my $cfs_lock = sub {
     if ($err && ($err eq "got lock request timeout\n") &&
 	!check_cfs_quorum()){
 	$err = "$msg: no quorum!\n";
-    }	
+    }
 
     if (!$err || $err !~ /^got lock timeout -/) {
 	rmdir $filename; # cfs unlock
@@ -986,12 +986,12 @@ sub log_msg {
 
 sub check_vmid_unused {
     my ($vmid, $noerr) = @_;
-    
+
     my $vmlist = get_vmlist();
 
     my $d = $vmlist->{ids}->{$vmid};
     return 1 if !defined($d);
-    
+
     return undef if $noerr;
 
     my $vmtypestr =  $d->{type} eq 'qemu' ? 'VM' : 'CT';
@@ -1125,13 +1125,13 @@ sub setup_sshd_config {
     my ($start_sshd) = @_;
 
     my $conf = PVE::Tools::file_get_contents($sshd_config_fn);
-    
+
     return if $conf =~ m/^PermitRootLogin\s+yes\s*$/m;
 
     if ($conf !~ s/^#?PermitRootLogin.*$/PermitRootLogin yes/m) {
 	chomp $conf;
 	$conf .= "\nPermitRootLogin yes\n";
-    } 
+    }
 
     PVE::Tools::file_set_contents($sshd_config_fn, $conf);
 
@@ -1176,7 +1176,7 @@ sub setup_ssh_keys {
 	}
     }
 
-    warn "can't create shared ssh key database '$sshauthkeys'\n" 
+    warn "can't create shared ssh key database '$sshauthkeys'\n"
 	if ! -f $sshauthkeys;
 
     if (-f $rootsshauthkeys && ! -l $rootsshauthkeys) {
@@ -1211,7 +1211,7 @@ sub ssh_merge_known_hosts {
 
     die "no node name specified" if !$nodename;
     die "no ip address specified" if !$ip_address;
-   
+
     mkdir $authdir;
 
     if (! -f $sshknownhosts) {
@@ -1220,10 +1220,10 @@ sub ssh_merge_known_hosts {
 	}
     }
 
-    my $old = PVE::Tools::file_get_contents($sshknownhosts, 128*1024); 
-    
+    my $old = PVE::Tools::file_get_contents($sshknownhosts, 128*1024);
+
     my $new = '';
-    
+
     if ((! -l $sshglobalknownhosts) && (-f $sshglobalknownhosts)) {
 	$new = PVE::Tools::file_get_contents($sshglobalknownhosts, 128*1024);
     }
@@ -1315,8 +1315,8 @@ sub ssh_merge_known_hosts {
 
     unlink $sshglobalknownhosts;
     symlink $sshknownhosts, $sshglobalknownhosts;
- 
-    warn "can't create symlink for ssh known hosts '$sshglobalknownhosts' -> '$sshknownhosts'\n" 
+
+    warn "can't create symlink for ssh known hosts '$sshglobalknownhosts' -> '$sshknownhosts'\n"
 	if ! -l $sshglobalknownhosts;
 
 }
@@ -1448,8 +1448,8 @@ sub write_datacenter_config {
     return PVE::JSONSchema::dump_config($datacenter_schema, $filename, $cfg);
 }
 
-cfs_register_file('datacenter.cfg', 
-		  \&parse_datacenter_config,  
+cfs_register_file('datacenter.cfg',
+		  \&parse_datacenter_config,
 		  \&write_datacenter_config);
 
 # a very simply parser ...
@@ -1465,14 +1465,14 @@ sub parse_corosync_conf {
     $raw =~ s/\s+/ /g;
     $raw =~ s/^\s+//;
     $raw =~ s/\s*$//;
-  
+
     my @tokens = split(/\s/, $raw);
-    
+
     my $conf = { section => 'main', children => [] };
 
     my $stack = [];
     my $section = $conf;
-    
+
     while (defined(my $token = shift @tokens)) {
 	my $nexttok = $tokens[0];
 
@@ -1496,7 +1496,7 @@ sub parse_corosync_conf {
 
 	my $key = $token;
 	die "missing ':' after key '$key'\n" if ! ($key =~ s/:$//);
-	
+
 	die "parse error - no value for '$key'\n" if !defined($nexttok);
 	my $value = shift @tokens;
 
@@ -1513,21 +1513,21 @@ $dump_corosync_section = sub {
     my ($section, $prefix) = @_;
 
     my $raw = $prefix . $section->{section} . " {\n";
-    
+
     my @list = grep { defined($_->{key}) } @{$section->{children}};
     foreach my $child (sort {$a->{key} cmp $b->{key}} @list) {
 	$raw .= $prefix . "  $child->{key}: $child->{value}\n";
     }
-    
+
     @list = grep { defined($_->{section}) } @{$section->{children}};
     foreach my $child (sort {$a->{section} cmp $b->{section}} @list) {
 	$raw .= &$dump_corosync_section($child, "$prefix  ");
     }
 
     $raw .= $prefix . "}\n\n";
-    
+
     return $raw;
-    
+
 };
 
 sub write_corosync_conf {
@@ -1536,7 +1536,7 @@ sub write_corosync_conf {
     my $raw = '';
 
     my $prefix = '';
-    
+
     die "no main section" if $conf->{section} ne 'main';
 
     my @list = grep { defined($_->{key}) } @{$conf->{children}};
@@ -1572,7 +1572,7 @@ sub corosync_conf_version {
 	    }
 	}
     }
-    
+
     return undef if $noerr;
 
     die "invalid corosync config - unable to read version\n";
@@ -1581,7 +1581,7 @@ sub corosync_conf_version {
 # read only - use "rename corosync.conf.new corosync.conf" to write
 PVE::Cluster::cfs_register_file('corosync.conf', \&parse_corosync_conf);
 # this is read/write
-PVE::Cluster::cfs_register_file('corosync.conf.new', \&parse_corosync_conf, 
+PVE::Cluster::cfs_register_file('corosync.conf.new', \&parse_corosync_conf,
 				\&write_corosync_conf);
 
 sub check_corosync_conf_exists {
