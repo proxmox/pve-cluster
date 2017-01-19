@@ -92,7 +92,8 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(perlbindir)" "$(DESTDIR)$(bindir)" \
 	"$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" \
-	"$(DESTDIR)$(cliclassdir)" "$(DESTDIR)$(pvelibdir)"
+	"$(DESTDIR)$(apiclassdir)" "$(DESTDIR)$(cliclassdir)" \
+	"$(DESTDIR)$(pvelibdir)"
 PROGRAMS = $(perlbin_PROGRAMS)
 am_IPCC_so_OBJECTS = IPCC.$(OBJEXT)
 IPCC_so_OBJECTS = $(am_IPCC_so_OBJECTS)
@@ -166,7 +167,7 @@ man1dir = $(mandir)/man1
 man5dir = $(mandir)/man5
 NROFF = nroff
 MANS = $(man1_MANS) $(man5_MANS)
-DATA = $(cliclass_DATA) $(noinst_DATA) $(pvelib_DATA)
+DATA = $(apiclass_DATA) $(cliclass_DATA) $(noinst_DATA) $(pvelib_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -311,6 +312,8 @@ pvelibdir = $(PERL_VENDORLIB)/PVE
 noinst_DATA = pvecm.bash-completion
 cliclass_DATA = CLI/pvecm.pm
 cliclassdir = $(PERL_VENDORLIB)/PVE/CLI
+apiclass_DATA = API2/ClusterConfig.pm
+apiclassdir = $(PERL_VENDORLIB)/PVE/API2
 all: all-am
 
 .SUFFIXES:
@@ -530,6 +533,27 @@ uninstall-man5:
 	} | sed -e 's,.*/,,;h;s,.*\.,,;s,^[^5][0-9a-z]*$$,5,;x' \
 	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,'`; \
 	dir='$(DESTDIR)$(man5dir)'; $(am__uninstall_files_from_dir)
+install-apiclassDATA: $(apiclass_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(apiclass_DATA)'; test -n "$(apiclassdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(apiclassdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(apiclassdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(apiclassdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(apiclassdir)" || exit $$?; \
+	done
+
+uninstall-apiclassDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(apiclass_DATA)'; test -n "$(apiclassdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(apiclassdir)'; $(am__uninstall_files_from_dir)
 install-cliclassDATA: $(cliclass_DATA)
 	@$(NORMAL_INSTALL)
 	@list='$(cliclass_DATA)'; test -n "$(cliclassdir)" || list=; \
@@ -659,7 +683,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(MANS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(perlbindir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" "$(DESTDIR)$(cliclassdir)" "$(DESTDIR)$(pvelibdir)"; do \
+	for dir in "$(DESTDIR)$(perlbindir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" "$(DESTDIR)$(apiclassdir)" "$(DESTDIR)$(cliclassdir)" "$(DESTDIR)$(pvelibdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -715,7 +739,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-cliclassDATA install-man \
+install-data-am: install-apiclassDATA install-cliclassDATA install-man \
 	install-perlbinPROGRAMS install-pvelibDATA
 
 install-dvi: install-dvi-am
@@ -762,8 +786,9 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binSCRIPTS uninstall-cliclassDATA \
-	uninstall-man uninstall-perlbinPROGRAMS uninstall-pvelibDATA
+uninstall-am: uninstall-apiclassDATA uninstall-binSCRIPTS \
+	uninstall-cliclassDATA uninstall-man uninstall-perlbinPROGRAMS \
+	uninstall-pvelibDATA
 
 uninstall-man: uninstall-man1 uninstall-man5
 
@@ -773,19 +798,19 @@ uninstall-man: uninstall-man1 uninstall-man5
 	clean-local clean-perlbinPROGRAMS cscopelist-am ctags ctags-am \
 	distclean distclean-compile distclean-generic distclean-tags \
 	distdir dvi dvi-am html html-am info info-am install \
-	install-am install-binSCRIPTS install-cliclassDATA \
-	install-data install-data-am install-dvi install-dvi-am \
-	install-exec install-exec-am install-exec-hook install-html \
-	install-html-am install-info install-info-am install-man \
-	install-man1 install-man5 install-pdf install-pdf-am \
-	install-perlbinPROGRAMS install-ps install-ps-am \
-	install-pvelibDATA install-strip installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
-	ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-binSCRIPTS uninstall-cliclassDATA uninstall-man \
-	uninstall-man1 uninstall-man5 uninstall-perlbinPROGRAMS \
-	uninstall-pvelibDATA
+	install-am install-apiclassDATA install-binSCRIPTS \
+	install-cliclassDATA install-data install-data-am install-dvi \
+	install-dvi-am install-exec install-exec-am install-exec-hook \
+	install-html install-html-am install-info install-info-am \
+	install-man install-man1 install-man5 install-pdf \
+	install-pdf-am install-perlbinPROGRAMS install-ps \
+	install-ps-am install-pvelibDATA install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic pdf pdf-am ps ps-am tags tags-am uninstall \
+	uninstall-am uninstall-apiclassDATA uninstall-binSCRIPTS \
+	uninstall-cliclassDATA uninstall-man uninstall-man1 \
+	uninstall-man5 uninstall-perlbinPROGRAMS uninstall-pvelibDATA
 
 
 IPCC.c: IPCC.xs
@@ -795,6 +820,8 @@ IPCC.c: IPCC.xs
 # this require package pve-doc-generator
 export NOVIEW=1
 include /usr/share/pve-doc-generator/pve-doc-generator.mk
+
+export PERLLIB=..
 
 %.bash-completion:
 	perl -I.. -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_bash_completions();" >$@.tmp
