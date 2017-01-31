@@ -17,7 +17,7 @@ include /usr/share/pve-doc-generator/pve-doc-generator.mk
 export PERLLIB=..
 
 %.bash-completion:
-	perl -I.. -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_bash_completions();" >$@.tmp
+	LD_LIBRARY_PATH=. perl -I.. -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_bash_completions();" >$@.tmp
 	mv $@.tmp $@
 
 man1_MANS = pvecm.1
@@ -37,7 +37,7 @@ apiclass_DATA = API2/ClusterConfig.pm
 apiclassdir = $(PERL_VENDORLIB)/PVE/API2
 
 install-exec-hook: pvecm.bash-completion
-	perl -I.. -T -e "use PVE::CLI::pvecm; PVE::CLI::pvecm->verify_api();"
+	LD_LIBRARY_PATH=. perl -I.. -T -e "use PVE::CLI::pvecm; PVE::CLI::pvecm->verify_api();"
 	install -m 0644 -D pvecm.bash-completion ${DESTDIR}/usr/share/bash-completion/completions/pvecm
 
 clean-local:
