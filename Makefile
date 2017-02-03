@@ -20,10 +20,11 @@ dinstall: ${DEB}
 	dpkg -i ${DEB} 
 
 .PHONY: deb
-deb ${DEB} ${DBG_DEB}:
+deb ${DBG_DEB}: ${DEB}
+${DEB}:
 	rm -f *.deb
 	rm -rf build
-	rsync -a --exclude .svn data/ build
+	cp -a data build
 	cp -a debian build/debian
 	echo "git clone git://git.proxmox.com/git/pve-cluster.git\\ngit checkout ${GITVERSION}" > build/debian/SOURCE
 	cd build; ./autogen.sh
