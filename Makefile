@@ -39,4 +39,4 @@ upload: ${DEB} ${DBG_DEB}
 
 .PHONY: clean
 clean:
-	rm -rf *~ build *_${ARCH}.deb *.changes *.dsc ${CSDIR}
+	rm -rf *~ build *_${ARCH}.deb *.changes *.dsc ${CSDIR} *.buildinfo
