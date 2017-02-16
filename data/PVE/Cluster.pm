@@ -8,7 +8,6 @@ use Socket;
 use Storable qw(dclone);
 use IO::File;
 use MIME::Base64;
-use XML::Parser;
 use Digest::SHA;
 use Digest::HMAC_SHA1;
 use Net::SSLeay;
