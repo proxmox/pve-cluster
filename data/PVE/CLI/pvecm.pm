@@ -133,15 +133,6 @@ __PACKAGE__->register_method ({
 		    " Defaults to the hostname of the node.",
 		optional => 1,
 	    },
-	    rrp_mode => {
-		type => 'string',
-		enum => ['none', 'active', 'passive'],
-		description => "This specifies the mode of redundant ring, which" .
-		    " may be none, active or passive. Using multiple interfaces".
-		    " only allows 'active' or 'passive'.",
-		default => 'none',
-		optional => 1,
-	    },
 	    bindnet1_addr => {
 		type => 'string', format => 'ip',
 		description => "This specifies the network address the corosync ring 1".
@@ -202,12 +193,10 @@ __PACKAGE__->register_method ({
 	    die "IPv6 and IPv4 cannot be mixed, use one or the other!\n"
 		if Net::IP::ip_is_ipv6($param->{bindnet1_addr}) != $bind_is_ipv6;
 
-	    die "rrp_mode 'none' is not allowed when using multiple interfaces,".
-		" use 'active' or 'passive'!\n"
-		if !$param->{rrp_mode} || $param->{rrp_mode} eq 'none';
-
 	    $interfaces .= "\n  interface {\n    ringnumber: 1\n" .
 		"    bindnetaddr: $param->{bindnet1_addr}\n  }\n";
+
+	    $interfaces .= "rrp_mode: passive\n"; # only passive is stable and tested
 
 	    $ring_addresses .= "\n    ring1_addr: $param->{ring1_addr}";
 
@@ -219,9 +208,6 @@ __PACKAGE__->register_method ({
 	    $param->{rrp_mode} = undef;
 
 	}
-
-	$interfaces = "rrp_mode: $param->{rrp_mode}\n  " . $interfaces
-	    if $param->{rrp_mode};
 
 	# No, corosync cannot deduce this on its own
 	my $ipversion = $bind_is_ipv6 ? 'ipv6' : 'ipv4';
