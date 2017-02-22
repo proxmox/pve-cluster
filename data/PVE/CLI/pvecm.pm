@@ -504,25 +504,40 @@ __PACKAGE__->register_method ({
 
 	my $host = $param->{hostname};
 
+	my ($errors, $warnings) = ('', '');
+
+	my $error = sub {
+	    my ($msg, $suppress) = @_;
+
+	    if ($suppress) {
+		$warnings .= "* $msg\n";
+	    } else {
+		$errors .= "* $msg\n";
+	    }
+	};
+
 	if (!$param->{force}) {
 
 	    if (-f $authfile) {
-		die "authentication key already exists\n";
+		&$error("authentication key '$authfile' already exists", $param->{force});
 	    }
 
 	    if (-f $clusterconf)  {
-		die "cluster config '$clusterconf' already exists\n";
+		&$error("cluster config '$clusterconf' already exists", $param->{force});
 	    }
 
 	    my $vmlist = PVE::Cluster::get_vmlist();
 	    if ($vmlist && $vmlist->{ids} && scalar(keys %{$vmlist->{ids}})) {
-		die "this host already contains virtual machines - please remove them first\n";
+		&$error("this host already contains virtual guests", $param->{force});
 	    }
 
 	    if (system("corosync-quorumtool -l >/dev/null 2>&1") == 0) {
-		die "corosync is already running\n";
+		&$error("corosync is already running, is this node already in a cluster?!", $param->{force});
 	    }
 	}
+
+	warn "warning, ignore the following errors:\n$warnings" if $warnings;
+	die "detected the following error(s):\n$errors" if $errors;
 
 	# make sure known_hosts is on local filesystem
 	PVE::Cluster::ssh_unmerge_known_hosts();
