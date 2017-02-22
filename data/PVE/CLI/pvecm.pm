@@ -536,6 +536,21 @@ __PACKAGE__->register_method ({
 	    }
 	}
 
+	# check if corosync ring IPs are configured on the current nodes interfaces
+	my $check_ip = sub {
+	    my $ip = shift;
+	    if (defined($ip)) {
+		my $cidr = (Net::IP::ip_is_ipv6($ip)) ? "$ip/128" : "$ip/32";
+		my $configured_ips = PVE::Network::get_local_ip_from_cidr($cidr);
+
+		&$error("cannot use IP '$ip', it must be configured exactly once on local node!\n")
+		    if (scalar(@$configured_ips) != 1);
+	    }
+	};
+
+	&$check_ip($param->{ring0_addr});
+	&$check_ip($param->{ring1_addr});
+
 	warn "warning, ignore the following errors:\n$warnings" if $warnings;
 	die "detected the following error(s):\n$errors" if $errors;
 
