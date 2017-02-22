@@ -316,6 +316,22 @@ __PACKAGE__->register_method ({
 
 	my $name = $param->{node};
 
+	# ensure we do not reuse an address, that can crash the whole cluster!
+	my $check_duplicate_addr = sub {
+	    my $addr = shift;
+	    return if !defined($addr);
+
+	    while (my ($k, $v) = each %$nodelist) {
+		next if $k eq $name; # allows re-adding a node if force is set
+		if ($v->{ring0_addr} eq $addr || ($v->{ring1_addr} && $v->{ring1_addr} eq $addr)) {
+		    die "corosync: address '$addr' already defined by node '$k'\n";
+		}
+	    }
+	};
+
+	&$check_duplicate_addr($param->{ring0_addr});
+	&$check_duplicate_addr($param->{ring1_addr});
+
 	$param->{ring0_addr} = $name if !$param->{ring0_addr};
 
 	die " ring1_addr needs a configured ring 1 interface!\n"
