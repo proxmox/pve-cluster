@@ -334,8 +334,11 @@ __PACKAGE__->register_method ({
 
 	$param->{ring0_addr} = $name if !$param->{ring0_addr};
 
-	die " ring1_addr needs a configured ring 1 interface!\n"
+	die "corosync: using 'ring1_addr' parameter needs a configured ring 1 interface!\n"
 	    if $param->{ring1_addr} && !defined($totem_cfg->{interface}->{1});
+
+	die "corosync: ring 1 interface configured but 'ring1_addr' parameter not defined!\n"
+	    if defined($totem_cfg->{interface}->{1}) && !defined($param->{ring1_addr});
 
 	if (defined(my $res = $nodelist->{$name})) {
 	    $param->{nodeid} = $res->{nodeid} if !$param->{nodeid};
