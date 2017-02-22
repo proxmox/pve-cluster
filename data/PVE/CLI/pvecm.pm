@@ -301,6 +301,11 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
+	if (!$param->{force} && (-t STDIN || -t STDOUT)) {
+	    die "error: `addnode` should not get called interactively!\nUse ".
+		"`pvecm add <cluster-node>` to add a node to a cluster!\n";
+	}
+
 	PVE::Cluster::check_cfs_quorum();
 
 	my $conf = PVE::Cluster::cfs_read_file("corosync.conf");
