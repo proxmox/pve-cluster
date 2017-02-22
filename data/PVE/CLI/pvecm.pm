@@ -509,7 +509,7 @@ __PACKAGE__->register_method ({
 		die "this host already contains virtual machines - please remove them first\n";
 	    }
 
-	    if (system("corosync-quorumtool >/dev/null 2>&1") == 0) {
+	    if (system("corosync-quorumtool -l >/dev/null 2>&1") == 0) {
 		die "corosync is already running\n";
 	    }
 	}
