@@ -584,8 +584,6 @@ __PACKAGE__->register_method ({
 	    }
 	    print "OK\n" if !$printqmsg;
 
-	    # system("systemctl start clvm");
-
 	    my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
 
 	    print "generating node certificates\n";
