@@ -1,3 +1,25 @@
+pve-cluster (4.0-49) unstable; urgency=medium
+
+  * pvecm add: assert that ringX IPs are available on node add
+
+  * pvecm add: report all errors found at once
+
+  * pvecm addnode: ensure ring1_addr is set if ring 1 is configured
+
+  * pvecm addnode: ensure ring address isn't already used by cluster
+
+  * pvecm addnode: error out on interactive call
+
+  * pvecm create: remove rrp_mode parameter
+
+  * pvecm add: fix check if corosync alread runs
+
+  * Remove depency to libxml-parser-perl
+
+  * buildsys: various cleanups
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 28 Feb 2017 12:02:56 +0100
+
 pve-cluster (4.0-48) unstable; urgency=medium
 
   * add API class for cluster configuration
