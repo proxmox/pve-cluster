@@ -16,6 +16,9 @@ __PACKAGE__->register_method({
     path => '',
     method => 'GET',
     description => "Directory index.",
+    permissions => {
+	check => ['perm', '/', [ 'Sys.Audit' ]],
+    },
     parameters => {
 	additionalProperties => 0,
 	properties => {},
@@ -44,6 +47,9 @@ __PACKAGE__->register_method({
     path => 'nodes',
     method => 'GET',
     description => "Corosync node list.",
+    permissions => {
+	check => ['perm', '/', [ 'Sys.Audit' ]],
+    },
     parameters => {
 	additionalProperties => 0,
 	properties => {},
@@ -73,6 +79,9 @@ __PACKAGE__->register_method({
     path => 'totem',
     method => 'GET',
     description => "Get corosync totem protocol settings.",
+    permissions => {
+	check => ['perm', '/', [ 'Sys.Audit' ]],
+    },
     parameters => {
 	additionalProperties => 0,
 	properties => {},
