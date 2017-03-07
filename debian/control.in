@@ -2,13 +2,49 @@ Source: pve-cluster
 Section: admin
 Priority: optional
 Maintainer: Proxmox Support Team <support@proxmox.com>
-Build-Depends: debhelper (>= 7), autotools-dev, libsqlite3-dev, sqlite3, libfuse-dev (>= 2.9.2-4), libcorosync-pve-dev (>= 2.3.4-1), libqb-dev (>= 0.17.1-1), libpve-common-perl, libglib2.0-dev (>= 2.42.1-1), librrd-dev, librrds-perl, rrdcached, check, libdigest-hmac-perl, dh-systemd, pve-doc-generator, libuuid-perl
+Build-Depends: debhelper (>= 7),
+               autotools-dev,
+               libsqlite3-dev,
+               sqlite3,
+               libfuse-dev (>= 2.9.2-4),
+               libcorosync-pve-dev (>= 2.3.4-1),
+               libqb-dev (>= 0.17.1-1),
+               libpve-common-perl,
+               libglib2.0-dev (>= 2.42.1-1),
+               librrd-dev,
+               librrds-perl,
+               rrdcached,
+               check,
+               libdigest-hmac-perl,
+               dh-systemd,
+               pve-doc-generator,
+               libuuid-perl
 Standards-Version: 3.7.3
 
 Package: pve-cluster
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, @PERLAPI@, rsync, libsqlite3-0, sqlite3, libfuse2 (>= 2.9.2-4), fuse, corosync-pve (>= 2.3.4-1), libqb0 (>= 0.17.1-1), libpve-common-perl, libglib2.0-0 (>= 2.42.1-1), rsyslog, openssl, librrds-perl, rrdcached, libdigest-hmac-perl, libxml-parser-perl, systemd, faketime, libcrypt-ssleay-perl, libuuid-perl, lsb-base
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, @PERLAPI@,
+         rsync,
+         libsqlite3-0,
+         sqlite3,
+         libfuse2 (>= 2.9.2-4),
+         fuse,
+         corosync-pve (>= 2.3.4-1),
+         libqb0 (>= 0.17.1-1),
+         libpve-common-perl,
+         libglib2.0-0 (>= 2.42.1-1),
+         rsyslog,
+         openssl,
+         librrds-perl,
+         rrdcached,
+         libdigest-hmac-perl,
+         libxml-parser-perl,
+         systemd,
+         faketime,
+         libcrypt-ssleay-perl,
+         libuuid-perl,
+         lsb-base
 Description: Cluster Infrastructure for Proxmox Virtual Environment
  This package contains the Cluster Infrastructure for the Proxmox
  Virtual Environment, namely a distributed filesystem to store
