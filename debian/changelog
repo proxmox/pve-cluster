@@ -1,3 +1,13 @@
+pve-cluster (5.0-1) unstable; urgency=medium
+
+  * Rebuild for PVE 5.0 / Debian Stretch
+
+  * Require Sys.Audit to read the cluster configuration
+
+  * Fix vmid cast in pmxcfs
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 10 Mar 2017 13:03:20 +0100
+
 pve-cluster (4.0-49) unstable; urgency=medium
 
   * pvecm add: assert that ringX IPs are available on node add
