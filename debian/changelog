@@ -1,3 +1,9 @@
+pve-cluster (5.0-2) unstable; urgency=medium
+
+  * Rebuild with new corosync packages to correct dependencies
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 13 Mar 2017 13:23:12 +0100
+
 pve-cluster (5.0-1) unstable; urgency=medium
 
   * Rebuild for PVE 5.0 / Debian Stretch
