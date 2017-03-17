@@ -608,7 +608,7 @@ sub rrd_dump {
 	    my ($key, @ela) = split(/:/, $1);
 	    next if !$key;
 	    next if !(scalar(@ela) > 1);
-	    $res->{$key} = \@ela;
+	    $res->{$key} = [ map { $_ eq 'U' ? undef : $_ } @ela ];
 	}
     }
 
