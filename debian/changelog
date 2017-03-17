@@ -1,3 +1,9 @@
+pve-cluster (5.0-3) unstable; urgency=medium
+
+  * rrd_dump: filter undefined values encodes as 'U'
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 17 Mar 2017 11:59:27 +0100
+
 pve-cluster (5.0-2) unstable; urgency=medium
 
   * Rebuild with new corosync packages to correct dependencies
