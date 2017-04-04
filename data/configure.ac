@@ -67,10 +67,10 @@ AC_SUBST(PERL)
 
 PERL_INC="$(perl -MExtUtils::Embed -e perl_inc)"
 PERL_VENDORLIB="$(perl -MConfig -e 'print $Config{vendorlibexp}')"
-PERL_INSTALLARCHLIB="$(perl -MConfig -e 'print $Config{installarchlib}')"
+PERL_VENDORARCH="$(perl -MConfig -e 'print $Config{vendorarch}')"
 AC_SUBST(PERL_INC)
 AC_SUBST(PERL_VENDORLIB)
-AC_SUBST(PERL_INSTALLARCHLIB)
+AC_SUBST(PERL_VENDORARCH)
 
 # Checks for header files.
 AC_HEADER_DIRENT

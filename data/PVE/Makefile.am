@@ -8,7 +8,7 @@ AM_CFLAGS = -shared -fPIC -Wl,-z,relro -Wall -Werror -Wno-strict-aliasing $(PERL
 LDADD = $(QB_LIBS)
 
 perlbin_PROGRAMS = IPCC.so
-perlbindir = $(PERL_INSTALLARCHLIB)/auto/PVE/IPCC
+perlbindir = $(PERL_VENDORARCH)/auto/PVE/IPCC
 
 # this require package pve-doc-generator
 export NOVIEW=1
