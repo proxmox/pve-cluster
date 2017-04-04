@@ -186,6 +186,40 @@ ret:
 	return ret;
 }
 
+static int cfs_fuse_chmod(const char *path, mode_t mode)
+{
+	int ret = -EPERM;
+
+	cfs_debug("enter cfs_fuse_chmod %s", path);
+
+	mode_t allowed_mode = (S_IRUSR | S_IWUSR);
+	if (!path_is_private(path))
+		allowed_mode |= (S_IRGRP);
+
+	// allow only setting our supported modes (0600 for priv, 0640 for rest)
+	if (mode == allowed_mode)
+		ret = 0;
+
+	cfs_debug("leave cfs_fuse_chmod %s (%d) mode: %o", path, ret, (int)mode);
+
+	return ret;
+}
+
+static int cfs_fuse_chown(const char *path, uid_t user, gid_t group)
+{
+	int ret = -EPERM;
+
+	cfs_debug("enter cfs_fuse_chown %s", path);
+
+	// we get -1 if no change should be made
+	if ((user == 0 || user == -1) && (group == cfs.gid || group == -1))
+		ret = 0;
+
+	cfs_debug("leave cfs_fuse_chown %s (%d) (uid: %d; gid: %d)", path, ret, user, group);
+
+	return ret;
+}
+
 static int cfs_fuse_mkdir(const char *path, mode_t mode)
 {
 	cfs_debug("enter cfs_fuse_mkdir %s", path);
@@ -488,7 +522,9 @@ static struct fuse_operations fuse_ops = {
 	.readlink = cfs_fuse_readlink,
 	.utimens = cfs_fuse_utimens,
 	.statfs = cfs_fuse_statfs,
-	.init = cfs_fuse_init
+	.init = cfs_fuse_init,
+	.chown = cfs_fuse_chown,
+	.chmod = cfs_fuse_chmod
 };
 
 static char *
