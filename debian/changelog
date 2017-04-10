@@ -1,3 +1,11 @@
+pve-cluster (5.0-4) unstable; urgency=medium
+
+  * allow chown and chmod on pmxcfs (for root:www-data / 0640)
+
+  * fix install location of IPCC.so
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 10 Apr 2017 15:53:16 +0200
+
 pve-cluster (5.0-3) unstable; urgency=medium
 
   * rrd_dump: filter undefined values encodes as 'U'
