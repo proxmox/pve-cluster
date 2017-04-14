@@ -197,7 +197,8 @@ static int cfs_fuse_chmod(const char *path, mode_t mode)
 		allowed_mode |= (S_IRGRP);
 
 	// allow only setting our supported modes (0600 for priv, 0640 for rest)
-	if (mode == allowed_mode)
+	// mode has additional bits set, which we ignore; see stat(2)
+	if ((mode & ALLPERMS) == allowed_mode)
 		ret = 0;
 
 	cfs_debug("leave cfs_fuse_chmod %s (%d) mode: %o", path, ret, (int)mode);
