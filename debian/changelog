@@ -1,3 +1,11 @@
+pve-cluster (5.0-5) unstable; urgency=medium
+
+  * fix check refusing chmod when it should be allowed
+
+  * add storage_replication_network setting to datacenter.cfg
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 28 Apr 2017 13:58:54 +0200
+
 pve-cluster (5.0-4) unstable; urgency=medium
 
   * allow chown and chmod on pmxcfs (for root:www-data / 0640)
