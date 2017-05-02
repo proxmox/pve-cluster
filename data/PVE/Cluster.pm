@@ -1027,26 +1027,7 @@ sub remote_node_ip {
     }
 
     # fallback: try to get IP by other means
-    my ($family, $packed_ip);
-
-    eval {
-	my @res = PVE::Tools::getaddrinfo_all($nodename);
-	$family = $res[0]->{family};
-	$packed_ip = (PVE::Tools::unpack_sockaddr_in46($res[0]->{addr}))[2];
-    };
-
-    if ($@) {
-	die "hostname lookup failed:\n$@" if !$noerr;
-	return undef;
-    }
-
-    my $ip = Socket::inet_ntop($family, $packed_ip);
-    if ($ip =~ m/^127\.|^::1$/) {
-	die "hostname lookup failed - got local IP address ($nodename = $ip)\n" if !$noerr;
-	return undef;
-    }
-
-    return wantarray ? ($ip, $family) : $ip;
+    return PVE::Network::get_ip_from_hostname($nodename, $noerr);
 }
 
 sub get_local_migration_ip {
