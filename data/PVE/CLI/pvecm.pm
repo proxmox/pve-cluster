@@ -540,6 +540,15 @@ __PACKAGE__->register_method ({
 	my $check_ip = sub {
 	    my $ip = shift;
 	    if (defined($ip)) {
+		if (!PVE::JSONSchema::pve_verify_ip($ip, 1)) {
+		    my $host = $ip;
+		    eval { $ip = PVE::Network::get_ip_from_hostname($host); };
+		    if ($@) {
+			&$error("cannot use '$host': $@\n") ;
+			return;
+		    }
+		}
+
 		my $cidr = (Net::IP::ip_is_ipv6($ip)) ? "$ip/128" : "$ip/32";
 		my $configured_ips = PVE::Network::get_local_ip_from_cidr($cidr);
 
