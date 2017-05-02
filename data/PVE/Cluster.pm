@@ -1022,7 +1022,7 @@ sub remote_node_ip {
 		    $family =
 		    PVE::Tools::get_host_address_family($ip);
 	    }
-	    return ($ip, $family);
+	    return wantarray ? ($ip, $family) : $ip;
 	}
     }
 
