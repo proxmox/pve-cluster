@@ -1353,11 +1353,6 @@ my $datacenter_schema = {
 	    type => 'string', format => $migration_format,
 	    description => "For cluster wide migration settings.",
 	},
-	storage_replication_network => {
-	    optional => 1,
-	    type => 'string', format => 'CIDR',
-	    description => "For cluster wide storage replication network.",
-	},
 	console => {
 	    optional => 1,
 	    type => 'string',
