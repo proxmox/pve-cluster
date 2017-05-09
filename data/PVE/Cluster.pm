@@ -62,6 +62,7 @@ my $observed = {
     'vzdump.cron' => 1,
     'storage.cfg' => 1,
     'datacenter.cfg' => 1,
+    'replication.cfg' => 1,
     'corosync.conf' => 1,
     'corosync.conf.new' => 1,
     'user.cfg' => 1,

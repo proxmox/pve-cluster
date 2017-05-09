@@ -89,6 +89,7 @@ static memdb_change_t memdb_change_array[] = {
 	{ .path = "ha/groups.cfg" },
 	{ .path = "ha/fence.cfg" },
 	{ .path = "status.cfg" },
+	{ .path = "replication.cfg" },
 };
 
 static GMutex mutex;
