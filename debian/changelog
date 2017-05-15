@@ -1,3 +1,11 @@
+pve-cluster (5.0-7) unstable; urgency=medium
+
+  * remove storage_replication_network setting from datacenter.cfg
+
+  * fix #1369 - re-allow using hostnames for ringX_addr
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 15 May 2017 14:57:50 +0200
+
 pve-cluster (5.0-6) unstable; urgency=medium
 
   * remove postinst script
