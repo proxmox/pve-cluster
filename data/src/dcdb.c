@@ -845,6 +845,7 @@ dcdb_deliver(
 				}
 			}
 		}
+		memdb_tree_entry_free(te);
 
 	} else if (msg_type == DCDB_MESSAGE_CFS_WRITE) {
 

@@ -129,7 +129,7 @@ static int cfs_plug_memdb_getattr(cfs_plug_t *plug, const char *path, struct sta
 
 	if (te) {
 		tree_entry_stat(te, stbuf, cfs_is_quorate());
-		g_free(te);
+		memdb_tree_entry_free(te);
 		return 0;
 	}
 
@@ -192,7 +192,7 @@ static int cfs_plug_memdb_open(cfs_plug_t *plug, const char *path, struct fuse_f
 	cfs_plug_memdb_t *mdb = (cfs_plug_memdb_t *)plug;
 
 	if ((te = memdb_getattr(mdb->memdb, path))) {
-		g_free(te);
+		memdb_tree_entry_free(te);
 	} else 
 		return -ENOENT;
 
@@ -443,8 +443,7 @@ static int cfs_plug_memdb_utimens(
 		}
 	}
 
-	if (te)
-		g_free(te);
+	memdb_tree_entry_free(te);
 
 	return res;
 }
