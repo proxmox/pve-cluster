@@ -1872,7 +1872,8 @@ sub get_ssh_info {
  
     return {
 	ip => $ip,
-	name => $node
+	name => $node,
+	network => $network_cidr,
     };
 }
 
