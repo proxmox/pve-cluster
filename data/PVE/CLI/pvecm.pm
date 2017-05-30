@@ -5,6 +5,8 @@ use warnings;
 use Getopt::Long;
 use Socket;
 use IO::File;
+use IO::Socket::IP;
+use POSIX;
 use Net::IP;
 use File::Path;
 use File::Basename;
@@ -802,6 +804,14 @@ __PACKAGE__->register_method ({
 		description => 'the migration network used to detect the local migration IP',
 		optional => 1,
 	    },
+	    'run-command' => {
+		type => 'boolean',
+		description => 'Run a command with a tcp socket as standard input.'
+		              .' The IP address and port are printed via this'
+			      ." command's stdandard output first, each on a separate line.",
+		optional => 1,
+	    },
+	    'extra-args' => PVE::JSONSchema::get_standard_option('extra-args'),
 	},
     },
     returns => { type => 'null'},
@@ -813,14 +823,80 @@ __PACKAGE__->register_method ({
 	    return undef;
 	}
 
+	my $network = $param->{migration_network};
 	if ($param->{get_migration_ip}) {
-	    my $network = $param->{migration_network};
+	    die "cannot use --run-command with --get_migration_ip\n"
+		if $param->{'run-command'};
 	    if (my $ip = PVE::Cluster::get_local_migration_ip($network)) {
 		print "ip: '$ip'\n";
 	    } else {
 		print "no ip\n";
 	    }
 	    # do not keep tunnel open when asked for migration ip
+	    return undef;
+	}
+
+	if ($param->{'run-command'}) {
+	    my $cmd = $param->{'extra-args'};
+	    die "missing command\n"
+		if !$cmd || !scalar(@$cmd);
+
+	    # Get an ip address to listen on, and find a free migration port
+	    my ($ip, $family);
+	    if (defined($network)) {
+		$ip = PVE::Cluster::get_local_migration_ip($network)
+		    or die "failed to get migration IP address to listen on\n";
+		$family = Net::IP::ip_is_ipv6($ip) ? AF_INET6 : AF_INET;
+	    } else {
+		my $nodename = PVE::INotify::nodename();
+		($ip, $family) = PVE::Network::get_ip_from_hostname($nodename, 0);
+	    }
+	    my $port = PVE::Tools::next_migrate_port($family, $ip);
+
+	    # Wait for a client
+	    my $socket = IO::Socket::IP->new(
+		Listen => 1,
+		ReuseAddr => 1,
+		Family => $family,
+		Proto => &Socket::IPPROTO_TCP,
+		GetAddrInfoFlags => 0,
+		LocalAddr => $ip,
+		LocalPort => $port,
+	    ) or die "failed to open socket: $!\n";
+	    print "$ip\n$port\n";
+	    *STDOUT->flush();
+	    alarm 0;
+	    local $SIG{ALRM} = sub { die "timed out waiting for client\n" };
+	    alarm 30;
+	    my $client = $socket->accept;
+	    alarm 0;
+	    close($socket);
+
+	    # We want that the command talks over the TCP socket and takes
+	    # ownership of it, so that when it closes it the connection is
+	    # terminated, so we need to be able to close the socket. So we
+	    # can't really use PVE::Tools::run_command().
+	    my $pid = fork();
+	    die "fork failed: $!\n" if !defined($pid);
+	    if (!$pid) {
+		POSIX::dup2(fileno($client), 0);
+		POSIX::dup2(fileno($client), 1);
+		close($client);
+		exec {$cmd->[0]} @$cmd or do {
+		    warn "exec failed: $!\n";
+		    POSIX::_exit(1);
+		};
+	    }
+	    close($client);
+	    if (waitpid($pid, 0) != $pid) {
+		kill(9 => $pid);
+		1 while waitpid($pid, 0) != $pid;
+	    }
+	    if (my $sig = ($? & 127)) {
+		die "got signal $sig\n";
+	    } elsif (my $exitcode = ($? >> 8)) {
+		die "exit code $exitcode\n";
+	    }
 	    return undef;
 	}
 
@@ -846,7 +922,7 @@ our $cmddef = {
     nodes => [ __PACKAGE__, 'nodes' ],
     expected => [ __PACKAGE__, 'expected', ['expected']],
     updatecerts => [ __PACKAGE__, 'updatecerts', []],
-    mtunnel => [ __PACKAGE__, 'mtunnel', []],
+    mtunnel => [ __PACKAGE__, 'mtunnel', ['extra-args']],
 };
 
 1;
