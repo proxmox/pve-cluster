@@ -1,3 +1,15 @@
+pve-cluster (5.0-8) unstable; urgency=medium
+
+  * sshinfo: add the network cidr
+
+  * Fix #1383: pmxcfs: use memdb_tree_entry_free()
+
+  * Cluster.pm: add get_ssh_info and ssh_info_to_command
+
+  * add replication.cfg to observed files
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 31 May 2017 09:11:06 +0200
+
 pve-cluster (5.0-7) unstable; urgency=medium
 
   * remove storage_replication_network setting from datacenter.cfg
