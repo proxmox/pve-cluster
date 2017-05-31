@@ -1141,8 +1141,9 @@ sub setup_rootsshconfig {
     if (! -f $rootsshconfig) {
         mkdir '/root/.ssh';
         if (my $fh = IO::File->new($rootsshconfig, O_CREAT|O_WRONLY|O_EXCL, 0640)) {
-            # this is the default ciphers list from debian openssl0.9.8 except blowfish is added as prefered
-            print $fh "Ciphers blowfish-cbc,aes128-ctr,aes192-ctr,aes256-ctr,arcfour256,arcfour128,aes128-cbc,3des-cbc\n";
+            # this is the default ciphers list from Debian's OpenSSH package (OpenSSH_7.4p1 Debian-10, OpenSSL 1.0.2k  26 Jan 2017)
+	    # changed order to put AES before Chacha20 (most hardware has AESNI)
+            print $fh "Ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-gcm@openssh.com,aes256-gcm@openssh.com,chacha20-poly1305@openssh.com\n";
             close($fh);
         }
     }
