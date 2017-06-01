@@ -85,7 +85,8 @@ void
 memdb_tree_entry_free(
 	memdb_tree_entry_t *te)
 {
-	g_return_if_fail(te != NULL);
+	if (!te)
+		return;
 
 	if (te->type == DT_REG) {
 		if (te->data.value)
