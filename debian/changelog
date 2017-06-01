@@ -1,3 +1,9 @@
+pve-cluster (4.0-52) stable; urgency=medium
+
+  * Remove a wrong warning message from pmxcfs.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 01 Jun 2017 09:38:12 +0200
+
 pve-cluster (4.0-51) stable; urgency=medium
 
   * Fix #1383: pmxcfs: use memdb_tree_entry_free()
