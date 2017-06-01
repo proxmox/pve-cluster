@@ -1,3 +1,9 @@
+pve-cluster (5.0-9) unstable; urgency=medium
+
+  * Remove a wrong warning message from pmxcfs.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 01 Jun 2017 09:38:12 +0200
+
 pve-cluster (5.0-8) unstable; urgency=medium
 
   * sshinfo: add the network cidr
