@@ -1877,15 +1877,21 @@ sub get_ssh_info {
     };
 }
 
-sub ssh_info_to_command {
+sub ssh_info_to_command_base {
     my ($info, @extra_options) = @_;
     return [
 	'/usr/bin/ssh',
 	'-o', 'BatchMode=yes',
 	'-o', 'HostKeyAlias='.$info->{name},
-	@extra_options,
-	"root\@$info->{ip}"
+	@extra_options
     ];
+}
+
+sub ssh_info_to_command {
+    my ($info, @extra_options) = @_;
+    my $cmd = ssh_info_to_command_base($info, @extra_options);
+    push @$cmd, "root\@$info->{ip}";
+    return $cmd;
 }
 
 1;
