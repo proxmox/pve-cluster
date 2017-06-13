@@ -1298,7 +1298,7 @@ cfs_create_status_msg(
 
 	if (!nodename || !nodename[0] || !strcmp(nodename, cfs.nodename)) {
 		kvhash = cfs_status.kvhash;
-	} else {
+	} else if (cfs_status.clinfo && cfs_status.clinfo->nodes_byname) {
 		cfs_clnode_t *clnode;
 		if ((clnode = g_hash_table_lookup(cfs_status.clinfo->nodes_byname, nodename)))
 			kvhash = clnode->kvhash;
