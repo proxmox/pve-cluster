@@ -25,7 +25,7 @@ man5_MANS = datacenter.cfg.5
 
 IPCC_so_SOURCES = IPCC.c ppport.h
 
-pvelib_DATA = IPCC.pm Cluster.pm
+pvelib_DATA = IPCC.pm Cluster.pm Corosync.pm
 pvelibdir = $(PERL_VENDORLIB)/PVE
 
 noinst_DATA = pvecm.bash-completion

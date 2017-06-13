@@ -16,6 +16,7 @@ use PVE::Cluster;
 use PVE::INotify;
 use PVE::JSONSchema;
 use PVE::CLIHandler;
+use PVE::Corosync;
 
 use base qw(PVE::CLIHandler);
 
@@ -312,9 +313,9 @@ __PACKAGE__->register_method ({
 
 	my $conf = PVE::Cluster::cfs_read_file("corosync.conf");
 
-	my $nodelist = PVE::Cluster::corosync_nodelist($conf);
+	my $nodelist = PVE::Corosync::nodelist($conf);
 
-	my $totem_cfg = PVE::Cluster::corosync_totem_config($conf);
+	my $totem_cfg = PVE::Corosync::totem_config($conf);
 
 	my $name = $param->{node};
 
@@ -390,7 +391,7 @@ __PACKAGE__->register_method ({
 	$nodelist->{$name}->{ring1_addr} = $param->{ring1_addr} if $param->{ring1_addr};
 	$nodelist->{$name}->{quorum_votes} = $param->{votes} if $param->{votes};
 
-	PVE::Cluster::corosync_update_nodelist($conf, $nodelist);
+	PVE::Corosync::update_nodelist($conf, $nodelist);
 
 	exit (0);
     }});
@@ -419,7 +420,7 @@ __PACKAGE__->register_method ({
 
 	my $conf = PVE::Cluster::cfs_read_file("corosync.conf");
 
-	my $nodelist = PVE::Cluster::corosync_nodelist($conf);
+	my $nodelist = PVE::Corosync::nodelist($conf);
 
 	my $node;
 	my $nodeid;
@@ -442,7 +443,7 @@ __PACKAGE__->register_method ({
 
 	delete $nodelist->{$node};
 
-	PVE::Cluster::corosync_update_nodelist($conf, $nodelist);
+	PVE::Corosync::update_nodelist($conf, $nodelist);
 
 	PVE::Tools::run_command(['corosync-cfgtool','-k', $nodeid])
 	    if defined($nodeid);
@@ -674,7 +675,7 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	PVE::Cluster::check_corosync_conf_exists();
+	PVE::Corosync::check_conf_exists();
 
 	my $cmd = ['corosync-quorumtool', '-siH'];
 
@@ -697,7 +698,7 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	PVE::Cluster::check_corosync_conf_exists();
+	PVE::Corosync::check_conf_exists();
 
 	my $cmd = ['corosync-quorumtool', '-l'];
 
@@ -726,7 +727,7 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	PVE::Cluster::check_corosync_conf_exists();
+	PVE::Corosync::check_conf_exists();
 
 	my $cmd = ['corosync-quorumtool', '-e', $param->{expected}];
 

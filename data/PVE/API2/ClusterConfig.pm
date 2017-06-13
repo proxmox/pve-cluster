@@ -2,12 +2,14 @@ package PVE::API2::ClusterConfig;
 
 use strict;
 use warnings;
+
 use PVE::Tools;
 use PVE::SafeSyslog;
 use PVE::RESTHandler;
 use PVE::RPCEnvironment;
 use PVE::JSONSchema qw(get_standard_option);
 use PVE::Cluster;
+use PVE::Corosync;
 
 use base qw(PVE::RESTHandler);
 
@@ -69,7 +71,7 @@ __PACKAGE__->register_method({
 
 
 	my $conf = PVE::Cluster::cfs_read_file('corosync.conf');
-	my $nodelist = PVE::Cluster::corosync_nodelist($conf);
+	my $nodelist = PVE::Corosync::nodelist($conf);
 
 	return PVE::RESTHandler::hash_to_array($nodelist, 'node');
     }});
@@ -96,7 +98,7 @@ __PACKAGE__->register_method({
 
 	my $conf = PVE::Cluster::cfs_read_file('corosync.conf');
 
-	return PVE::Cluster::corosync_totem_config($conf);
+	return PVE::Corosync::totem_config($conf);
     }});
 
 1;
