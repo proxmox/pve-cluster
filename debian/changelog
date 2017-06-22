@@ -1,3 +1,17 @@
+pve-cluster (5.0-10) unstable; urgency=medium
+
+  * pvecm delnode: prevent deleting current node
+
+  * factor out corosync methods to own module
+
+  * pmxcfs: fix segfault in cfs_create_status_msg
+
+  * add sshinfo_to_command_base
+
+  * mtunnel: add -run-command for insecure pipes
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 22 Jun 2017 08:29:29 +0200
+
 pve-cluster (5.0-9) unstable; urgency=medium
 
   * Remove a wrong warning message from pmxcfs.
