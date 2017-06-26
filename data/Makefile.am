@@ -1,4 +1,4 @@
 
-SUBDIRS = src PVE
+SUBDIRS = src PVE test
 
 CLEANFILES = *~
