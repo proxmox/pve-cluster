@@ -1227,6 +1227,9 @@ sub ssh_merge_known_hosts {
     my $merge_line = sub {
 	my ($line, $all) = @_;
 
+	return if $line =~ m/^\s*$/; # skip empty lines
+	return if $line =~ m/^#/; # skip comments
+
 	if ($line =~ m/^(\S+)\s(ssh-rsa\s\S+)(\s.*)?$/) {
 	    my $key = $1;
 	    my $rsakey = $2;
@@ -1272,27 +1275,17 @@ sub ssh_merge_known_hosts {
 
     while ($old && $old =~ s/^((.*?)(\n|$))//) {
 	my $line = "$2\n";
-	next if $line =~ m/^\s*$/; # skip empty lines
-	next if $line =~ m/^#/; # skip comments
 	&$merge_line($line, 1);
     }
 
     while ($new && $new =~ s/^((.*?)(\n|$))//) {
 	my $line = "$2\n";
-	next if $line =~ m/^\s*$/; # skip empty lines
-	next if $line =~ m/^#/; # skip comments
 	&$merge_line($line);
     }
 
-    my $add_known_hosts_entry = sub {
-	my ($name, $hostkey) = @_;
-	$data .= "$name $hostkey\n";
-    };
-
-    if (!$found_nodename || !$found_local_ip) {
-	&$add_known_hosts_entry($nodename, $hostkey) if !$found_nodename;
-	&$add_known_hosts_entry($ip_address, $hostkey) if !$found_local_ip;
-    }
+    # add our own key if not already there
+    $data .= "$nodename $hostkey\n" if !$found_nodename;
+    $data .= "$ip_address $hostkey\n" if !$found_local_ip;
 
     PVE::Tools::file_set_contents($sshknownhosts, $data);
 
