@@ -1,3 +1,9 @@
+pve-cluster (5.0-12) unstable; urgency=medium
+
+  * ssh_merge_known_hosts: also add entry if current sshkey does not match
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 12 Jul 2017 12:00:27 +0200
+
 pve-cluster (5.0-11) unstable; urgency=medium
 
   * ssh_merge_known_hosts: address auth failure problem when using
