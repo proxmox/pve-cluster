@@ -1261,9 +1261,9 @@ sub ssh_merge_known_hosts {
 		} else {
 		    $key = lc($key); # avoid duplicate entries, ssh compares lowercased
 		    if ($key eq $ip_address) {
-			$found_local_ip = 1;
+			$found_local_ip = 1 if $rsakey eq $hostkey;
 		    } elsif ($key eq $nodename) {
-			$found_nodename = 1;
+			$found_nodename = 1 if $rsakey eq $hostkey;
 		    }
 		}
 		$data .= $line;
