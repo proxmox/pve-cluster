@@ -311,87 +311,90 @@ __PACKAGE__->register_method ({
 
 	PVE::Cluster::check_cfs_quorum();
 
-	my $conf = PVE::Cluster::cfs_read_file("corosync.conf");
+	my $code = sub {
+	    my $conf = PVE::Cluster::cfs_read_file("corosync.conf");
+	    my $nodelist = PVE::Corosync::nodelist($conf);
+	    my $totem_cfg = PVE::Corosync::totem_config($conf);
 
-	my $nodelist = PVE::Corosync::nodelist($conf);
+	    my $name = $param->{node};
 
-	my $totem_cfg = PVE::Corosync::totem_config($conf);
+	    # ensure we do not reuse an address, that can crash the whole cluster!
+	    my $check_duplicate_addr = sub {
+		my $addr = shift;
+		return if !defined($addr);
 
-	my $name = $param->{node};
-
-	# ensure we do not reuse an address, that can crash the whole cluster!
-	my $check_duplicate_addr = sub {
-	    my $addr = shift;
-	    return if !defined($addr);
-
-	    while (my ($k, $v) = each %$nodelist) {
-		next if $k eq $name; # allows re-adding a node if force is set
-		if ($v->{ring0_addr} eq $addr || ($v->{ring1_addr} && $v->{ring1_addr} eq $addr)) {
-		    die "corosync: address '$addr' already defined by node '$k'\n";
+		while (my ($k, $v) = each %$nodelist) {
+		    next if $k eq $name; # allows re-adding a node if force is set
+			if ($v->{ring0_addr} eq $addr || ($v->{ring1_addr} && $v->{ring1_addr} eq $addr)) {
+			    die "corosync: address '$addr' already defined by node '$k'\n";
+			}
 		}
-	    }
-	};
-
-	&$check_duplicate_addr($param->{ring0_addr});
-	&$check_duplicate_addr($param->{ring1_addr});
-
-	$param->{ring0_addr} = $name if !$param->{ring0_addr};
-
-	die "corosync: using 'ring1_addr' parameter needs a configured ring 1 interface!\n"
-	    if $param->{ring1_addr} && !defined($totem_cfg->{interface}->{1});
-
-	die "corosync: ring 1 interface configured but 'ring1_addr' parameter not defined!\n"
-	    if defined($totem_cfg->{interface}->{1}) && !defined($param->{ring1_addr});
-
-	if (defined(my $res = $nodelist->{$name})) {
-	    $param->{nodeid} = $res->{nodeid} if !$param->{nodeid};
-	    $param->{votes} = $res->{quorum_votes} if !defined($param->{votes});
-
-	    if ($res->{quorum_votes} == $param->{votes} &&
-		$res->{nodeid} == $param->{nodeid}) {
-		print "node $name already defined\n";
-		if ($param->{force}) {
-		    exit (0);
-		} else {
-		    exit (-1);
-		}
-	    } else {
-		die "can't add existing node\n";
-	    }
-	} elsif (!$param->{nodeid}) {
-	    my $nodeid = 1;
-
-	    while(1) {
-		my $found = 0;
-		foreach my $v (values %$nodelist) {
-		    if ($v->{nodeid} eq $nodeid) {
-			$found = 1;
-			$nodeid++;
-			last;
-		    }
-		}
-		last if !$found;
 	    };
 
-	    $param->{nodeid} = $nodeid;
-	}
+	    &$check_duplicate_addr($param->{ring0_addr});
+	    &$check_duplicate_addr($param->{ring1_addr});
 
-	$param->{votes} = 1 if !defined($param->{votes});
+	    $param->{ring0_addr} = $name if !$param->{ring0_addr};
 
-	PVE::Cluster::gen_local_dirs($name);
+	    die "corosync: using 'ring1_addr' parameter needs a configured ring 1 interface!\n"
+		if $param->{ring1_addr} && !defined($totem_cfg->{interface}->{1});
 
-	eval { 	PVE::Cluster::ssh_merge_keys(); };
-	warn $@ if $@;
+	    die "corosync: ring 1 interface configured but 'ring1_addr' parameter not defined!\n"
+		if defined($totem_cfg->{interface}->{1}) && !defined($param->{ring1_addr});
 
-	$nodelist->{$name} = {
-	    ring0_addr => $param->{ring0_addr},
-	    nodeid => $param->{nodeid},
-	    name => $name,
+	    if (defined(my $res = $nodelist->{$name})) {
+		$param->{nodeid} = $res->{nodeid} if !$param->{nodeid};
+		$param->{votes} = $res->{quorum_votes} if !defined($param->{votes});
+
+		if ($res->{quorum_votes} == $param->{votes} &&
+		    $res->{nodeid} == $param->{nodeid}) {
+		    print "node $name already defined\n";
+		    if ($param->{force}) {
+			exit (0);
+		    } else {
+			exit (-1);
+		    }
+		} else {
+		    die "can't add existing node\n";
+		}
+	    } elsif (!$param->{nodeid}) {
+		my $nodeid = 1;
+
+		while(1) {
+		    my $found = 0;
+		    foreach my $v (values %$nodelist) {
+			if ($v->{nodeid} eq $nodeid) {
+			    $found = 1;
+			    $nodeid++;
+			    last;
+			}
+		    }
+		    last if !$found;
+		};
+
+		$param->{nodeid} = $nodeid;
+	    }
+
+	    $param->{votes} = 1 if !defined($param->{votes});
+
+	    PVE::Cluster::gen_local_dirs($name);
+
+	    eval { 	PVE::Cluster::ssh_merge_keys(); };
+	    warn $@ if $@;
+
+	    $nodelist->{$name} = {
+		ring0_addr => $param->{ring0_addr},
+		nodeid => $param->{nodeid},
+		name => $name,
+	    };
+	    $nodelist->{$name}->{ring1_addr} = $param->{ring1_addr} if $param->{ring1_addr};
+	    $nodelist->{$name}->{quorum_votes} = $param->{votes} if $param->{votes};
+
+	    PVE::Corosync::update_nodelist($conf, $nodelist);
 	};
-	$nodelist->{$name}->{ring1_addr} = $param->{ring1_addr} if $param->{ring1_addr};
-	$nodelist->{$name}->{quorum_votes} = $param->{votes} if $param->{votes};
 
-	PVE::Corosync::update_nodelist($conf, $nodelist);
+	PVE::Cluster::cfs_lock_file('corosync.conf', 10, &$code);
+	die $@ if $@;
 
 	exit (0);
     }});
@@ -418,38 +421,42 @@ __PACKAGE__->register_method ({
 
 	PVE::Cluster::check_cfs_quorum();
 
-	my $conf = PVE::Cluster::cfs_read_file("corosync.conf");
+	my $code = sub {
+	    my $conf = PVE::Cluster::cfs_read_file("corosync.conf");
+	    my $nodelist = PVE::Corosync::nodelist($conf);
 
-	my $nodelist = PVE::Corosync::nodelist($conf);
+	    my $node;
+	    my $nodeid;
 
-	my $node;
-	my $nodeid;
-
-	foreach my $tmp_node (keys %$nodelist) {
-	    my $d = $nodelist->{$tmp_node};
-	    my $ring0_addr = $d->{ring0_addr};
-	    my $ring1_addr = $d->{ring1_addr};
-	    if (($tmp_node eq $param->{node}) ||
-		(defined($ring0_addr) && ($ring0_addr eq $param->{node})) ||
-		(defined($ring1_addr) && ($ring1_addr eq $param->{node}))) {
-		$node = $tmp_node;
-		$nodeid = $d->{nodeid};
-		last;
+	    foreach my $tmp_node (keys %$nodelist) {
+		my $d = $nodelist->{$tmp_node};
+		my $ring0_addr = $d->{ring0_addr};
+		my $ring1_addr = $d->{ring1_addr};
+		if (($tmp_node eq $param->{node}) ||
+		    (defined($ring0_addr) && ($ring0_addr eq $param->{node})) ||
+		    (defined($ring1_addr) && ($ring1_addr eq $param->{node}))) {
+		    $node = $tmp_node;
+		    $nodeid = $d->{nodeid};
+		    last;
+		}
 	    }
-	}
 
-	die "Node/IP: $param->{node} is not a known host of the cluster.\n"
+	    die "Node/IP: $param->{node} is not a known host of the cluster.\n"
 		if !defined($node);
 
-	my $our_nodename = PVE::INotify::nodename();
-	die "Cannot delete myself from cluster!\n" if $node eq $our_nodename;
+	    my $our_nodename = PVE::INotify::nodename();
+	    die "Cannot delete myself from cluster!\n" if $node eq $our_nodename;
 
-	delete $nodelist->{$node};
+	    delete $nodelist->{$node};
 
-	PVE::Corosync::update_nodelist($conf, $nodelist);
+	    PVE::Corosync::update_nodelist($conf, $nodelist);
 
-	PVE::Tools::run_command(['corosync-cfgtool','-k', $nodeid])
-	    if defined($nodeid);
+	    PVE::Tools::run_command(['corosync-cfgtool','-k', $nodeid])
+		if defined($nodeid);
+	};
+
+	PVE::Cluster::cfs_lock_file('corosync.conf', 10, &$code);
+	die $@ if $@;
 
 	return undef;
     }});
