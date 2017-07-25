@@ -381,7 +381,7 @@ my $ipcc_send_rec = sub {
 
     my $res = PVE::IPCC::ipcc_send_rec($msgid, $data);
 
-    die "ipcc_send_rec failed: $!\n" if !defined($res) && ($! != 0);
+    die "ipcc_send_rec[$msgid] failed: $!\n" if !defined($res) && ($! != 0);
 
     return $res;
 };
@@ -391,7 +391,7 @@ my $ipcc_send_rec_json = sub {
 
     my $res = PVE::IPCC::ipcc_send_rec($msgid, $data);
 
-    die "ipcc_send_rec failed: $!\n" if !defined($res) && ($! != 0);
+    die "ipcc_send_rec[$msgid] failed: $!\n" if !defined($res) && ($! != 0);
 
     return decode_json($res);
 };
