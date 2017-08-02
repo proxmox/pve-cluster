@@ -455,7 +455,7 @@ __PACKAGE__->register_method ({
 		if defined($nodeid);
 	};
 
-	PVE::Cluster::cfs_lock_file('corosync.conf', 10, &$code);
+	PVE::Cluster::cfs_lock_file('corosync.conf', 10, $code);
 	die $@ if $@;
 
 	return undef;
