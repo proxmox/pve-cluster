@@ -864,50 +864,7 @@ __PACKAGE__->register_method ({
 	    }
 	    my $port = PVE::Tools::next_migrate_port($family, $ip);
 
-	    # Wait for a client
-	    my $socket = IO::Socket::IP->new(
-		Listen => 1,
-		ReuseAddr => 1,
-		Family => $family,
-		Proto => &Socket::IPPROTO_TCP,
-		GetAddrInfoFlags => 0,
-		LocalAddr => $ip,
-		LocalPort => $port,
-	    ) or die "failed to open socket: $!\n";
-	    print "$ip\n$port\n";
-	    *STDOUT->flush();
-	    alarm 0;
-	    local $SIG{ALRM} = sub { die "timed out waiting for client\n" };
-	    alarm 30;
-	    my $client = $socket->accept;
-	    alarm 0;
-	    close($socket);
-
-	    # We want that the command talks over the TCP socket and takes
-	    # ownership of it, so that when it closes it the connection is
-	    # terminated, so we need to be able to close the socket. So we
-	    # can't really use PVE::Tools::run_command().
-	    my $pid = fork();
-	    die "fork failed: $!\n" if !defined($pid);
-	    if (!$pid) {
-		POSIX::dup2(fileno($client), 0);
-		POSIX::dup2(fileno($client), 1);
-		close($client);
-		exec {$cmd->[0]} @$cmd or do {
-		    warn "exec failed: $!\n";
-		    POSIX::_exit(1);
-		};
-	    }
-	    close($client);
-	    if (waitpid($pid, 0) != $pid) {
-		kill(9 => $pid);
-		1 while waitpid($pid, 0) != $pid;
-	    }
-	    if (my $sig = ($? & 127)) {
-		die "got signal $sig\n";
-	    } elsif (my $exitcode = ($? >> 8)) {
-		die "exit code $exitcode\n";
-	    }
+	    PVE::Tools::pipe_socket_to_command($cmd, $ip, $port);
 	    return undef;
 	}
 
