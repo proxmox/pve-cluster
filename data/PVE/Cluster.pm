@@ -736,7 +736,7 @@ sub create_rrd_graph {
     push @args, '--full-size-mode';
 
     # we do not really store data into the file
-    my $res = RRDs::graphv('', @args);
+    my $res = RRDs::graphv('-', @args);
 
     my $err = RRDs::error;
     die "RRD error: $err\n" if $err;
