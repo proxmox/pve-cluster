@@ -523,8 +523,17 @@ sub get_nodelist {
     return [ keys %$nodelist ];
 }
 
+# $data must be a chronological descending ordered array of tasks
 sub broadcast_tasklist {
     my ($data) = @_;
+
+    # the serialized list may not get bigger than 32kb (CFS_MAX_STATUS_SIZE
+    # from pmxcfs) - drop older items until we satisfy this constraint
+    my $size = length(encode_json($data));
+    while ($size >= (32 * 1024)) {
+	pop @$data;
+	$size = length(encode_json($data));
+    }
 
     eval {
 	&$ipcc_update_status("tasklist", $data);
