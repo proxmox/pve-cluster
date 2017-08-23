@@ -909,7 +909,7 @@ int main(int argc, char *argv[])
 	int len = memdb_read(memdb, "corosync.conf", &conf_data);
 	if (len >= 0) {
 		if (force_local_mode) {
-			cfs_message("forcing local mode (althought corosync.conf exists)");
+			cfs_message("forcing local mode (although corosync.conf exists)");
 			cfs_set_quorate(1, TRUE);
 		} else {
 			if (!(dcdb = dcdb_new(memdb)))
