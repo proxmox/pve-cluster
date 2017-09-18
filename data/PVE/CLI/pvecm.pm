@@ -10,7 +10,6 @@ use POSIX;
 use Net::IP;
 use File::Path;
 use File::Basename;
-use Data::Dumper; # fixme: remove
 use PVE::Tools;
 use PVE::Cluster;
 use PVE::INotify;
