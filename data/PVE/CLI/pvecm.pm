@@ -10,7 +10,7 @@ use POSIX;
 use Net::IP;
 use File::Path;
 use File::Basename;
-use PVE::Tools;
+use PVE::Tools qw(run_command);
 use PVE::Cluster;
 use PVE::INotify;
 use PVE::JSONSchema;
@@ -41,7 +41,7 @@ sub backup_database {
 	['gzip', '-', \ ">${backupdir}/config-${ctime}.sql.gz"],
     ];
 
-    PVE::Tools::run_command($cmd, 'errmsg' => "cannot backup old database\n");
+    run_command($cmd, 'errmsg' => "cannot backup old database\n");
 
     # purge older backup
     my $maxfiles = 10;
@@ -92,8 +92,7 @@ __PACKAGE__->register_method ({
 
 	File::Path::make_path($dirname) if $dirname;
 
-	my $cmd = ['corosync-keygen', '-l', '-k', $filename];
-	PVE::Tools::run_command($cmd);
+	run_command(['corosync-keygen', '-l', '-k', $filename]);
 
 	return undef;
     }});
@@ -251,9 +250,9 @@ _EOD
 
 	PVE::Cluster::ssh_merge_known_hosts($nodename, $local_ip_address, 1);
 
-	PVE::Tools::run_command('systemctl restart pve-cluster'); # restart
+	run_command('systemctl restart pve-cluster'); # restart
 
-	PVE::Tools::run_command('systemctl restart corosync'); # restart
+	run_command('systemctl restart corosync'); # restart
 
 	return undef;
 }});
@@ -450,8 +449,7 @@ __PACKAGE__->register_method ({
 
 	    PVE::Corosync::update_nodelist($conf, $nodelist);
 
-	    PVE::Tools::run_command(['corosync-cfgtool','-k', $nodeid])
-		if defined($nodeid);
+	    run_command(['corosync-cfgtool','-k', $nodeid]) if defined($nodeid);
 	};
 
 	PVE::Cluster::cfs_lock_file('corosync.conf', 10, $code);
@@ -579,7 +577,7 @@ __PACKAGE__->register_method ({
 	PVE::Cluster::ssh_unmerge_known_hosts();
 
 	my $cmd = ['ssh-copy-id', '-i', '/root/.ssh/id_rsa', "root\@$host"];
-	PVE::Tools::run_command($cmd, 'outfunc' => sub {}, 'errfunc' => sub {},
+	run_command($cmd, 'outfunc' => sub {}, 'errfunc' => sub {},
 				'errmsg' => "unable to copy ssh ID");
 
 	$cmd = ['ssh', $host, '-o', 'BatchMode=yes',
