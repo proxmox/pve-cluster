@@ -70,6 +70,11 @@ sub parse_conf {
 	$section->{$key} = $value;
     }
 
+    # make working with the config way easier
+    my ($totem, $nodelist) = $conf->{main}->@{"totem", "nodelist"};
+    $nodelist->{node} = { map { $_->{name} // $_->{ring0_addr} => $_ } @{$nodelist->{node}} };
+    $totem->{interface} = { map { $_->{ringnumber} => $_ } @{$totem->{interface}} };
+
     $conf->{digest} = $digest;
 
     return $conf;
@@ -107,9 +112,18 @@ $dump_section = sub {
 sub write_conf {
     my ($filename, $conf) = @_;
 
-    die "no main section" if !defined($conf->{main});
+    my $c = clone($conf->{main}) // die "no main section";
 
-    my $raw = &$dump_section($conf->{main}, '');
+    # retransform back for easier dumping
+    my $hash_to_array = sub {
+	my ($hash) = @_;
+	return [ $hash->@{sort keys %$hash} ];
+    };
+
+    $c->{nodelist}->{node} = &$hash_to_array($c->{nodelist}->{node});
+    $c->{totem}->{interface} = &$hash_to_array($c->{totem}->{interface});
+
+    my $raw = &$dump_section($c, '');
 
     return $raw;
 }
@@ -155,7 +169,7 @@ sub update_nodelist {
     my $version = conf_version($conf);
     conf_version($conf, undef, $version + 1);
 
-    $conf->{main}->{nodelist}->{node} = [values %$nodelist];
+    $conf->{main}->{nodelist}->{node} = $nodelist;
 
     PVE::Cluster::cfs_write_file("corosync.conf.new", $conf);
 
@@ -165,35 +179,12 @@ sub update_nodelist {
 
 sub nodelist {
     my ($conf) = @_;
-
-    my $nodelist = {};
-
-    my $nodes = $conf->{main}->{nodelist}->{node};
-
-    foreach my $node (@$nodes) {
-	# use 'name' over 'ring0_addr' if set
-	my $name = $node->{name} // $node->{ring0_addr};
-	if ($name) {
-	    $nodelist->{$name} = $node;
-	}
-    }
-
-    return $nodelist;
+    return clone($conf->{main}->{nodelist}->{node});
 }
 
 sub totem_config {
     my ($conf) = @_;
-
-    # we reorder elements from totem->interface and don't want to change $conf
-    my $totem = clone($conf->{main}->{totem});
-    my $ifs = $totem->{interface};
-
-    $totem->{interface} = {};
-    foreach my $if (@$ifs) {
-	$totem->{interface}->{$if->{ringnumber}} = $if;
-    }
-
-    return $totem;
+    return clone($conf->{main}->{totem});
 }
 
 1;
