@@ -128,21 +128,7 @@ sub write_conf {
     return $raw;
 }
 
-sub conf_version {
-    my ($conf, $noerr, $new_value) = @_;
-
-    my $totem = $conf->{main}->{totem};
-    if (defined($totem) && defined($totem->{config_version})) {
-	$totem->{config_version} = $new_value if $new_value;
-	return $totem->{config_version};
-    }
-
-    return undef if $noerr;
-
-    die "invalid corosync config - unable to read version\n";
-}
-
-# read only - use "rename corosync.conf.new corosync.conf" to write
+# read only - use atomic_write_conf method to write
 PVE::Cluster::cfs_register_file('corosync.conf', \&parse_conf);
 # this is read/write
 PVE::Cluster::cfs_register_file('corosync.conf.new', \&parse_conf,
@@ -164,17 +150,9 @@ sub check_conf_exists {
 sub update_nodelist {
     my ($conf, $nodelist) = @_;
 
-    delete $conf->{digest};
-
-    my $version = conf_version($conf);
-    conf_version($conf, undef, $version + 1);
-
     $conf->{main}->{nodelist}->{node} = $nodelist;
 
-    PVE::Cluster::cfs_write_file("corosync.conf.new", $conf);
-
-    rename("/etc/pve/corosync.conf.new", "/etc/pve/corosync.conf")
-	|| die "activate  corosync.conf.new failed - $!\n";
+    atomic_write_conf($conf);
 }
 
 sub nodelist {
@@ -185,6 +163,22 @@ sub nodelist {
 sub totem_config {
     my ($conf) = @_;
     return clone($conf->{main}->{totem});
+}
+
+# caller must hold corosync.conf cfs lock if used in read-modify-write cycle
+sub atomic_write_conf {
+    my ($conf, $no_increase_version) = @_;
+
+    if (!$no_increase_version) {
+	die "invalid corosync config: unable to read config version\n"
+	    if !defined($conf->{main}->{totem}->{config_version});
+	$conf->{main}->{totem}->{config_version}++;
+    }
+
+    PVE::Cluster::cfs_write_file("corosync.conf.new", $conf);
+
+    rename("/etc/pve/corosync.conf.new", "/etc/pve/corosync.conf")
+	|| die "activating corosync.conf.new failed - $!\n";
 }
 
 1;
