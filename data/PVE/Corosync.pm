@@ -4,10 +4,16 @@ use strict;
 use warnings;
 
 use Digest::SHA;
+use Clone 'clone';
 
 use PVE::Cluster;
 
 my $basedir = "/etc/pve";
+
+my $conf_array_sections = {
+    node => 1,
+    interface => 1,
+};
 
 # a very simply parser ...
 sub parse_conf {
@@ -25,21 +31,25 @@ sub parse_conf {
 
     my @tokens = split(/\s/, $raw);
 
-    my $conf = { section => 'main', children => [] };
+    my $conf = { 'main' => {} };
 
     my $stack = [];
-    my $section = $conf;
+    my $section = $conf->{main};
 
     while (defined(my $token = shift @tokens)) {
 	my $nexttok = $tokens[0];
 
 	if ($nexttok && ($nexttok eq '{')) {
 	    shift @tokens; # skip '{'
-	    my $new_section = {
-		section => $token,
-		children => [],
-	    };
-	    push @{$section->{children}}, $new_section;
+	    my $new_section = {};
+	    if ($conf_array_sections->{$token}) {
+		$section->{$token} = [] if !defined($section->{$token});
+		push @{$section->{$token}}, $new_section;
+	    } elsif (!defined($section->{$token})) {
+		$section->{$token} = $new_section;
+	    } else {
+		die "section '$token' already exists and not marked as array!\n";
+	    }
 	    push @$stack, $section;
 	    $section = $new_section;
 	    next;
@@ -57,7 +67,7 @@ sub parse_conf {
 	die "parse error - no value for '$key'\n" if !defined($nexttok);
 	my $value = shift @tokens;
 
-	push @{$section->{children}}, { key => $key, value => $value };
+	$section->{$key} = $value;
     }
 
     $conf->{digest} = $digest;
@@ -69,42 +79,37 @@ my $dump_section;
 $dump_section = sub {
     my ($section, $prefix) = @_;
 
-    my $raw = $prefix . $section->{section} . " {\n";
+    my $raw = '';
 
-    my @list = grep { defined($_->{key}) } @{$section->{children}};
-    foreach my $child (sort {$a->{key} cmp $b->{key}} @list) {
-	$raw .= $prefix . "  $child->{key}: $child->{value}\n";
+    foreach my $k (sort keys %$section) {
+	my $v = $section->{$k};
+	if (ref($v) eq 'HASH') {
+	    $raw .= $prefix . "$k {\n";
+	    $raw .= &$dump_section($v, "$prefix  ");
+	    $raw .=  $prefix . "}\n";
+	    $raw .= "\n" if !$prefix; # add extra newline at 1st level only
+	} elsif (ref($v) eq 'ARRAY') {
+	    foreach my $child (@$v) {
+		$raw .= $prefix . "$k {\n";
+		$raw .= &$dump_section($child, "$prefix  ");
+		$raw .=  $prefix . "}\n";
+	    }
+	} elsif (!ref($v)) {
+	    $raw .= $prefix . "$k: $v\n";
+	} else {
+	    die "unexpected reference in config hash: $k => ". ref($v) ."\n";
+	}
     }
-
-    @list = grep { defined($_->{section}) } @{$section->{children}};
-    foreach my $child (sort {$a->{section} cmp $b->{section}} @list) {
-	$raw .= &$dump_section($child, "$prefix  ");
-    }
-
-    $raw .= $prefix . "}\n\n";
 
     return $raw;
-
 };
 
 sub write_conf {
     my ($filename, $conf) = @_;
 
-    my $raw = '';
+    die "no main section" if !defined($conf->{main});
 
-    my $prefix = '';
-
-    die "no main section" if $conf->{section} ne 'main';
-
-    my @list = grep { defined($_->{key}) } @{$conf->{children}};
-    foreach my $child (sort {$a->{key} cmp $b->{key}} @list) {
-	$raw .= "$child->{key}: $child->{value}\n";
-    }
-
-    @list = grep { defined($_->{section}) } @{$conf->{children}};
-    foreach my $child (sort {$a->{section} cmp $b->{section}} @list) {
-	$raw .= &$dump_section($child, $prefix);
-    }
+    my $raw = &$dump_section($conf->{main}, '');
 
     return $raw;
 }
@@ -112,22 +117,10 @@ sub write_conf {
 sub conf_version {
     my ($conf, $noerr, $new_value) = @_;
 
-    foreach my $child (@{$conf->{children}}) {
-	next if !defined($child->{section});
-	if ($child->{section} eq 'totem') {
-	    foreach my $e (@{$child->{children}}) {
-		next if !defined($e->{key});
-		if ($e->{key} eq 'config_version') {
-		    if ($new_value) {
-			$e->{value} = $new_value;
-			return $new_value;
-		    } elsif (my $version = int($e->{value})) {
-			return $version;
-		    }
-		    last;
-		}
-	    }
-	}
+    my $totem = $conf->{main}->{totem};
+    if (defined($totem) && defined($totem->{config_version})) {
+	$totem->{config_version} = $new_value if $new_value;
+	return $totem->{config_version};
     }
 
     return undef if $noerr;
@@ -162,25 +155,7 @@ sub update_nodelist {
     my $version = conf_version($conf);
     conf_version($conf, undef, $version + 1);
 
-    my $children = [];
-    foreach my $v (values %$nodelist) {
-	next if !($v->{ring0_addr} || $v->{name});
-	my $kv = [];
-	foreach my $k (keys %$v) {
-	    push @$kv, { key => $k, value => $v->{$k} };
-	}
-	my $ns = { section => 'node', children => $kv };
-	push @$children, $ns;
-    }
-
-    foreach my $main (@{$conf->{children}}) {
-	next if !defined($main->{section});
-	if ($main->{section} eq 'nodelist') {
-	    $main->{children} = $children;
-	    last;
-	}
-    }
-
+    $conf->{main}->{nodelist}->{node} = [values %$nodelist];
 
     PVE::Cluster::cfs_write_file("corosync.conf.new", $conf);
 
@@ -193,65 +168,32 @@ sub nodelist {
 
     my $nodelist = {};
 
-    foreach my $main (@{$conf->{children}}) {
-	next if !defined($main->{section});
-	if ($main->{section} eq 'nodelist') {
-	    foreach my $ne (@{$main->{children}}) {
-		next if !defined($ne->{section}) || ($ne->{section} ne 'node');
-		my $node = { quorum_votes => 1 };
-		my $name;
-		foreach my $child (@{$ne->{children}}) {
-		    next if !defined($child->{key});
-		    $node->{$child->{key}} = $child->{value};
-		    # use 'name' over 'ring0_addr' if set
-		    if ($child->{key} eq 'name') {
-			delete $nodelist->{$name} if $name;
-			$name = $child->{value};
-			$nodelist->{$name} = $node;
-		    } elsif(!$name && $child->{key} eq 'ring0_addr') {
-			$name = $child->{value};
-			$nodelist->{$name} = $node;
-		    }
-		}
-	    }
+    my $nodes = $conf->{main}->{nodelist}->{node};
+
+    foreach my $node (@$nodes) {
+	# use 'name' over 'ring0_addr' if set
+	my $name = $node->{name} // $node->{ring0_addr};
+	if ($name) {
+	    $nodelist->{$name} = $node;
 	}
     }
 
     return $nodelist;
 }
 
-# get a hash representation of the corosync config totem section
 sub totem_config {
     my ($conf) = @_;
 
-    my $res = {};
+    # we reorder elements from totem->interface and don't want to change $conf
+    my $totem = clone($conf->{main}->{totem});
+    my $ifs = $totem->{interface};
 
-    foreach my $main (@{$conf->{children}}) {
-	next if !defined($main->{section}) ||
-	    $main->{section} ne 'totem';
-
-	foreach my $e (@{$main->{children}}) {
-
-	    if ($e->{section} && $e->{section} eq 'interface') {
-		my $entry = {};
-
-		$res->{interface} = {};
-
-		foreach my $child (@{$e->{children}}) {
-		    next if !defined($child->{key});
-		    $entry->{$child->{key}} = $child->{value};
-		    if($child->{key} eq 'ringnumber') {
-			$res->{interface}->{$child->{value}} = $entry;
-		    }
-		}
-
-	    } elsif  ($e->{key}) {
-		$res->{$e->{key}} = $e->{value};
-	    }
-	}
+    $totem->{interface} = {};
+    foreach my $if (@$ifs) {
+	$totem->{interface}->{$if->{ringnumber}} = $if;
     }
 
-    return $res;
+    return $totem;
 }
 
 1;

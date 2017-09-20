@@ -98,7 +98,9 @@ __PACKAGE__->register_method({
 
 	my $conf = PVE::Cluster::cfs_read_file('corosync.conf');
 
-	return PVE::Corosync::totem_config($conf);
+	my $totem_cfg = $conf->{main}->{totem};
+
+	return $totem_cfg;
     }});
 
 1;
