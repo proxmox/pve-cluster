@@ -391,7 +391,7 @@ __PACKAGE__->register_method ({
 	    PVE::Corosync::update_nodelist($conf, $nodelist);
 	};
 
-	PVE::Cluster::cfs_lock_file('corosync.conf', 10, &$code);
+	PVE::Cluster::cfs_lock_file('corosync.conf', 10, $code);
 	die $@ if $@;
 
 	exit (0);
