@@ -1,3 +1,22 @@
+pve-cluster (5.0-13) unstable; urgency=medium
+
+  * fix #1472: fix rrd file path
+
+  * improve internal handling of corosync configuration
+
+  * pvecm: improve locking when adding or deleting cluster nodes
+
+  * improve message outputs on IPC errors
+
+  * update SSH cipher list
+
+  * fix a problem with the tasklist & log when there were many unusually long
+    task logs
+
+  * fix #1486: spelling mistakes in pmxcfs
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 21 Sep 2017 09:37:47 +0200
+
 pve-cluster (5.0-12) unstable; urgency=medium
 
   * ssh_merge_known_hosts: also add entry if current sshkey does not match
