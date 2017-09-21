@@ -1211,6 +1211,10 @@ sub ssh_merge_known_hosts {
     die "no node name specified" if !$nodename;
     die "no ip address specified" if !$ip_address;
 
+    # ssh lowercases hostnames (aliases) before comparision, so we need too
+    $nodename = lc($nodename);
+    $ip_address = lc($ip_address);
+
     mkdir $authdir;
 
     if (! -f $sshknownhosts) {
@@ -1269,6 +1273,13 @@ sub ssh_merge_known_hosts {
 			}
 			return;
 		    }
+		} else {
+		    $key = lc($key); # avoid duplicate entries, ssh compares lowercased
+		    if ($key eq $ip_address) {
+			$found_local_ip = 1 if $rsakey eq $hostkey;
+		    } elsif ($key eq $nodename) {
+			$found_nodename = 1 if $rsakey eq $hostkey;
+		    }
 		}
 		$data .= $line;
 	    }
@@ -1291,16 +1302,9 @@ sub ssh_merge_known_hosts {
 	&$merge_line($line);
     }
 
-    my $addIndex = $$;
-    my $add_known_hosts_entry  = sub {
+    my $add_known_hosts_entry = sub {
 	my ($name, $hostkey) = @_;
-	$addIndex++;
-	my $hmac = Digest::HMAC_SHA1->new("$addIndex" . time());
-	my $b64salt = $hmac->b64digest . '=';
-	$hmac = Digest::HMAC_SHA1->new(decode_base64($b64salt));
-	$hmac->add($name);
-	my $digest = $hmac->b64digest . '=';
-	$data .= "|1|$b64salt|$digest $hostkey\n";
+	$data .= "$name $hostkey\n";
     };
 
     if (!$found_nodename || !$found_local_ip) {
