@@ -81,14 +81,18 @@ cfs_plug_func_getattr(
 
 	memset(stbuf, 0, sizeof(struct stat));
 
+	g_rw_lock_writer_lock(&fplug->data_rw_lock);
 	if (fplug->data)
 		g_free(fplug->data);
 
 	fplug->data = fplug->update_callback(plug);
 
+	stbuf->st_size = fplug->data ? strlen(fplug->data) : 0;
+
+	g_rw_lock_writer_unlock(&fplug->data_rw_lock);
+
 	stbuf->st_mode = fplug->mode;
 	stbuf->st_nlink = 1;
-	stbuf->st_size = fplug->data ? strlen(fplug->data) : 0;
 
 	return 0;
 }
@@ -111,12 +115,15 @@ cfs_plug_func_read(
 
 	cfs_plug_func_t *fplug = (cfs_plug_func_t *)plug;
 
+	g_rw_lock_reader_lock(&fplug->data_rw_lock);
 	char *data = fplug->data;
 
 	cfs_debug("enter cfs_plug_func_read %s", data);
 
-	if (!data)
+	if (!data) {
+		g_rw_lock_reader_unlock(&fplug->data_rw_lock);
 		return 0;
+	}
 
 	int len = strlen(data);
 
@@ -127,6 +134,7 @@ cfs_plug_func_read(
 	} else {
 		size = 0;
 	}
+	g_rw_lock_reader_unlock(&fplug->data_rw_lock);
 
 	return size;
 }
