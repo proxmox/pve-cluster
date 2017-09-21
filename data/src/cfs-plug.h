@@ -85,6 +85,7 @@ typedef int (*cfs_plug_func_write_data_fn_t)(
 typedef struct {
 	cfs_plug_t plug;
 	char *data;
+	GRWLock data_rw_lock;
 	mode_t mode;
 	cfs_plug_func_udpate_data_fn_t update_callback;
 	cfs_plug_func_write_data_fn_t write_callback;
