@@ -1,3 +1,19 @@
+pve-cluster (4.0-53) stable; urgency=medium
+
+  * fix #1504: abort in pmxcfs when opening a status file concurrently from
+    many processes
+
+  * pvecm delnode: prevent deleting current node
+
+  * factor out corosync methods to own module
+
+  * ssh_merge_known_hosts: address auth failure problem when using
+    uppercase hostnames
+
+  * pvecm: improve locking when adding or deleting cluster nodes
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 21 Sep 2017 14:39:13 +0200
+
 pve-cluster (4.0-52) stable; urgency=medium
 
   * Remove a wrong warning message from pmxcfs.
