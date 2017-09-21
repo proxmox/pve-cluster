@@ -438,6 +438,9 @@ __PACKAGE__->register_method ({
 	die "Node/IP: $param->{node} is not a known host of the cluster.\n"
 		if !defined($node);
 
+	my $our_nodename = PVE::INotify::nodename();
+	die "Cannot delete myself from cluster!\n" if $node eq $our_nodename;
+
 	delete $nodelist->{$node};
 
 	PVE::Cluster::corosync_update_nodelist($conf, $nodelist);
