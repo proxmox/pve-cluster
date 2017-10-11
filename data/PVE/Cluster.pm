@@ -447,6 +447,7 @@ my $ipcc_get_cluster_log = sub {
 my $ccache = {};
 
 sub cfs_update {
+    my ($fail) = @_;
     eval {
 	my $res = &$ipcc_send_rec_json(1);
 	#warn "GOT1: " . Dumper($res);
@@ -468,6 +469,7 @@ sub cfs_update {
 	$vmlist = {};
 	$clinfo = {};
 	$ccache = {};
+	die $err if $fail;
 	warn $err;
     }
 
@@ -480,6 +482,7 @@ sub cfs_update {
     $err = $@;
     if ($err) {
 	$clinfo = {};
+	die $err if $fail;
 	warn $err;
     }
 
@@ -492,6 +495,7 @@ sub cfs_update {
     $err = $@;
     if ($err) {
 	$vmlist = {};
+	die $err if $fail;
 	warn $err;
     }
 }
