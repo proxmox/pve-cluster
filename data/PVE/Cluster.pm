@@ -2,7 +2,7 @@ package PVE::Cluster;
 
 use strict;
 use warnings;
-use POSIX qw(EEXIST);
+use POSIX qw(EEXIST ENOENT);
 use File::stat qw();
 use Socket;
 use Storable qw(dclone);
@@ -402,7 +402,10 @@ my $ipcc_get_config = sub {
     my $bindata = pack "Z*", $path;
     my $res = PVE::IPCC::ipcc_send_rec(6, $bindata);
     if (!defined($res)) {
-	return undef if ($! != 0);
+	if ($! != 0) {
+	    return undef if $! == ENOENT;
+	    die "$!\n";
+	}
 	return '';
     }
 
