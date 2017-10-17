@@ -1,3 +1,11 @@
+pve-cluster (5.0-15) unstable; urgency=medium
+
+  * cluster: improve error handling when reading files
+
+  * cluster: cfs_update: option to die rather than warn
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 17 Oct 2017 15:06:22 +0200
+
 pve-cluster (5.0-14) unstable; urgency=medium
 
   * fix #1504: abort in pmxcfs when opening a status file concurrently from
