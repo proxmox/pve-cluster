@@ -911,14 +911,9 @@ my $cfs_lock = sub {
 
     alarm(0);
 
-    if ($err && ($err eq "got lock request timeout\n") &&
-	!check_cfs_quorum()){
-	$err = "$msg: no quorum!\n";
-    }
+    $err = "$msg: no quorum!\n" if !$got_lock && !check_cfs_quorum(1);
 
-    if (!$err || $err !~ /^got lock timeout -/) {
-	rmdir $filename; # cfs unlock
-    }
+    rmdir $filename if $got_lock; # if we held the lock always unlock again
 
     if ($err) {
         $@ = $err;
