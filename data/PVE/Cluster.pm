@@ -861,6 +861,7 @@ my $cfs_lock = sub {
     my ($lockid, $timeout, $code, @param) = @_;
 
     my $res;
+    my $got_lock = 0;
 
     # this timeout is for aquire the lock
     $timeout = 10 if !$timeout;
@@ -877,21 +878,21 @@ my $cfs_lock = sub {
 	    die "$msg: pve cluster filesystem not online.\n";
 	}
 
-        local $SIG{ALRM} = sub { die "got lock request timeout\n"; };
+	my $timeout_err = sub { die "$msg: got lock request timeout\n"; };
+	local $SIG{ALRM} = $timeout_err;
 
-        alarm ($timeout);
+	while (1) {
+	    alarm ($timeout);
+	    $got_lock = mkdir($filename);
+	    $timeout = alarm(0);
 
-	if (!(mkdir $filename)) {
+	    last if $got_lock;
+
+	    $timeout_err->() if $timeout == 0;
+
 	    print STDERR "trying to aquire cfs lock '$lockid' ...";
- 	    while (1) {
-		if (!(mkdir $filename)) {
-		    (utime 0, 0, $filename); # cfs unlock request
-		} else {
-		    print STDERR " OK\n";
-		    last;
-		}
-		sleep(1);
-	    }
+	    utime (0, 0, $filename); # cfs unlock request
+	    sleep(1);
 	}
 
 	# fixed command timeout: cfs locks have a timeout of 120
