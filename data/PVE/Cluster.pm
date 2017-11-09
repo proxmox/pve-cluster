@@ -860,6 +860,8 @@ sub cfs_write_file {
 my $cfs_lock = sub {
     my ($lockid, $timeout, $code, @param) = @_;
 
+    my $prev_alarm = alarm(0); # suspend outer alarm early
+
     my $res;
     my $got_lock = 0;
 
@@ -895,8 +897,8 @@ my $cfs_lock = sub {
 
 	# fixed command timeout: cfs locks have a timeout of 120
 	# using 60 gives us another 60 seconds to abort the task
-	alarm(60);
 	local $SIG{ALRM} = sub { die "got lock timeout - aborting command\n"; };
+	alarm(60);
 
 	cfs_update(); # make sure we read latest versions inside code()
 
@@ -907,11 +909,11 @@ my $cfs_lock = sub {
 
     my $err = $@;
 
-    alarm(0);
-
     $err = "no quorum!\n" if !$got_lock && !check_cfs_quorum(1);
 
     rmdir $filename if $got_lock; # if we held the lock always unlock again
+
+    alarm($prev_alarm);
 
     if ($err) {
         $@ = "error with cfs lock '$lockid': $err";
