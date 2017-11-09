@@ -868,17 +868,15 @@ my $cfs_lock = sub {
 
     my $filename = "$lockdir/$lockid";
 
-    my $msg = "can't aquire cfs lock '$lockid'";
-
     eval {
 
 	mkdir $lockdir;
 
 	if (! -d $lockdir) {
-	    die "$msg: pve cluster filesystem not online.\n";
+	    die "pve cluster filesystem not online.\n";
 	}
 
-	my $timeout_err = sub { die "$msg: got lock request timeout\n"; };
+	my $timeout_err = sub { die "got lock request timeout\n"; };
 	local $SIG{ALRM} = $timeout_err;
 
 	while (1) {
@@ -911,12 +909,12 @@ my $cfs_lock = sub {
 
     alarm(0);
 
-    $err = "$msg: no quorum!\n" if !$got_lock && !check_cfs_quorum(1);
+    $err = "no quorum!\n" if !$got_lock && !check_cfs_quorum(1);
 
     rmdir $filename if $got_lock; # if we held the lock always unlock again
 
     if ($err) {
-        $@ = $err;
+        $@ = "error with cfs lock '$lockid': $err";
         return undef;
     }
 
