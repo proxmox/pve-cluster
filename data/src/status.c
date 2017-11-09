@@ -1075,10 +1075,13 @@ void
 cfs_rrd_dump(GString *str)
 {
 	time_t ctime;
-	time(&ctime);
 
+	g_mutex_lock (&mutex);
+
+	time(&ctime);
 	if (rrd_dump_buf && (ctime - rrd_dump_last) < 2) {
 		g_string_assign(str, rrd_dump_buf);
+		g_mutex_unlock (&mutex);
 		return;
 	}
 
@@ -1107,6 +1110,8 @@ cfs_rrd_dump(GString *str)
 	if (rrd_dump_buf)
 		g_free(rrd_dump_buf);
 	rrd_dump_buf = g_strdup(str->str);
+
+	g_mutex_unlock (&mutex);
 }
 
 static gboolean
