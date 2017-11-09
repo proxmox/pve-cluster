@@ -884,11 +884,11 @@ my $cfs_lock = sub {
 	while (1) {
 	    alarm ($timeout);
 	    $got_lock = mkdir($filename);
-	    $timeout = alarm(0);
+	    $timeout = alarm(0) - 1; # we'll sleep for 1s, see down below
 
 	    last if $got_lock;
 
-	    $timeout_err->() if $timeout == 0;
+	    $timeout_err->() if $timeout <= 0;
 
 	    print STDERR "trying to aquire cfs lock '$lockid' ...";
 	    utime (0, 0, $filename); # cfs unlock request
