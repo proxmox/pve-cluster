@@ -890,7 +890,7 @@ my $cfs_lock = sub {
 
 	    $timeout_err->() if $timeout <= 0;
 
-	    print STDERR "trying to aquire cfs lock '$lockid' ...";
+	    print STDERR "trying to aquire cfs lock '$lockid' ...\n";
 	    utime (0, 0, $filename); # cfs unlock request
 	    sleep(1);
 	}
