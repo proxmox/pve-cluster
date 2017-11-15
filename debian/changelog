@@ -1,3 +1,9 @@
+pve-cluster (4.0-54) stable; urgency=medium
+
+  * fix #1559: pmxcfs: add missing lock when dumping .rrd
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 15 Nov 2017 10:35:33 +0100
+
 pve-cluster (4.0-53) stable; urgency=medium
 
   * fix #1504: abort in pmxcfs when opening a status file concurrently from
