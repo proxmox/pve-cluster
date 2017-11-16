@@ -2,10 +2,7 @@ package PVE::CLI::pvecm;
 
 use strict;
 use warnings;
-use Getopt::Long;
-use IO::File;
-use IO::Socket::IP;
-use POSIX;
+
 use Net::IP;
 use File::Path;
 use File::Basename;
