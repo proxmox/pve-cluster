@@ -3,7 +3,6 @@ package PVE::CLI::pvecm;
 use strict;
 use warnings;
 use Getopt::Long;
-use Socket;
 use IO::File;
 use IO::Socket::IP;
 use POSIX;
@@ -852,7 +851,7 @@ __PACKAGE__->register_method ({
 	    if (defined($network)) {
 		$ip = PVE::Cluster::get_local_migration_ip($network)
 		    or die "failed to get migration IP address to listen on\n";
-		$family = Net::IP::ip_is_ipv6($ip) ? AF_INET6 : AF_INET;
+		$family = PVE::Tools::get_host_address_family($ip);
 	    } else {
 		my $nodename = PVE::INotify::nodename();
 		($ip, $family) = PVE::Network::get_ip_from_hostname($nodename, 0);
