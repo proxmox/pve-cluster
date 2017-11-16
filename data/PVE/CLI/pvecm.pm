@@ -86,7 +86,6 @@ __PACKAGE__->register_method ({
 	# test EUID
 	$> == 0 || die "Error: Authorization key must be generated as root user.\n";
 	my $dirname = dirname($filename);
-	my $basename = basename($filename);
 
 	die "key file '$filename' already exists\n" if -e $filename;
 
