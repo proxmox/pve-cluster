@@ -1,0 +1,1 @@
+rm_conffile /etc/default/pve-cluster 5.0-15 pve-cluster

@@ -16,8 +16,7 @@ Before=shutdown.target
 Conflicts=shutdown.target
 
 [Service]
-EnvironmentFile=-/etc/default/pve-cluster
-ExecStart=/usr/bin/pmxcfs $DAEMON_OPTS
+ExecStart=/usr/bin/pmxcfs
 ExecStartPost=-/usr/bin/pvecm updatecerts --silent
 KillMode=mixed
 TimeoutStopSec=10
