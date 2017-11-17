@@ -28,7 +28,6 @@ ${DEB}:
 	cp -a debian build/debian
 	sed -e "s|@PERLAPI@|perlapi-$(PERL_APIVER)|g" debian/control.in > build/debian/control
 	echo "git clone git://git.proxmox.com/git/pve-cluster.git\\ngit checkout ${GITVERSION}" > build/debian/SOURCE
-	cd build; ./autogen.sh
 	cd build; dpkg-buildpackage -rfakeroot -b -us -uc
 	lintian ${DEB}
 

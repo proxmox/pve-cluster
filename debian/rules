@@ -10,16 +10,10 @@ export DH_OPTIONS
 BUILDROOT := $(shell pwd)
 
 %:
-	dh $@ --with=systemd
+	dh $@ --with=systemd --with=autoreconf
 
 override_dh_strip:
 	dh_strip --dbg-package=pve-cluster-dbg
-
-override_dh_auto_configure:
-
-	./autogen.sh
-
-	./configure --prefix=/usr
 
 override_dh_systemd_start:
 	dh_systemd_start --restart-after-upgrade
