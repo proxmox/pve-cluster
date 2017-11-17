@@ -8,19 +8,9 @@
 	dh $@ --with=systemd --with=autoreconf
 
 override_dh_strip:
-	dh_strip --dbg-package=pve-cluster-dbg
+	dh_strip --dbgsym-migration='pve-cluster-dbg (<< 5.0-16)'
 
 override_dh_systemd_start:
 	dh_systemd_start --restart-after-upgrade
-
-override_dh_auto_install:
-
-	make -j1 install DESTDIR=../debian/pve-cluster
-
-override_dh_install:
-
-	dh_install
-
-	install -m 0644 -D debian/sysctl.conf debian/pve-cluster/etc/sysctl.d/pve.conf
 
 override_dh_installinit:

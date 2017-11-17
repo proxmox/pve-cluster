@@ -6,7 +6,7 @@ ARCH:=$(shell dpkg-architecture -qDEB_BUILD_ARCH)
 GITVERSION:=$(shell cat .git/refs/heads/master)
 
 DEB=${PACKAGE}_${PKGVER}-${PKGREL}_${ARCH}.deb
-DBG_DEB=${PACKAGE}-dbg_${PKGVER}-${PKGREL}_${ARCH}.deb
+DBG_DEB=${PACKAGE}-dbgsym_${PKGVER}-${PKGREL}_${ARCH}.deb
 
 PERL_APIVER := `perl -MConfig -e 'print $$Config{debian_abi}//$$Config{version};'`
 
