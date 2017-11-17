@@ -1646,6 +1646,7 @@ sub ssh_info_to_command_base {
     my ($info, @extra_options) = @_;
     return [
 	'/usr/bin/ssh',
+	'-e', 'none',
 	'-o', 'BatchMode=yes',
 	'-o', 'HostKeyAlias='.$info->{name},
 	@extra_options
