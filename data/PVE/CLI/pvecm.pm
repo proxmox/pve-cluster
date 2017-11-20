@@ -768,7 +768,6 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	PVE::Cluster::setup_sshd_config(0);
 	PVE::Cluster::setup_rootsshconfig();
 
 	PVE::Cluster::gen_pve_vzdump_symlink();
