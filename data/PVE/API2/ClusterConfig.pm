@@ -136,7 +136,17 @@ __PACKAGE__->register_method ({
 	    },
 	},
     },
-    returns => { type => 'null' },
+    returns => {
+	type => "object",
+	properties => {
+	    corosync_authkey => {
+		type => 'string',
+	    },
+	    corosync_conf => {
+		type => 'string',
+	    }
+	},
+    },
     code => sub {
 	my ($param) = @_;
 
@@ -224,7 +234,15 @@ __PACKAGE__->register_method ({
 	$config_change_lock->($code);
 	die $@ if $@;
 
-	return undef;
+	my $clusterconf = "/etc/pve/corosync.conf";
+	my $authfile = "/etc/corosync/authkey";
+
+	my $res = {
+	    corosync_authkey => PVE::Tools::file_get_contents($authfile),
+	    corosync_conf => PVE::Tools::file_get_contents($clusterconf),
+	};
+
+	return $res;
     }});
 
 
