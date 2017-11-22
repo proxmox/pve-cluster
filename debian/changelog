@@ -1,3 +1,27 @@
+pve-cluster (5.0-16) unstable; urgency=medium
+
+  * pvecm: cleanup modules
+
+  * buildsys: autogen debug package
+
+  * cleanup build and packaging system
+
+  * remove unused sysv init.d service file
+
+  * pve-cluster service: remove $DAEMON_OPTS and environment file
+
+  * fix #1566: do not setup ssh config in updatecerts call
+
+  * ssh helper: disable escape keys
+
+  * fix #1559: pmxcfs: add missing lock when dumping .rrd
+
+  * cfs_lock: address race where alarm triggers with lock acquired
+
+  * cfs_lock: always unlock after code was executed
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 22 Nov 2017 08:20:25 +0100
+
 pve-cluster (5.0-15) unstable; urgency=medium
 
   * cluster: improve error handling when reading files
