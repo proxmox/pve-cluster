@@ -58,6 +58,24 @@ sub backup_database {
     }
 }
 
+# lock method to ensure local and cluster wide atomicity
+# if we're a single node cluster just lock locally, we have no other cluster
+# node which we could contend with, else also acquire a cluster wide lock
+my $config_change_lock = sub {
+    my ($code) = @_;
+
+    my $local_lock_fn = "/var/lock/pvecm.lock";
+    PVE::Tools::lock_file($local_lock_fn, 10, sub {
+	PVE::Cluster::cfs_update(1);
+	my $members = PVE::Cluster::get_members();
+	if (scalar(keys %$members) > 1) {
+	    return PVE::Cluster::cfs_lock_file('corosync.conf', 10, $code);
+	} else {
+	    return $code->();
+	}
+    });
+};
+
 __PACKAGE__->register_method ({
     name => 'keygen',
     path => 'keygen',
@@ -386,7 +404,7 @@ __PACKAGE__->register_method ({
 	    PVE::Corosync::update_nodelist($conf, $nodelist);
 	};
 
-	PVE::Cluster::cfs_lock_file('corosync.conf', 10, $code);
+	$config_change_lock->($code);
 	die $@ if $@;
 
 	exit (0);
@@ -447,7 +465,7 @@ __PACKAGE__->register_method ({
 	    run_command(['corosync-cfgtool','-k', $nodeid]) if defined($nodeid);
 	};
 
-	PVE::Cluster::cfs_lock_file('corosync.conf', 10, $code);
+	$config_change_lock->($code);
 	die $@ if $@;
 
 	return undef;
