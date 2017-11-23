@@ -1469,29 +1469,9 @@ sub update_cert_cache {
 	    }
 	};
 
-	my $cert_path = "/etc/pve/nodes/$node/pve-ssl.pem";
-	my $custom_cert_path = "/etc/pve/nodes/$node/pveproxy-ssl.pem";
-
-	$cert_path = $custom_cert_path if -f $custom_cert_path;
-
-	my $cert;
-	eval {
-	    my $bio = Net::SSLeay::BIO_new_file($cert_path, 'r');
-	    $cert = Net::SSLeay::PEM_read_bio_X509($bio);
-	    Net::SSLeay::BIO_free($bio);
-	};
-	my $err = $@;
-	if ($err || !defined($cert)) {
-	    &$clear_old() if $clear;
-	    next;
-	}
-
-	my $fp;
-	eval {
-	    $fp = Net::SSLeay::X509_get_fingerprint($cert, 'sha256');
-	};
-	$err = $@;
-	if ($err || !defined($fp) || $fp eq '') {
+	my $fp = eval { get_node_fingerprint($node) };
+	if (my $err = $@) {
+	    warn "$err\n";
 	    &$clear_old() if $clear;
 	    next;
 	}
@@ -1513,6 +1493,39 @@ sub initialize_cert_cache {
     update_cert_cache($node)
 	if defined($node) && !defined($cert_cache_nodes->{$node});
 }
+
+sub read_ssl_cert_fingerprint {
+    my ($cert_path) = @_;
+
+    my $cert;
+    eval {
+	my $bio = Net::SSLeay::BIO_new_file($cert_path, 'r');
+	$cert = Net::SSLeay::PEM_read_bio_X509($bio);
+	Net::SSLeay::BIO_free($bio);
+    };
+    die "unable to read certificate '$cert_path' - $@\n" if  $@;
+    die "unable to read certificate '$cert_path' - got empty value\n"
+	if !defined($cert);
+
+    my $fp = eval { Net::SSLeay::X509_get_fingerprint($cert, 'sha256') };
+    die "unable to get fingerprint for '$cert_path' - $@\n" if $@;
+    die "unable to get fingerprint for '$cert_path' - got empty value\n"
+	if !defined($fp) || $fp eq '';
+
+    return $fp;
+}
+
+sub get_node_fingerprint {
+    my ($node) = @_;
+
+    my $cert_path = "/etc/pve/nodes/$node/pve-ssl.pem";
+    my $custom_cert_path = "/etc/pve/nodes/$node/pveproxy-ssl.pem";
+
+    $cert_path = $custom_cert_path if -f $custom_cert_path;
+
+    return read_ssl_cert_fingerprint($cert_path);
+}
+
 
 sub check_cert_fingerprint {
     my ($cert) = @_;
