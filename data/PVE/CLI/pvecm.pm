@@ -412,6 +412,9 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
+	my $local_node = PVE::INotify::nodename();
+	die "Cannot delete myself from cluster!\n" if $param->{node} eq $local_node;
+
 	PVE::Cluster::check_cfs_quorum();
 
 	my $code = sub {
@@ -436,9 +439,6 @@ __PACKAGE__->register_method ({
 
 	    die "Node/IP: $param->{node} is not a known host of the cluster.\n"
 		if !defined($node);
-
-	    my $our_nodename = PVE::INotify::nodename();
-	    die "Cannot delete myself from cluster!\n" if $node eq $our_nodename;
 
 	    delete $nodelist->{$node};
 
