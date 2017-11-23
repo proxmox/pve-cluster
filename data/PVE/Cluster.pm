@@ -1115,7 +1115,7 @@ sub ssh_merge_keys {
 }
 
 sub setup_sshd_config {
-    my ($start_sshd) = @_;
+    my () = @_;
 
     my $conf = PVE::Tools::file_get_contents($sshd_config_fn);
 
@@ -1128,8 +1128,7 @@ sub setup_sshd_config {
 
     PVE::Tools::file_set_contents($sshd_config_fn, $conf);
 
-    my $cmd = $start_sshd ? 'reload-or-restart' : 'reload-or-try-restart';
-    PVE::Tools::run_command(['systemctl', $cmd, 'sshd']);
+    PVE::Tools::run_command(['systemctl', 'reload-or-restart', 'sshd']);
 }
 
 sub setup_rootsshconfig {
