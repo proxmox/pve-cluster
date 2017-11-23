@@ -37,6 +37,11 @@ my $basedir = "/etc/pve";
 my $authdir = "$basedir/priv";
 my $lockdir = "/etc/pve/priv/lock";
 
+# cfs and corosync files
+my $localclusterdir = "/etc/corosync";
+my $authfile = "$localclusterdir/authkey";
+my $clusterconf = "$basedir/corosync.conf";
+
 my $authprivkeyfn = "$authdir/authkey.key";
 my $authpubkeyfn = "$basedir/authkey.pub";
 my $pveca_key_fn = "$authdir/pve-root-ca.key";
@@ -1682,6 +1687,66 @@ sub ssh_info_to_command {
     my $cmd = ssh_info_to_command_base($info, @extra_options);
     push @$cmd, "root\@$info->{ip}";
     return $cmd;
+}
+
+sub assert_joinable {
+    my ($ring0_addr, $ring1_addr, $force) = @_;
+
+    my ($errors, $warnings) = ('', '');
+    my $error = sub {
+	my ($msg, $suppress) = @_;
+
+	if ($suppress) {
+	    $warnings .= "* $msg\n";
+	} else {
+	    $errors .= "* $msg\n";
+	}
+    };
+
+    if (!$force) {
+
+	if (-f $authfile) {
+	    $error->("authentication key '$authfile' already exists", $force);
+	}
+
+	if (-f $clusterconf)  {
+	    $error->("cluster config '$clusterconf' already exists", $force);
+	}
+
+	my $vmlist = get_vmlist();
+	if ($vmlist && $vmlist->{ids} && scalar(keys %{$vmlist->{ids}})) {
+	    $error->("this host already contains virtual guests", $force);
+	}
+
+	if (system("corosync-quorumtool -l >/dev/null 2>&1") == 0) {
+	    $error->("corosync is already running, is this node already in a cluster?!", $force);
+	}
+    }
+
+    # check if corosync ring IPs are configured on the current nodes interfaces
+    my $check_ip = sub {
+	my $ip = shift // return;
+	if (!PVE::JSONSchema::pve_verify_ip($ip, 1)) {
+	    my $host = $ip;
+	    eval { $ip = PVE::Network::get_ip_from_hostname($host); };
+	    if ($@) {
+		$error->("cannot use '$host': $@\n", 1) ;
+		return;
+	    }
+	}
+
+	my $cidr = (Net::IP::ip_is_ipv6($ip)) ? "$ip/128" : "$ip/32";
+	my $configured_ips = PVE::Network::get_local_ip_from_cidr($cidr);
+
+	$error->("cannot use IP '$ip', it must be configured exactly once on local node!\n")
+	    if (scalar(@$configured_ips) != 1);
+    };
+
+    $check_ip->($ring0_addr);
+    $check_ip->($ring1_addr);
+
+    warn "warning, ignore the following errors:\n$warnings" if $warnings;
+    die "detected the following error(s):\n$errors" if $errors;
 }
 
 1;

@@ -300,66 +300,9 @@ __PACKAGE__->register_method ({
 	PVE::Cluster::setup_rootsshconfig();
 	PVE::Cluster::setup_ssh_keys();
 
+	PVE::Cluster::assert_joinable($param->{ring0_addr}, $param->{ring1_addr}, $param->{force});
+
 	my $host = $param->{hostname};
-
-	my ($errors, $warnings) = ('', '');
-
-	my $error = sub {
-	    my ($msg, $suppress) = @_;
-
-	    if ($suppress) {
-		$warnings .= "* $msg\n";
-	    } else {
-		$errors .= "* $msg\n";
-	    }
-	};
-
-	if (!$param->{force}) {
-
-	    if (-f $authfile) {
-		&$error("authentication key '$authfile' already exists", $param->{force});
-	    }
-
-	    if (-f $clusterconf)  {
-		&$error("cluster config '$clusterconf' already exists", $param->{force});
-	    }
-
-	    my $vmlist = PVE::Cluster::get_vmlist();
-	    if ($vmlist && $vmlist->{ids} && scalar(keys %{$vmlist->{ids}})) {
-		&$error("this host already contains virtual guests", $param->{force});
-	    }
-
-	    if (system("corosync-quorumtool -l >/dev/null 2>&1") == 0) {
-		&$error("corosync is already running, is this node already in a cluster?!", $param->{force});
-	    }
-	}
-
-	# check if corosync ring IPs are configured on the current nodes interfaces
-	my $check_ip = sub {
-	    my $ip = shift;
-	    if (defined($ip)) {
-		if (!PVE::JSONSchema::pve_verify_ip($ip, 1)) {
-		    my $host = $ip;
-		    eval { $ip = PVE::Network::get_ip_from_hostname($host); };
-		    if ($@) {
-			&$error("cannot use '$host': $@\n") ;
-			return;
-		    }
-		}
-
-		my $cidr = (Net::IP::ip_is_ipv6($ip)) ? "$ip/128" : "$ip/32";
-		my $configured_ips = PVE::Network::get_local_ip_from_cidr($cidr);
-
-		&$error("cannot use IP '$ip', it must be configured exactly once on local node!\n")
-		    if (scalar(@$configured_ips) != 1);
-	    }
-	};
-
-	&$check_ip($param->{ring0_addr});
-	&$check_ip($param->{ring1_addr});
-
-	warn "warning, ignore the following errors:\n$warnings" if $warnings;
-	die "detected the following error(s):\n$errors" if $errors;
 
 	# make sure known_hosts is on local filesystem
 	PVE::Cluster::ssh_unmerge_known_hosts();
@@ -372,11 +315,8 @@ __PACKAGE__->register_method ({
 		'pvecm', 'addnode', $nodename, '--force', 1];
 
 	push @$cmd, '--nodeid', $param->{nodeid} if $param->{nodeid};
-
 	push @$cmd, '--votes', $param->{votes} if defined($param->{votes});
-
 	push @$cmd, '--ring0_addr', $param->{ring0_addr} if defined($param->{ring0_addr});
-
 	push @$cmd, '--ring1_addr', $param->{ring1_addr} if defined($param->{ring1_addr});
 
 	if (system (@$cmd) != 0) {
