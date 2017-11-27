@@ -9,6 +9,7 @@ use PVE::RESTHandler;
 use PVE::RPCEnvironment;
 use PVE::JSONSchema qw(get_standard_option);
 use PVE::Cluster;
+use PVE::APIClient::LWP;
 use PVE::Corosync;
 
 use base qw(PVE::RESTHandler);
@@ -39,7 +40,8 @@ __PACKAGE__->register_method({
 	my $result = [
 	    { name => 'nodes' },
 	    { name => 'totem' },
-	    ];
+	    { name => 'join' },
+	];
 
 	return $result;
     }});
@@ -93,7 +95,6 @@ my $config_change_lock = sub {
 	}
     });
 };
-
 
 __PACKAGE__->register_method ({
     name => 'addnode',
@@ -304,6 +305,71 @@ __PACKAGE__->register_method ({
 
 	return undef;
     }});
+
+__PACKAGE__->register_method ({
+    name => 'join',
+    path => 'join',
+    method => 'POST',
+    protected => 1,
+    description => "Joins this node into an existing cluster.",
+    parameters => {
+	additionalProperties => 0,
+	properties => {
+	    hostname => {
+		type => 'string',
+		description => "Hostname (or IP) of an existing cluster member."
+	    },
+	    nodeid => {
+		type => 'integer',
+		description => "Node id for this node.",
+		minimum => 1,
+		optional => 1,
+	    },
+	    votes => {
+		type => 'integer',
+		description => "Number of votes for this node",
+		minimum => 0,
+		optional => 1,
+	    },
+	    force => {
+		type => 'boolean',
+		description => "Do not throw error if node already exists.",
+		optional => 1,
+	    },
+	    ring0_addr => {
+		type => 'string', format => 'address',
+		description => "Hostname (or IP) of the corosync ring0 address of this node.".
+		    " Defaults to nodes hostname.",
+		optional => 1,
+	    },
+	    ring1_addr => {
+		type => 'string', format => 'address',
+		description => "Hostname (or IP) of the corosync ring1 address, this".
+		    " needs an valid configured ring 1 interface in the cluster.",
+		optional => 1,
+	    },
+	    fingerprint => get_standard_option('fingerprint-sha256'),
+	    password => {
+		description => "Superuser (root) password of peer node.",
+		type => 'string',
+		maxLength => 128,
+	    },
+	},
+    },
+    returns => { type => 'string' },
+    code => sub {
+	my ($param) = @_;
+
+	my $rpcenv = PVE::RPCEnvironment::get();
+	my $authuser = $rpcenv->get_user();
+
+	my $worker = sub {
+	    PVE::Cluster::join($param);
+	};
+
+	return $rpcenv->fork_worker('clusterjoin', '',  $authuser, $worker);
+    }});
+
 
 __PACKAGE__->register_method({
     name => 'totem',

@@ -1775,6 +1775,64 @@ my $backup_cfs_database = sub {
     }
 };
 
+sub join {
+    my ($param) = @_;
+
+    my $nodename = PVE::INotify::nodename();
+
+    setup_sshd_config();
+    setup_rootsshconfig();
+    setup_ssh_keys();
+
+    # check if we can join with the given parameters and current node state
+    my ($ring0_addr, $ring1_addr) = $param->@{'ring0_addr', 'ring1_addr'};
+    assert_joinable($ring0_addr, $ring1_addr, $param->{force});
+
+    # make sure known_hosts is on local filesystem
+    ssh_unmerge_known_hosts();
+
+    my $host = $param->{hostname};
+
+    my $conn_args = {
+	username => 'root@pam',
+	password => $param->{password},
+	cookie_name => 'PVEAuthCookie',
+	protocol => 'https',
+	host => $host,
+	port => 8006,
+    };
+
+    if (my $fp = $param->{fingerprint}) {
+	$conn_args->{cached_fingerprints} = { uc($fp) => 1 };
+    } else {
+	# API schema ensures that we can only get here from CLI handler
+	$conn_args->{manual_verification} = 1;
+    }
+
+    print "Etablishing API connection with host '$host'\n";
+
+    my $conn = PVE::APIClient::LWP->new(%$conn_args);
+    $conn->login();
+
+    # login raises an exception on failure, so if we get here we're good
+    print "Login succeeded.\n";
+
+    my $args = {};
+    $args->{force} = $param->{force} if defined($param->{force});
+    $args->{nodeid} = $param->{nodeid} if $param->{nodeid};
+    $args->{votes} = $param->{votes} if defined($param->{votes});
+    $args->{ring0_addr} = $ring0_addr if defined($ring0_addr);
+    $args->{ring1_addr} = $ring1_addr if defined($ring1_addr);
+
+    print "Request addition of this node\n";
+    my $res = $conn->post("/cluster/config/nodes/$nodename", $args);
+
+    print "Join request OK, finishing setup locally\n";
+
+    # added successfuly - now prepare local node
+    finish_join($nodename, $res->{corosync_conf}, $res->{corosync_authkey});
+}
+
 sub finish_join {
     my ($nodename, $corosync_conf, $corosync_authkey) = @_;
 

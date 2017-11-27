@@ -21,6 +21,7 @@ Build-Depends: debhelper (>= 7),
                libdigest-hmac-perl,
                dh-systemd,
                pve-doc-generator,
+               libpve-apiclient-perl,
                libuuid-perl
 Standards-Version: 3.7.3
 
@@ -35,7 +36,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, @PERLAPI@,
          fuse,
          corosync (>= 2.3.4-1),
          libqb0 (>= 0.17.1-1),
-         libpve-common-perl,
+         libpve-common-perl (>= 5.0-27),
          libglib2.0-0 (>= 2.42.1-1),
          rsyslog,
          openssl,
@@ -47,6 +48,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, @PERLAPI@,
          faketime,
          libcrypt-ssleay-perl,
          libuuid-perl,
+         libpve-apiclient-perl,
          lsb-base
 Breaks: pve-ha-manager (<<2.0-4)
 Description: Cluster Infrastructure for Proxmox Virtual Environment
