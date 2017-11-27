@@ -10,7 +10,9 @@ use PVE::Tools qw(run_command);
 use PVE::Cluster;
 use PVE::INotify;
 use PVE::JSONSchema;
+use PVE::RPCEnvironment;
 use PVE::CLIHandler;
+use PVE::PTY;
 use PVE::API2::ClusterConfig;
 use PVE::Corosync;
 
@@ -23,6 +25,10 @@ my $clusterconf = "$basedir/corosync.conf";
 my $libdir = "/var/lib/pve-cluster";
 my $authfile = "/etc/corosync/authkey";
 
+
+sub setup_environment {
+    PVE::RPCEnvironment->setup_default_cli_env();
+}
 
 __PACKAGE__->register_method ({
     name => 'keygen',
@@ -251,6 +257,14 @@ __PACKAGE__->register_method ({
 		    " needs an valid configured ring 1 interface in the cluster.",
 		optional => 1,
 	    },
+	    fingerprint => PVE::JSONSchema::get_standard_option('fingerprint-sha256', {
+		optional => 1,
+	    }),
+	    'use_ssh' => {
+		type => 'boolean',
+		description => "Always use SSH to join, even if peer may do it over API.",
+		optional => 1,
+	    },
 	},
     },
     returns => { type => 'null' },
@@ -260,13 +274,34 @@ __PACKAGE__->register_method ({
 
 	my $nodename = PVE::INotify::nodename();
 
-	PVE::Cluster::setup_sshd_config();
-	PVE::Cluster::setup_rootsshconfig();
-	PVE::Cluster::setup_ssh_keys();
+	my $host = $param->{hostname};
 
 	PVE::Cluster::assert_joinable($param->{ring0_addr}, $param->{ring1_addr}, $param->{force});
 
-	my $host = $param->{hostname};
+	if (!$param->{use_ssh}) {
+	    print "Please enter superuser (root) password for '$host':\n";
+	    my $password = PVE::PTY::read_password("Password for root\@$host: ");
+
+	    delete $param->{use_ssh};
+	    $param->{password} = $password;
+
+	    eval { PVE::Cluster::join($param) };
+
+	    if (my $err = $@) {
+		if (ref($err) eq 'PVE::APIClient::Exception' && $err->{code} == 501) {
+		    $err = "Remote side is not able to use API for Cluster join!\n" .
+		           "Pass the 'use_ssh' switch or update the remote side.\n";
+		}
+		die $err;
+	    }
+	    return; # all OK, the API join endpoint successfully set us up
+	}
+
+	# allow fallback to old ssh only join if wished or needed
+
+	PVE::Cluster::setup_sshd_config();
+	PVE::Cluster::setup_rootsshconfig();
+	PVE::Cluster::setup_ssh_keys();
 
 	# make sure known_hosts is on local filesystem
 	PVE::Cluster::ssh_unmerge_known_hosts();
