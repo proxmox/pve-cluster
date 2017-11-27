@@ -1497,18 +1497,18 @@ sub initialize_cert_cache {
 sub read_ssl_cert_fingerprint {
     my ($cert_path) = @_;
 
-    my $cert;
-    eval {
-	my $bio = Net::SSLeay::BIO_new_file($cert_path, 'r');
-	$cert = Net::SSLeay::PEM_read_bio_X509($bio);
-	Net::SSLeay::BIO_free($bio);
-    };
-    die "unable to read certificate '$cert_path' - $@\n" if  $@;
-    die "unable to read certificate '$cert_path' - got empty value\n"
-	if !defined($cert);
+    my $bio = Net::SSLeay::BIO_new_file($cert_path, 'r')
+	or die "unable to read '$cert_path' - $!\n";
 
-    my $fp = eval { Net::SSLeay::X509_get_fingerprint($cert, 'sha256') };
-    die "unable to get fingerprint for '$cert_path' - $@\n" if $@;
+    my $cert = Net::SSLeay::PEM_read_bio_X509($bio);
+    if (!$cert) {
+	Net::SSLeay::BIO_free($bio);
+	die "unable to read certificate from '$cert_path'\n";
+    }
+
+    my $fp = Net::SSLeay::X509_get_fingerprint($cert, 'sha256');
+    Net::SSLeay::X509_free($cert);
+
     die "unable to get fingerprint for '$cert_path' - got empty value\n"
 	if !defined($fp) || $fp eq '';
 
@@ -1534,11 +1534,8 @@ sub check_cert_fingerprint {
     update_cert_cache(undef, 1) if time() - $cert_cache_timestamp >= 60*30;
 
     # get fingerprint of server certificate
-    my $fp;
-    eval {
-	$fp = Net::SSLeay::X509_get_fingerprint($cert, 'sha256');
-    };
-    return 0 if $@ || !defined($fp) || $fp eq ''; # error
+    my $fp = Net::SSLeay::X509_get_fingerprint($cert, 'sha256');
+    return 0 if !defined($fp) || $fp eq ''; # error
 
     my $check = sub {
 	for my $expected (keys %$cert_cache_fingerprints) {
