@@ -1,3 +1,17 @@
+pve-cluster (5.0-17) stable; urgency=medium
+
+  * handle Net::SSLeay errors correctly
+
+  * factor out reading a nodes ssl cert fingerprint
+
+  * setup_sshd_config: remove useless start_sshd parameter
+
+  * pvecm: add/delete: local lock & avoid problems on first node addition
+
+  * pvecm: check early if the deletion cannot work
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 28 Nov 2017 16:41:50 +0100
+
 pve-cluster (5.0-16) unstable; urgency=medium
 
   * pvecm: cleanup modules
