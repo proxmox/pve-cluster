@@ -144,9 +144,8 @@ __PACKAGE__->register_method ({
 
 	PVE::Cluster::ssh_merge_known_hosts($nodename, $local_ip_address, 1);
 
-	run_command('systemctl restart pve-cluster'); # restart
-
-	run_command('systemctl restart corosync'); # restart
+	print "Start corosync and restart cluster filesystem\n";
+	run_command(['systemctl', 'restart', 'corosync', 'pve-cluster']);
 
 	return undef;
 }});
