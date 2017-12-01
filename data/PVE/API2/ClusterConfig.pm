@@ -391,6 +391,78 @@ __PACKAGE__->register_method ({
     }});
 
 __PACKAGE__->register_method ({
+    name => 'join_info',
+    path => 'join',
+    method => 'GET',
+    description => "Get information needed to join this cluster over the connected node.",
+    parameters => {
+	additionalProperties => 0,
+	properties => {
+	    node => get_standard_option('pve-node', {
+		description => "The node for which the joinee gets the nodeinfo. ",
+		default => "current connected node",
+		optional => 1,
+	    }),
+	},
+    },
+    returns => {
+	type => 'object',
+	additionalProperties => 0,
+	properties => {
+	    nodelist => {
+		type => 'array',
+		items => {
+		    type => "object",
+		    additionalProperties => 1,
+		    properties => {
+			name => get_standard_option('pve-node'),
+			nodeid => get_standard_option('corosync-nodeid'),
+			ring0_addr => get_standard_option('corosync-ring0-addr'),
+			quorum_votes => { type => 'integer', minimum => 0 },
+			pve_addr => { type => 'string', format => 'ip' },
+			pve_fp => get_standard_option('fingerprint-sha256'),
+		    },
+		},
+	    },
+	    preferred_node => get_standard_option('pve-node'),
+	    totem => { type => 'object' },
+	    config_digest => { type => 'string' },
+	},
+    },
+    code => sub {
+	my ($param) = @_;
+
+	my $nodename = $param->{node} // PVE::INotify::nodename();
+
+	PVE::Cluster::cfs_update(1);
+	my $conf = PVE::Cluster::cfs_read_file('corosync.conf');
+
+	die "node is not in a cluster, no join info available!\n"
+	    if !($conf && $conf->{main});
+
+	my $totem_cfg = $conf->{main}->{totem} // {};
+	my $nodelist = $conf->{main}->{nodelist}->{node} // {};
+	my $corosync_config_digest = $conf->{digest};
+
+	die "unknown node '$nodename'\n" if ! $nodelist->{$nodename};
+
+	foreach my $name (keys %$nodelist) {
+	    my $node = $nodelist->{$name};
+	    $node->{pve_fp} = PVE::Cluster::get_node_fingerprint($name);
+	    $node->{pve_addr} = scalar(PVE::Cluster::remote_node_ip($name));
+	}
+
+	my $res = {
+	    nodelist => [ values %$nodelist ],
+	    preferred_node => $nodename,
+	    totem => $totem_cfg,
+	    config_digest => $corosync_config_digest,
+	};
+
+	return $res;
+    }});
+
+__PACKAGE__->register_method ({
     name => 'join',
     path => 'join',
     method => 'POST',
