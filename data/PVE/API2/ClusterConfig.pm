@@ -14,6 +14,9 @@ use PVE::Corosync;
 
 use base qw(PVE::RESTHandler);
 
+my $clusterconf = "/etc/pve/corosync.conf";
+my $authfile = "/etc/corosync/authkey";
+
 __PACKAGE__->register_method({
     name => 'index',
     path => '',
@@ -45,6 +48,92 @@ __PACKAGE__->register_method({
 
 	return $result;
     }});
+
+__PACKAGE__->register_method ({
+    name => 'create',
+    path => '',
+    method => 'POST',
+    protected => 1,
+    description => "Generate new cluster configuration.",
+    parameters => {
+	additionalProperties => 0,
+	properties => {
+	    clustername => {
+		description => "The name of the cluster.",
+		type => 'string', format => 'pve-node',
+		maxLength => 15,
+	    },
+	    nodeid => {
+		type => 'integer',
+		description => "Node id for this node.",
+		minimum => 1,
+		optional => 1,
+	    },
+	    votes => {
+		type => 'integer',
+		description => "Number of votes for this node.",
+		minimum => 1,
+		optional => 1,
+	    },
+	    bindnet0_addr => {
+		type => 'string', format => 'ip',
+		description => "This specifies the network address the corosync ring 0".
+		    " executive should bind to and defaults to the local IP address of the node.",
+		optional => 1,
+	    },
+	    ring0_addr => {
+		type => 'string', format => 'address',
+		description => "Hostname (or IP) of the corosync ring0 address of this node.".
+		    " Defaults to the hostname of the node.",
+		optional => 1,
+	    },
+	    bindnet1_addr => {
+		type => 'string', format => 'ip',
+		description => "This specifies the network address the corosync ring 1".
+		    " executive should bind to and is optional.",
+		optional => 1,
+	    },
+	    ring1_addr => {
+		type => 'string', format => 'address',
+		description => "Hostname (or IP) of the corosync ring1 address, this".
+		    " needs an valid bindnet1_addr.",
+		optional => 1,
+	    },
+	},
+    },
+    returns => { type => 'null' },
+
+    code => sub {
+	my ($param) = @_;
+
+	-f $clusterconf && die "cluster config '$clusterconf' already exists\n";
+
+	PVE::Cluster::setup_sshd_config(1);
+	PVE::Cluster::setup_rootsshconfig();
+	PVE::Cluster::setup_ssh_keys();
+
+	PVE::Tools::run_command(['/usr/sbin/corosync-keygen', '-lk', $authfile])
+	    if !-f $authfile;
+	die "no authentication key available\n" if -f !$authfile;
+
+	my $nodename = PVE::INotify::nodename();
+
+	# get the corosync basis config for the new cluster
+	my $config = PVE::Corosync::create_conf($nodename, %$param);
+
+	print "Writing corosync config to /etc/pve/corosync.conf\n";
+	PVE::Corosync::atomic_write_conf($config);
+
+	my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
+	PVE::Cluster::ssh_merge_keys();
+	PVE::Cluster::gen_pve_node_files($nodename, $local_ip_address);
+	PVE::Cluster::ssh_merge_known_hosts($nodename, $local_ip_address, 1);
+
+	print "Restart corosync and cluster filesystem\n";
+	PVE::Tools::run_command('systemctl restart corosync pve-cluster');
+
+	return undef;
+}});
 
 __PACKAGE__->register_method({
     name => 'nodes',
@@ -234,9 +323,6 @@ __PACKAGE__->register_method ({
 
 	$config_change_lock->($code);
 	die $@ if $@;
-
-	my $clusterconf = "/etc/pve/corosync.conf";
-	my $authfile = "/etc/corosync/authkey";
 
 	my $res = {
 	    corosync_authkey => PVE::Tools::file_get_contents($authfile),
