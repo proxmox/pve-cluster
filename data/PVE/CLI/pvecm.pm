@@ -213,14 +213,6 @@ __PACKAGE__->register_method ({
 	    $interfaces .= "rrp_mode: passive\n"; # only passive is stable and tested
 
 	    $ring_addresses .= "\n    ring1_addr: $param->{ring1_addr}";
-
-	} elsif($param->{rrp_mode} && $param->{rrp_mode} ne 'none') {
-
-	    warn "rrp_mode '$param->{rrp_mode}' useless when using only one".
-		" ring, using 'none' instead";
-	    # corosync defaults to none if only one interface is configured
-	    $param->{rrp_mode} = undef;
-
 	}
 
 	# No, corosync cannot deduce this on its own
