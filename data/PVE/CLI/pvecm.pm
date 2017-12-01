@@ -3,7 +3,6 @@ package PVE::CLI::pvecm;
 use strict;
 use warnings;
 
-use Net::IP;
 use File::Path;
 use File::Basename;
 use PVE::Tools qw(run_command);
@@ -127,81 +126,17 @@ __PACKAGE__->register_method ({
 	PVE::Cluster::setup_ssh_keys();
 
 	-f $authfile || __PACKAGE__->keygen({filename => $authfile});
-
 	-f $authfile || die "no authentication key available\n";
-
-	my $clustername = $param->{clustername};
-
-	$param->{nodeid} = 1 if !$param->{nodeid};
-
-	$param->{votes} = 1 if !defined($param->{votes});
 
 	my $nodename = PVE::INotify::nodename();
 
+	# get the corosync basis config for the new cluster
+	my $config = PVE::Corosync::create_conf($nodename, %$param);
+
+	print "Writing corosync config to /etc/corosync/corosync.conf\n";
+	PVE::Corosync::atomic_write_conf($config);
+
 	my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
-
-	$param->{bindnet0_addr} = $local_ip_address
-	    if !defined($param->{bindnet0_addr});
-
-	$param->{ring0_addr} = $nodename if !defined($param->{ring0_addr});
-
-	die "Param bindnet1_addr and ring1_addr are dependend, use both or none!\n"
-	    if (defined($param->{bindnet1_addr}) != defined($param->{ring1_addr}));
-
-	my $bind_is_ipv6 = Net::IP::ip_is_ipv6($param->{bindnet0_addr});
-
-	# use string as here-doc format distracts more
-	my $interfaces = "interface {\n    ringnumber: 0\n" .
-	    "    bindnetaddr: $param->{bindnet0_addr}\n  }";
-
-	my $ring_addresses = "ring0_addr: $param->{ring0_addr}" ;
-
-	# allow use of multiple rings (rrp) at cluster creation time
-	if ($param->{bindnet1_addr}) {
-	    die "IPv6 and IPv4 cannot be mixed, use one or the other!\n"
-		if Net::IP::ip_is_ipv6($param->{bindnet1_addr}) != $bind_is_ipv6;
-
-	    $interfaces .= "\n  interface {\n    ringnumber: 1\n" .
-		"    bindnetaddr: $param->{bindnet1_addr}\n  }\n";
-
-	    $interfaces .= "rrp_mode: passive\n"; # only passive is stable and tested
-
-	    $ring_addresses .= "\n    ring1_addr: $param->{ring1_addr}";
-	}
-
-	# No, corosync cannot deduce this on its own
-	my $ipversion = $bind_is_ipv6 ? 'ipv6' : 'ipv4';
-
-	my $config = <<_EOD;
-totem {
-  version: 2
-  secauth: on
-  cluster_name: $clustername
-  config_version: 1
-  ip_version: $ipversion
-  $interfaces
-}
-
-nodelist {
-  node {
-    $ring_addresses
-    name: $nodename
-    nodeid: $param->{nodeid}
-    quorum_votes: $param->{votes}
-  }
-}
-
-quorum {
-  provider: corosync_votequorum
-}
-
-logging {
-  to_syslog: yes
-  debug: off
-}
-_EOD
-;
-	PVE::Tools::file_set_contents($clusterconf, $config);
 
 	PVE::Cluster::ssh_merge_keys();
 

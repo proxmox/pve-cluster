@@ -5,6 +5,7 @@ use warnings;
 
 use Digest::SHA;
 use Clone 'clone';
+use Net::IP qw(ip_is_ipv6);
 
 use PVE::Cluster;
 
@@ -179,6 +180,78 @@ sub atomic_write_conf {
 
     rename("/etc/pve/corosync.conf.new", "/etc/pve/corosync.conf")
 	|| die "activating corosync.conf.new failed - $!\n";
+}
+
+# for creating a new cluster with the current node
+# params are those from the API/CLI cluster create call
+sub create_conf {
+    my ($nodename, %param) = @_;
+
+    my $clustername = $param{clustername};
+    my $nodeid = $param{nodeid} || 1;
+    my $votes = $param{votes} || 1;
+
+    my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
+    my $ring0_addr = $param{ring0_addr} // $local_ip_address;
+    my $bindnet0_addr = $param{bindnet0_addr} // $local_ip_address;
+
+    my $use_ipv6 = ip_is_ipv6($ring0_addr);
+    die "ring 0 addresses must be from same IP family!\n"
+	if $use_ipv6 != ip_is_ipv6($bindnet0_addr);
+
+    my $conf = {
+	totem => {
+	    version => 2, # protocol version
+	    secauth => 'on',
+	    cluster_name => $clustername,
+	    config_version => 0,
+	    ip_version => $use_ipv6 ? 'ipv6' : 'ipv4',
+	    interface => {
+		0 => {
+		    bindnetaddr => $bindnet0_addr,
+		    ringnumber => 0,
+		},
+	    },
+	},
+	nodelist => {
+	    node => {
+		$nodename => {
+		    name => $nodename,
+		    nodeid => $nodeid,
+		    quorum_votes => $votes,
+		    ring0_addr => $ring0_addr,
+		},
+	    },
+	},
+	quorum => {
+	    provider => 'corosync_votequorum',
+	},
+	logging => {
+	    to_syslog => 'yes',
+	    debug => 'off',
+	},
+    };
+
+    die "Param bindnet1_addr set but ring1_addr not specified!\n"
+	if (defined($param{bindnet1_addr}) && !defined($param{ring1_addr}));
+
+    my $ring1_addr = $param{ring1_addr};
+    my $bindnet1_addr = $param{bindnet1_addr} // $param{ring1_addr};
+
+    if ($bindnet1_addr) {
+	die "ring 1 addresses must be from same IP family as ring 0!\n"
+	    if $use_ipv6 != ip_is_ipv6($bindnet1_addr) ||
+	       $use_ipv6 != ip_is_ipv6($ring1_addr);
+
+	$conf->{totem}->{interface}->{1} = {
+	    bindnetaddr => $bindnet1_addr,
+	    ringnumber => 1,
+	};
+	$conf->{totem}->{rrp_mode} = 'passive';
+	$conf->{nodelist}->{node}->{$nodename}->{ring1_addr} = $ring1_addr;
+    }
+
+    return { main => $conf };
 }
 
 1;
