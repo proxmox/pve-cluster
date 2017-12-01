@@ -1435,6 +1435,10 @@ sub write_datacenter_config {
 	$cfg->{migration}->{type} = ($migration_unsecure) ? 'insecure' : 'secure';
     }
 
+    if (my $migration = $cfg->{migration}) {
+	$cfg->{migration} = PVE::JSONSchema::print_property_string($migration, $migration_format);
+    }
+
     return PVE::JSONSchema::dump_config($datacenter_schema, $filename, $cfg);
 }
 
