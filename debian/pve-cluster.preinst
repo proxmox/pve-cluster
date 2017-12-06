@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# abort if any command returns an error value 
+set -e
+
+# handle incorrectly installed sysctl.d snippet (pve-cluster 5.0-16 and -17)
+# TODO: remove in PVE 6.0
+function sysctlcleanup {
+  if test -z "$1"; then
+    # no old version, nothing to do
+    true
+  else
+    if dpkg --compare-versions "$1" '<=' '5.0-17'; then
+      # remove directory if it exists
+      # otherwise we can't install our actual pve.conf file
+      if test -d '/etc/sysctl.d/pve.conf'; then
+        rm -rf '/etc/sysctl.d/pve.conf'
+      fi
+    fi
+  fi
+}
+
+case "$1" in
+  upgrade)
+    sysctlcleanup "$2"
+    ;;
+
+  install)
+    sysctlcleanup "$2"
+    ;;
+
+esac
+
+#DEBHELPER#
