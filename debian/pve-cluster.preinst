@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# abort if any command returns an error value 
+# abort if any command returns an error value
 set -e
 
 # handle incorrectly installed sysctl.d snippet (pve-cluster 5.0-16 and -17)
