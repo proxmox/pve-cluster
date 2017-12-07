@@ -1,3 +1,11 @@
+pve-cluster (5.0-18) stable; urgency=medium
+
+  * fix sysctl.d/pve.conf installation
+
+  * fix issues with updating datacenter.cfg with migration settings being used
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 07 Dec 2017 08:11:44 +0100
+
 pve-cluster (5.0-17) stable; urgency=medium
 
   * handle Net::SSLeay errors correctly
