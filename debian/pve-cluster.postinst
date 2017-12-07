@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# abort if any command returns an error value
+set -e
+
+# handle problem with ha-manager <= 2.0-3 which cannot handle a pmxcfs
+# restart correctly
+# TODO: remove in PVE 6.0
+ha_version=$(dpkg-query --showformat='${Version}' --show pve-ha-manager)
+hacfg_version=$(dpkg-query --showformat='${Config-Version}' --show pve-ha-manager)
+
+function handlehaservice {
+  if test -z "$1"; then
+    # no old version, nothing to do
+    true
+  else
+    if dpkg --compare-versions "$ha_version" '<=' '2.0-3' || dpkg --compare-versions "$hacfg_version" '<=' '2.0-3'; then
+      if systemctl --quiet "$2" "pve-ha-crm.service"; then
+        systemctl "$3" "pve-ha-crm.service"
+      fi
+      if systemctl --quiet "$2" "pve-ha-lrm.service"; then
+        systemctl "$3" "pve-ha-lrm.service"
+      fi
+    fi
+  fi
+}
+
+
+case "$1" in
+  configure)
+    handlehaservice "$2" 'is-active' 'stop'
+    ;;
+
+esac
+
+#DEBHELPER#
+
+case "$1" in
+  configure)
+    handlehaservice "$2" 'is-enabled' 'start'
+    ;;
+
+esac
+
