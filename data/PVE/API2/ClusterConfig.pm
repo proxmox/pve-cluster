@@ -216,6 +216,8 @@ __PACKAGE__->register_method ({
 	    $nodelist->{$name}->{ring1_addr} = $param->{ring1_addr} if $param->{ring1_addr};
 	    $nodelist->{$name}->{quorum_votes} = $param->{votes} if $param->{votes};
 
+	    PVE::Cluster::log_msg('notice', 'root@pam', "adding node $name to cluster");
+
 	    PVE::Corosync::update_nodelist($conf, $nodelist);
 	};
 
@@ -269,6 +271,8 @@ __PACKAGE__->register_method ({
 
 	    die "Node/IP: $param->{node} is not a known host of the cluster.\n"
 		if !defined($node);
+
+	    PVE::Cluster::log_msg('notice', 'root@pam', "deleting node $node from cluster");
 
 	    delete $nodelist->{$node};
 
