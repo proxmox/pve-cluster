@@ -101,38 +101,42 @@ __PACKAGE__->register_method ({
 	    },
 	},
     },
-    returns => { type => 'null' },
-
+    returns => { type => 'string' },
     code => sub {
 	my ($param) = @_;
 
 	-f $clusterconf && die "cluster config '$clusterconf' already exists\n";
 
-	PVE::Cluster::setup_sshd_config(1);
-	PVE::Cluster::setup_rootsshconfig();
-	PVE::Cluster::setup_ssh_keys();
+	my $rpcenv = PVE::RPCEnvironment::get();
+	my $authuser = $rpcenv->get_user();
 
-	PVE::Tools::run_command(['/usr/sbin/corosync-keygen', '-lk', $authfile])
-	    if !-f $authfile;
-	die "no authentication key available\n" if -f !$authfile;
+	my $worker = sub {
+	    PVE::Cluster::setup_sshd_config(1);
+	    PVE::Cluster::setup_rootsshconfig();
+	    PVE::Cluster::setup_ssh_keys();
 
-	my $nodename = PVE::INotify::nodename();
+	    PVE::Tools::run_command(['/usr/sbin/corosync-keygen', '-lk', $authfile])
+		if !-f $authfile;
+	    die "no authentication key available\n" if -f !$authfile;
 
-	# get the corosync basis config for the new cluster
-	my $config = PVE::Corosync::create_conf($nodename, %$param);
+	    my $nodename = PVE::INotify::nodename();
 
-	print "Writing corosync config to /etc/pve/corosync.conf\n";
-	PVE::Corosync::atomic_write_conf($config);
+	    # get the corosync basis config for the new cluster
+	    my $config = PVE::Corosync::create_conf($nodename, %$param);
 
-	my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
-	PVE::Cluster::ssh_merge_keys();
-	PVE::Cluster::gen_pve_node_files($nodename, $local_ip_address);
-	PVE::Cluster::ssh_merge_known_hosts($nodename, $local_ip_address, 1);
+	    print "Writing corosync config to /etc/pve/corosync.conf\n";
+	    PVE::Corosync::atomic_write_conf($config);
 
-	print "Restart corosync and cluster filesystem\n";
-	PVE::Tools::run_command('systemctl restart corosync pve-cluster');
+	    my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
+	    PVE::Cluster::ssh_merge_keys();
+	    PVE::Cluster::gen_pve_node_files($nodename, $local_ip_address);
+	    PVE::Cluster::ssh_merge_known_hosts($nodename, $local_ip_address, 1);
 
-	return undef;
+	    print "Restart corosync and cluster filesystem\n";
+	    PVE::Tools::run_command('systemctl restart corosync pve-cluster');
+	};
+
+	return $rpcenv->fork_worker('clustercreate', '',  $authuser, $worker);
 }});
 
 __PACKAGE__->register_method({
