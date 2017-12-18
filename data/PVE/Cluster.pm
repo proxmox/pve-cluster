@@ -1695,35 +1695,24 @@ sub ssh_info_to_command {
 sub assert_joinable {
     my ($ring0_addr, $ring1_addr, $force) = @_;
 
-    my ($errors, $warnings) = ('', '');
-    my $error = sub {
-	my ($msg, $suppress) = @_;
+    my $errors = '';
+    my $error = sub { $errors .= "* $_[0]\n"; };
 
-	if ($suppress) {
-	    $warnings .= "* $msg\n";
-	} else {
-	    $errors .= "* $msg\n";
-	}
-    };
+    if (-f $authfile) {
+	$error->("authentication key '$authfile' already exists");
+    }
 
-    if (!$force) {
+    if (-f $clusterconf)  {
+	$error->("cluster config '$clusterconf' already exists");
+    }
 
-	if (-f $authfile) {
-	    $error->("authentication key '$authfile' already exists", $force);
-	}
+    my $vmlist = get_vmlist();
+    if ($vmlist && $vmlist->{ids} && scalar(keys %{$vmlist->{ids}})) {
+	$error->("this host already contains virtual guests");
+    }
 
-	if (-f $clusterconf)  {
-	    $error->("cluster config '$clusterconf' already exists", $force);
-	}
-
-	my $vmlist = get_vmlist();
-	if ($vmlist && $vmlist->{ids} && scalar(keys %{$vmlist->{ids}})) {
-	    $error->("this host already contains virtual guests", $force);
-	}
-
-	if (system("corosync-quorumtool -l >/dev/null 2>&1") == 0) {
-	    $error->("corosync is already running, is this node already in a cluster?!", $force);
-	}
+    if (system("corosync-quorumtool -l >/dev/null 2>&1") == 0) {
+	$error->("corosync is already running, is this node already in a cluster?!");
     }
 
     # check if corosync ring IPs are configured on the current nodes interfaces
@@ -1733,7 +1722,7 @@ sub assert_joinable {
 	    my $host = $ip;
 	    eval { $ip = PVE::Network::get_ip_from_hostname($host); };
 	    if ($@) {
-		$error->("cannot use '$host': $@\n", 1) ;
+		$error->("cannot use '$host': $@\n") ;
 		return;
 	    }
 	}
@@ -1748,8 +1737,10 @@ sub assert_joinable {
     $check_ip->($ring0_addr);
     $check_ip->($ring1_addr);
 
-    warn "warning, ignore the following errors:\n$warnings" if $warnings;
-    die "detected the following error(s):\n$errors" if $errors;
+    if ($errors) {
+	warn "detected the following error(s):\n$errors";
+	die "Check if node may join a cluster failed!\n" if !$force;
+    }
 }
 
 my $backup_cfs_database = sub {
