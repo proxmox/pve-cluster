@@ -488,7 +488,7 @@ __PACKAGE__->register_method ({
 		optional => 1,
 	    },
 	    ring0_addr => get_standard_option('corosync-ring0-addr', {
-		default => "node's hostname",
+		default => "IP resolved by node's hostname",
 	    }),
 	    ring1_addr => get_standard_option('corosync-ring1-addr'),
 	    fingerprint => get_standard_option('fingerprint-sha256'),

@@ -1792,6 +1792,7 @@ sub join {
     ssh_unmerge_known_hosts();
 
     my $host = $param->{hostname};
+    my $local_ip_address = remote_node_ip($nodename);
 
     my $conn_args = {
 	username => 'root@pam',
@@ -1821,7 +1822,7 @@ sub join {
     $args->{force} = $param->{force} if defined($param->{force});
     $args->{nodeid} = $param->{nodeid} if $param->{nodeid};
     $args->{votes} = $param->{votes} if defined($param->{votes});
-    $args->{ring0_addr} = $ring0_addr if defined($ring0_addr);
+    $args->{ring0_addr} = $ring0_addr // $local_ip_address;
     $args->{ring1_addr} = $ring1_addr if defined($ring1_addr);
 
     print "Request addition of this node\n";
