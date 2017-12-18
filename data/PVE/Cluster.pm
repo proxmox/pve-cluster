@@ -11,7 +11,7 @@ use MIME::Base64;
 use Digest::SHA;
 use Digest::HMAC_SHA1;
 use Net::SSLeay;
-use PVE::Tools;
+use PVE::Tools qw(run_command);
 use PVE::INotify;
 use PVE::IPCC;
 use PVE::SafeSyslog;
@@ -1711,7 +1711,7 @@ sub assert_joinable {
 	$error->("this host already contains virtual guests");
     }
 
-    if (system("corosync-quorumtool -l >/dev/null 2>&1") == 0) {
+    if (run_command(['corosync-quorumtool', '-l'], noerr => 1, quiet => 1) == 0) {
 	$error->("corosync is already running, is this node already in a cluster?!");
     }
 
@@ -1783,15 +1783,14 @@ sub finish_join {
     PVE::Tools::file_set_contents($localclusterconf, $corosync_conf);
 
     print "stopping pve-cluster service\n";
-
-    system("umount $basedir -f >/dev/null 2>&1");
-    die "can't stop pve-cluster service\n" if system("systemctl stop pve-cluster") != 0;
+    my $cmd = ['systemctl', 'stop', 'pve-cluster'];
+    run_command($cmd, errmsg => "can't stop pve-cluster service");
 
     $backup_cfs_database->($dbfile);
     unlink $dbfile;
 
-    system("systemctl start pve-cluster") == 0 || die "starting pve-cluster failed\n";
-    system("systemctl start corosync");
+    $cmd = ['systemctl', 'start', 'corosync', 'pve-cluster'];
+    run_command($cmd, errmsg => "starting pve-cluster failed");
 
     # wait for quorum
     my $printqmsg = 1;
@@ -1813,9 +1812,8 @@ sub finish_join {
     print "merge known_hosts file\n";
     ssh_merge_known_hosts($nodename, $local_ip_address, 1);
 
-    print "restart services\n";
-    # restart pvedaemon and pveproxy (changed certs)
-    system("systemctl restart pvedaemon pveproxy");
+    print "node certificate changed, restart pveproxy and pvedaemon services\n";
+    run_command(['systemctl', 'reload-or-restart', 'pvedaemon', 'pveproxy']);
 
     print "successfully added node '$nodename' to cluster.\n";
 }
