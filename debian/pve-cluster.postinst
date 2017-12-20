@@ -15,11 +15,11 @@ function handlehaservice {
     true
   else
     if dpkg --compare-versions "$ha_version" '<=' '2.0-3' || dpkg --compare-versions "$hacfg_version" '<=' '2.0-3'; then
-      if systemctl --quiet "$2" "pve-ha-crm.service"; then
-        systemctl "$3" "pve-ha-crm.service"
-      fi
       if systemctl --quiet "$2" "pve-ha-lrm.service"; then
         systemctl "$3" "pve-ha-lrm.service"
+      fi
+      if systemctl --quiet "$2" "pve-ha-crm.service"; then
+        systemctl "$3" "pve-ha-crm.service"
       fi
     fi
   fi
