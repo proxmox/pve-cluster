@@ -1366,7 +1366,7 @@ my $datacenter_schema = {
 	console => {
 	    optional => 1,
 	    type => 'string',
-	    description => "Select the default Console viewer. You can either use the builtin java applet (VNC), an external virt-viewer comtatible application (SPICE), or an HTML5 based viewer (noVNC).",
+	    description => "Select the default Console viewer. You can either use the builtin java applet (VNC; deprecated and maps to html5), an external virt-viewer comtatible application (SPICE), or an HTML5 based viewer (noVNC).",
 	    enum => ['applet', 'vv', 'html5'],
 	},
 	email_from => {
@@ -1423,6 +1423,11 @@ sub parse_datacenter_config {
 	}
     }
 
+    # for backwards compatibility only, applet maps to html5
+    if (defined($res->{console}) && $res->{console} eq 'applet') {
+	$res->{console} = 'html5';
+    }
+
     return $res;
 }
 
@@ -1433,6 +1438,11 @@ sub write_datacenter_config {
     if (defined($cfg->{migration_unsecure}) && !defined($cfg->{migration})) {
 	my $migration_unsecure = delete $cfg->{migration_unsecure};
 	$cfg->{migration}->{type} = ($migration_unsecure) ? 'insecure' : 'secure';
+    }
+
+    # map deprecated applet setting to html5
+    if (defined($cfg->{console}) && $cfg->{console} eq 'applet') {
+	$cfg->{console} = 'html5';
     }
 
     if (my $migration = $cfg->{migration}) {
