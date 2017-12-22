@@ -14,6 +14,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
+#include <unistd.h>
+#include <time.h>
 #include <errno.h>
 
 #ifndef SCM_RIGHTS
@@ -27,6 +29,9 @@
 #include <qb/qblog.h>
 #include <qb/qbipcc.h>
 
+#define RESTART_FLAG_FILE "/run/pve-cluster/cfs-restart-flag"
+#define RESTART_GRACE_PERIOD 5
+
 #define PCS_SOCKET_NAME "pve2"
 
 #define PCS_SERVICE1 1
@@ -37,6 +42,52 @@ static pid_t conn_pid;
 
 static char ipcbuffer[MAX_MSG_SIZE];
 
+static qb_ipcc_connection_t *init_connection() {
+
+	static qb_ipcc_connection_t *connection = NULL;
+	struct timespec retry_timeout, now;
+	int cfs_restart_flag_fd = -1;
+
+	// check if pmxcfs is currently restarting
+	if ((cfs_restart_flag_fd = open(RESTART_FLAG_FILE, 0)) > 0) {
+		clock_gettime(CLOCK_MONOTONIC, &retry_timeout);
+		retry_timeout.tv_sec += RESTART_GRACE_PERIOD;
+	}
+
+	qb_log_init("IPCC.xs", LOG_USER, LOG_EMERG);
+	qb_log_ctl(QB_LOG_SYSLOG, QB_LOG_CONF_ENABLED, QB_TRUE);
+
+retry_connection:
+	connection = qb_ipcc_connect(PCS_SOCKET_NAME, MAX_MSG_SIZE);
+
+	if (!connection) {
+		if (cfs_restart_flag_fd >= 0) {
+			// cfs restarting and hopefully back soon, poll
+			clock_gettime(CLOCK_MONOTONIC, &now);
+
+			if (now.tv_sec < retry_timeout.tv_sec ||
+			   (now.tv_sec == retry_timeout.tv_sec &&
+			    now.tv_nsec < retry_timeout.tv_nsec)) {
+
+				usleep(100 * 1000);
+				goto retry_connection;
+
+			} else {
+				// timeout: cleanup flag file if still the same
+				struct stat s;
+				fstat(cfs_restart_flag_fd, &s);
+				if (s.st_nlink > 0)
+					unlink(RESTART_FLAG_FILE);
+			}
+		}
+	}
+
+	if (cfs_restart_flag_fd >= 0) close(cfs_restart_flag_fd);
+
+	return connection;
+}
+
+
 MODULE = PVE::IPCC		PACKAGE = PVE::IPCC		
 
 SV *
@@ -46,6 +97,7 @@ SV * data;
 PROTOTYPE: $;$
 CODE:
 {
+	uint8_t retried_cache_connection = 0;
 	pid_t cpid = getpid();
 
 	/* Each process needs its own ipcc connection,
@@ -56,9 +108,8 @@ CODE:
 	}
 
 	if (conn == NULL) {
-		qb_log_init("IPCC.xs", LOG_USER, LOG_EMERG);
-		qb_log_ctl(QB_LOG_SYSLOG, QB_LOG_CONF_ENABLED, QB_TRUE);
-		conn = qb_ipcc_connect(PCS_SOCKET_NAME, MAX_MSG_SIZE);
+recache_connection:
+		conn = init_connection();
 
 		if (!conn)
 			XSRETURN_UNDEF;
@@ -89,6 +140,11 @@ CODE:
 	if (res < 0) {
 		qb_ipcc_disconnect(conn);
 		conn = NULL;
+		// requests during cfs restart and the first thereafter will fail, retry
+		if (!retried_cache_connection) {
+			retried_cache_connection = 1;
+			goto recache_connection;
+		}
 		errno = -res;
 		XSRETURN_UNDEF;
 	}

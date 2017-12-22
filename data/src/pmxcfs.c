@@ -58,6 +58,7 @@
 
 #define DBFILENAME VARLIBDIR "/config.db"
 #define LOCKFILE VARLIBDIR "/.pmxcfs.lockfile"
+#define RESTART_FLAG_FILE RUNDIR "/cfs-restart-flag"
 
 #define CFSDIR "/etc/pve"
 
@@ -860,6 +861,7 @@ int main(int argc, char *argv[])
 	umask(027);
 
 	mkdir(VARLIBDIR, 0755);
+	mkdir(RUNDIR, 0755);
 
 	if ((lockfd = open(LOCKFILE, O_RDWR|O_CREAT|O_APPEND, 0600)) == -1) {
 		cfs_critical("unable to create lock '%s': %s", LOCKFILE, strerror (errno));
@@ -1018,7 +1020,11 @@ int main(int argc, char *argv[])
 
 	server_start(memdb);
 
+	unlink(RESTART_FLAG_FILE);
+
 	ret = fuse_loop_mt(fuse);
+
+	open(RESTART_FLAG_FILE, O_CREAT|O_NOCTTY|O_NONBLOCK);
 
 	cfs_message("teardown filesystem");
 

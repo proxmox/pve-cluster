@@ -32,6 +32,7 @@
 #define HOST_CLUSTER_CONF_FN "/etc/corosync/corosync.conf"
 #define CFS_PID_FN "/var/run/pve-cluster.pid"
 #define VARLIBDIR "/var/lib/pve-cluster"
+#define RUNDIR "/run/pve-cluster"
 
 #define CFS_MAX(a, b)		(((a) > (b)) ? (a) : (b))
 #define CFS_MIN(a, b)		(((a) < (b)) ? (a) : (b))
