@@ -1048,7 +1048,6 @@ int main(int argc, char *argv[])
 	if (service_status)
 		service_dfsm_destroy(service_status);
 
-	sleep(1); /* do not restart too fast */
  ret:
 
 	if (status_fsm)
