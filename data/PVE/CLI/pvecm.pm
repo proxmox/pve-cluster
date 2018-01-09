@@ -117,7 +117,8 @@ __PACKAGE__->register_method ({
 	    delete $param->{use_ssh};
 	    $param->{password} = $password;
 
-	    eval { PVE::Cluster::join($param) };
+	    my $local_cluster_lock = "/var/lock/pvecm.lock";
+	    PVE::Tools::lock_file($local_cluster_lock, 10, \&PVE::Cluster::join, $param);
 
 	    if (my $err = $@) {
 		if (ref($err) eq 'PVE::APIClient::Exception' && $err->{code} == 501) {
