@@ -1,3 +1,19 @@
+pve-cluster (5.0-20) stable; urgency=medium
+
+  * mtunnel: don't read extra files passed via the command line as input
+
+  * handle pmxcfs restarts in ipcc clients better
+
+  * pmxcfs: remove a now-unnecessary shutdown delay
+
+  * deprecate 'applet' console setting in datacenter.cfg, it now maps to
+    'html5'
+
+  * order LRM before CRM in post-installation commands to improve single-node
+    behavior
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 22 Jan 2018 15:09:45 +0100
+
 pve-cluster (5.0-19) stable; urgency=medium
 
   * pause older ha-manager versions during post install script to avoid fencing
