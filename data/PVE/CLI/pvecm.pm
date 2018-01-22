@@ -872,7 +872,7 @@ __PACKAGE__->register_method ({
 	print "tunnel online\n";
 	*STDOUT->flush();
 
-	while (my $line = <>) {
+	while (my $line = <STDIN>) {
 	    chomp $line;
 	    last if $line =~ m/^quit$/;
 	}
