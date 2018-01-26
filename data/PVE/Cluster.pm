@@ -38,7 +38,10 @@ my $authdir = "$basedir/priv";
 my $lockdir = "/etc/pve/priv/lock";
 
 # cfs and corosync files
+my $dbfile = "/var/lib/pve-cluster/config.db";
+my $dbbackupdir = "/var/lib/pve-cluster/backup";
 my $localclusterdir = "/etc/corosync";
+my $localclusterconf = "$localclusterdir/corosync.conf";
 my $authfile = "$localclusterdir/authkey";
 my $clusterconf = "$basedir/corosync.conf";
 
@@ -1748,5 +1751,83 @@ sub assert_joinable {
     warn "warning, ignore the following errors:\n$warnings" if $warnings;
     die "detected the following error(s):\n$errors" if $errors;
 }
+
+my $backup_cfs_database = sub {
+    my ($dbfile) = @_;
+
+    mkdir $dbbackupdir;
+
+    print "backup old database\n";
+    my $ctime = time();
+    my $cmd = [
+	['echo', '.dump'],
+	['sqlite3', $dbfile],
+	['gzip', '-', \ ">${dbbackupdir}/config-${ctime}.sql.gz"],
+    ];
+
+    PVE::Tools::run_command($cmd, 'errmsg' => "cannot backup old database\n");
+
+    # purge older backup
+    my $maxfiles = 10;
+    my @bklist = ();
+    foreach my $fn (<$dbbackupdir/config-*.sql.gz>) {
+	if ($fn =~ m!/config-(\d+)\.sql.gz$!) {
+	    push @bklist, [$fn, $1];
+	}
+    }
+
+    @bklist = sort { $b->[1] <=> $a->[1] } @bklist;
+    while (scalar (@bklist) >= $maxfiles) {
+	my $d = pop @bklist;
+	print "delete old backup '$d->[0]'\n";
+	unlink $d->[0];
+    }
+};
+
+sub finish_join {
+    my ($nodename, $corosync_conf, $corosync_authkey) = @_;
+
+    mkdir "$localclusterdir";
+    PVE::Tools::file_set_contents($authfile, $corosync_authkey);
+    PVE::Tools::file_set_contents($localclusterconf, $corosync_conf);
+
+    print "stopping pve-cluster service\n";
+
+    system("umount $basedir -f >/dev/null 2>&1");
+    die "can't stop pve-cluster service\n" if system("systemctl stop pve-cluster") != 0;
+
+    $backup_cfs_database->($dbfile);
+    unlink $dbfile;
+
+    system("systemctl start pve-cluster") == 0 || die "starting pve-cluster failed\n";
+    system("systemctl start corosync");
+
+    # wait for quorum
+    my $printqmsg = 1;
+    while (!check_cfs_quorum(1)) {
+	if ($printqmsg) {
+	    print "waiting for quorum...";
+	    STDOUT->flush();
+	    $printqmsg = 0;
+	}
+	sleep(1);
+    }
+    print "OK\n" if !$printqmsg;
+
+    my $local_ip_address = remote_node_ip($nodename);
+
+    print "generating node certificates\n";
+    gen_pve_node_files($nodename, $local_ip_address);
+
+    print "merge known_hosts file\n";
+    ssh_merge_known_hosts($nodename, $local_ip_address, 1);
+
+    print "restart services\n";
+    # restart pvedaemon and pveproxy (changed certs)
+    system("systemctl restart pvedaemon pveproxy");
+
+    print "successfully added node '$nodename' to cluster.\n";
+}
+
 
 1;

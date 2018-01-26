@@ -21,43 +21,7 @@ $ENV{HOME} = '/root'; # for ssh-copy-id
 my $basedir = "/etc/pve";
 my $clusterconf = "$basedir/corosync.conf";
 my $libdir = "/var/lib/pve-cluster";
-my $backupdir = "/var/lib/pve-cluster/backup";
-my $dbfile = "$libdir/config.db";
 my $authfile = "/etc/corosync/authkey";
-
-sub backup_database {
-
-    print "backup old database\n";
-
-    mkdir $backupdir;
-
-    my $ctime = time();
-    my $cmd = [
-	['echo', '.dump'],
-	['sqlite3', $dbfile],
-	['gzip', '-', \ ">${backupdir}/config-${ctime}.sql.gz"],
-    ];
-
-    run_command($cmd, 'errmsg' => "cannot backup old database\n");
-
-    # purge older backup
-    my $maxfiles = 10;
-
-    my @bklist = ();
-    foreach my $fn (<$backupdir/config-*.sql.gz>) {
-	if ($fn =~ m!/config-(\d+)\.sql.gz$!) {
-	    push @bklist, [$fn, $1];
-	}
-    }
-
-    @bklist = sort { $b->[1] <=> $a->[1] } @bklist;
-
-    while (scalar (@bklist) >= $maxfiles) {
-	my $d = pop @bklist;
-	print "delete old backup '$d->[0]'\n";
-	unlink $d->[0];
-    }
-}
 
 
 __PACKAGE__->register_method ({
@@ -334,58 +298,10 @@ __PACKAGE__->register_method ({
 
 	    system(@$cmd) == 0 || die "can't rsync data from host '$host'\n";
 
-	    mkdir "/etc/corosync";
-	    my $confbase = basename($clusterconf);
+	    my $corosync_conf = PVE::Tools::file_get_contents("$tmpdir/corosync.conf");
+	    my $corosync_authkey = PVE::Tools::file_get_contents("$tmpdir/authkey");
 
-	    $cmd = "cp '$tmpdir/$confbase' '/etc/corosync/$confbase'";
-	    system($cmd) == 0 || die "can't copy cluster configuration\n";
-
-	    my $keybase = basename($authfile);
-	    system ("cp '$tmpdir/$keybase' '$authfile'") == 0 ||
-		die "can't copy '$tmpdir/$keybase' to '$authfile'\n";
-
-	    print "stopping pve-cluster service\n";
-
-	    system("umount $basedir -f >/dev/null 2>&1");
-	    system("systemctl stop pve-cluster") == 0 ||
-		die "can't stop pve-cluster service\n";
-
-	    backup_database();
-
-	    unlink $dbfile;
-
-	    system("systemctl start pve-cluster") == 0 ||
-		die "starting pve-cluster failed\n";
-
-	    system("systemctl start corosync");
-
-	    # wait for quorum
-	    my $printqmsg = 1;
-	    while (!PVE::Cluster::check_cfs_quorum(1)) {
-		if ($printqmsg) {
-		    print "waiting for quorum...";
-		    STDOUT->flush();
-		    $printqmsg = 0;
-		}
-		sleep(1);
-	    }
-	    print "OK\n" if !$printqmsg;
-
-	    my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
-
-	    print "generating node certificates\n";
-	    PVE::Cluster::gen_pve_node_files($nodename, $local_ip_address);
-
-	    print "merge known_hosts file\n";
-	    PVE::Cluster::ssh_merge_known_hosts($nodename, $local_ip_address, 1);
-
-	    print "restart services\n";
-	    # restart pvedaemon (changed certs)
-	    system("systemctl restart pvedaemon");
-	    # restart pveproxy (changed certs)
-	    system("systemctl restart pveproxy");
-
-	    print "successfully added node '$nodename' to cluster.\n";
+	    PVE::Cluster::finish_join($host, $corosync_conf, $corosync_authkey);
 	};
 	my $err = $@;
 
