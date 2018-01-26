@@ -8,7 +8,7 @@ use File::Basename;
 use PVE::Tools qw(run_command);
 use PVE::Cluster;
 use PVE::INotify;
-use PVE::JSONSchema;
+use PVE::JSONSchema qw(get_standard_option);
 use PVE::RPCEnvironment;
 use PVE::CLIHandler;
 use PVE::PTY;
@@ -75,12 +75,7 @@ __PACKAGE__->register_method ({
 		type => 'string',
 		description => "Hostname (or IP) of an existing cluster member."
 	    },
-	    nodeid => {
-		type => 'integer',
-		description => "Node id for this node.",
-		minimum => 1,
-		optional => 1,
-	    },
+	    nodeid => get_standard_option('corosync-nodeid'),
 	    votes => {
 		type => 'integer',
 		description => "Number of votes for this node",
@@ -92,19 +87,9 @@ __PACKAGE__->register_method ({
 		description => "Do not throw error if node already exists.",
 		optional => 1,
 	    },
-	    ring0_addr => {
-		type => 'string', format => 'address',
-		description => "Hostname (or IP) of the corosync ring0 address of this node.".
-		    " Defaults to nodes hostname.",
-		optional => 1,
-	    },
-	    ring1_addr => {
-		type => 'string', format => 'address',
-		description => "Hostname (or IP) of the corosync ring1 address, this".
-		    " needs an valid configured ring 1 interface in the cluster.",
-		optional => 1,
-	    },
-	    fingerprint => PVE::JSONSchema::get_standard_option('fingerprint-sha256', {
+	    ring0_addr => get_standard_option('corosync-ring0-addr'),
+	    ring1_addr => get_standard_option('corosync-ring1-addr'),
+	    fingerprint => get_standard_option('fingerprint-sha256', {
 		optional => 1,
 	    }),
 	    'use_ssh' => {

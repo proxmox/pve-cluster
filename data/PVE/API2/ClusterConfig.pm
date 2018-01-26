@@ -17,6 +17,30 @@ use base qw(PVE::RESTHandler);
 my $clusterconf = "/etc/pve/corosync.conf";
 my $authfile = "/etc/corosync/authkey";
 
+my $ring0_desc = {
+    type => 'string', format => 'address',
+    description => "Hostname (or IP) of the corosync ring0 address of this node.",
+    default => "Hostname of the node",
+    optional => 1,
+};
+PVE::JSONSchema::register_standard_option("corosync-ring0-addr", $ring0_desc);
+
+my $ring1_desc = {
+    type => 'string', format => 'address',
+    description => "Hostname (or IP) of the corosync ring1 address of this node.".
+	" Requires a valid configured ring 1 (bindnet1_addr) in the cluster.",
+    optional => 1,
+};
+PVE::JSONSchema::register_standard_option("corosync-ring1-addr", $ring1_desc);
+
+my $nodeid_desc = {
+    type => 'integer',
+    description => "Node id for this node.",
+    minimum => 1,
+    optional => 1,
+};
+PVE::JSONSchema::register_standard_option("corosync-nodeid", $nodeid_desc);
+
 __PACKAGE__->register_method({
     name => 'index',
     path => '',
@@ -63,12 +87,7 @@ __PACKAGE__->register_method ({
 		type => 'string', format => 'pve-node',
 		maxLength => 15,
 	    },
-	    nodeid => {
-		type => 'integer',
-		description => "Node id for this node.",
-		minimum => 1,
-		optional => 1,
-	    },
+	    nodeid => get_standard_option('corosync-nodeid'),
 	    votes => {
 		type => 'integer',
 		description => "Number of votes for this node.",
@@ -81,24 +100,14 @@ __PACKAGE__->register_method ({
 		    " executive should bind to and defaults to the local IP address of the node.",
 		optional => 1,
 	    },
-	    ring0_addr => {
-		type => 'string', format => 'address',
-		description => "Hostname (or IP) of the corosync ring0 address of this node.".
-		    " Defaults to the hostname of the node.",
-		optional => 1,
-	    },
+	    ring0_addr => get_standard_option('corosync-ring0-addr'),
 	    bindnet1_addr => {
 		type => 'string', format => 'ip',
 		description => "This specifies the network address the corosync ring 1".
 		    " executive should bind to and is optional.",
 		optional => 1,
 	    },
-	    ring1_addr => {
-		type => 'string', format => 'address',
-		description => "Hostname (or IP) of the corosync ring1 address, this".
-		    " needs an valid bindnet1_addr.",
-		optional => 1,
-	    },
+	    ring1_addr => get_standard_option('corosync-ring1-addr'),
 	},
     },
     returns => { type => 'string' },
@@ -199,12 +208,7 @@ __PACKAGE__->register_method ({
 	additionalProperties => 0,
 	properties => {
 	    node => get_standard_option('pve-node'),
-	    nodeid => {
-		type => 'integer',
-		description => "Node id for this node.",
-		minimum => 1,
-		optional => 1,
-	    },
+	    nodeid => get_standard_option('corosync-nodeid'),
 	    votes => {
 		type => 'integer',
 		description => "Number of votes for this node",
@@ -216,18 +220,8 @@ __PACKAGE__->register_method ({
 		description => "Do not throw error if node already exists.",
 		optional => 1,
 	    },
-	    ring0_addr => {
-		type => 'string', format => 'address',
-		description => "Hostname (or IP) of the corosync ring0 address of this node.".
-		    " Defaults to nodes hostname.",
-		optional => 1,
-	    },
-	    ring1_addr => {
-		type => 'string', format => 'address',
-		description => "Hostname (or IP) of the corosync ring1 address, this".
-		    " needs an valid bindnet1_addr.",
-		optional => 1,
-	    },
+	    ring0_addr => get_standard_option('corosync-ring0-addr'),
+	    ring1_addr => get_standard_option('corosync-ring1-addr'),
 	},
     },
     returns => {
@@ -409,12 +403,7 @@ __PACKAGE__->register_method ({
 		type => 'string',
 		description => "Hostname (or IP) of an existing cluster member."
 	    },
-	    nodeid => {
-		type => 'integer',
-		description => "Node id for this node.",
-		minimum => 1,
-		optional => 1,
-	    },
+	    nodeid => get_standard_option('corosync-nodeid'),
 	    votes => {
 		type => 'integer',
 		description => "Number of votes for this node",
@@ -426,18 +415,10 @@ __PACKAGE__->register_method ({
 		description => "Do not throw error if node already exists.",
 		optional => 1,
 	    },
-	    ring0_addr => {
-		type => 'string', format => 'address',
-		description => "Hostname (or IP) of the corosync ring0 address of this node.".
-		    " Defaults to nodes hostname.",
-		optional => 1,
-	    },
-	    ring1_addr => {
-		type => 'string', format => 'address',
-		description => "Hostname (or IP) of the corosync ring1 address, this".
-		    " needs an valid configured ring 1 interface in the cluster.",
-		optional => 1,
-	    },
+	    ring0_addr => get_standard_option('corosync-ring0-addr', {
+		default => "node's hostname",
+	    }),
+	    ring1_addr => get_standard_option('corosync-ring1-addr'),
 	    fingerprint => get_standard_option('fingerprint-sha256'),
 	    password => {
 		description => "Superuser (root) password of peer node.",
