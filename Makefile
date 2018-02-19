@@ -3,7 +3,7 @@ PKGVER=5.0
 PKGREL=20
 
 ARCH:=$(shell dpkg-architecture -qDEB_BUILD_ARCH)
-GITVERSION:=$(shell cat .git/refs/heads/master)
+GITVERSION:=$(shell git rev-parse HEAD)
 
 DEB=${PACKAGE}_${PKGVER}-${PKGREL}_${ARCH}.deb
 DBG_DEB=${PACKAGE}-dbgsym_${PKGVER}-${PKGREL}_${ARCH}.deb
