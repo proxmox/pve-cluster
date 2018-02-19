@@ -110,72 +110,81 @@ __PACKAGE__->register_method ({
 
 	PVE::Cluster::assert_joinable($param->{ring0_addr}, $param->{ring1_addr}, $param->{force});
 
-	if (!$param->{use_ssh}) {
-	    print "Please enter superuser (root) password for '$host':\n";
-	    my $password = PVE::PTY::read_password("Password for root\@$host: ");
+	my $worker = sub {
 
-	    delete $param->{use_ssh};
-	    $param->{password} = $password;
+	    if (!$param->{use_ssh}) {
+		print "Please enter superuser (root) password for '$host':\n";
+		my $password = PVE::PTY::read_password("Password for root\@$host: ");
 
-	    my $local_cluster_lock = "/var/lock/pvecm.lock";
-	    PVE::Tools::lock_file($local_cluster_lock, 10, \&PVE::Cluster::join, $param);
+		delete $param->{use_ssh};
+		$param->{password} = $password;
 
-	    if (my $err = $@) {
-		if (ref($err) eq 'PVE::APIClient::Exception' && $err->{code} == 501) {
-		    $err = "Remote side is not able to use API for Cluster join!\n" .
-		           "Pass the 'use_ssh' switch or update the remote side.\n";
+		my $local_cluster_lock = "/var/lock/pvecm.lock";
+		PVE::Tools::lock_file($local_cluster_lock, 10, \&PVE::Cluster::join, $param);
+
+		if (my $err = $@) {
+		    if (ref($err) eq 'PVE::APIClient::Exception' && $err->{code} == 501) {
+			$err = "Remote side is not able to use API for Cluster join!\n" .
+			       "Pass the 'use_ssh' switch or update the remote side.\n";
+		    }
+		    die $err;
 		}
-		die $err;
+		return; # all OK, the API join endpoint successfully set us up
 	    }
-	    return; # all OK, the API join endpoint successfully set us up
-	}
 
-	# allow fallback to old ssh only join if wished or needed
+	    # allow fallback to old ssh only join if wished or needed
 
-	PVE::Cluster::setup_sshd_config();
-	PVE::Cluster::setup_rootsshconfig();
-	PVE::Cluster::setup_ssh_keys();
+	    PVE::Cluster::setup_sshd_config();
+	    PVE::Cluster::setup_rootsshconfig();
+	    PVE::Cluster::setup_ssh_keys();
 
-	# make sure known_hosts is on local filesystem
-	PVE::Cluster::ssh_unmerge_known_hosts();
+	    # make sure known_hosts is on local filesystem
+	    PVE::Cluster::ssh_unmerge_known_hosts();
 
-	my $cmd = ['ssh-copy-id', '-i', '/root/.ssh/id_rsa', "root\@$host"];
-	run_command($cmd, 'outfunc' => sub {}, 'errfunc' => sub {},
-				'errmsg' => "unable to copy ssh ID");
+	    my $cmd = ['ssh-copy-id', '-i', '/root/.ssh/id_rsa', "root\@$host"];
+	    run_command($cmd, 'outfunc' => sub {}, 'errfunc' => sub {},
+				    'errmsg' => "unable to copy ssh ID");
 
-	$cmd = ['ssh', $host, '-o', 'BatchMode=yes',
-		'pvecm', 'addnode', $nodename, '--force', 1];
+	    $cmd = ['ssh', $host, '-o', 'BatchMode=yes',
+		    'pvecm', 'addnode', $nodename, '--force', 1];
 
-	push @$cmd, '--nodeid', $param->{nodeid} if $param->{nodeid};
-	push @$cmd, '--votes', $param->{votes} if defined($param->{votes});
-	push @$cmd, '--ring0_addr', $param->{ring0_addr} if defined($param->{ring0_addr});
-	push @$cmd, '--ring1_addr', $param->{ring1_addr} if defined($param->{ring1_addr});
+	    push @$cmd, '--nodeid', $param->{nodeid} if $param->{nodeid};
+	    push @$cmd, '--votes', $param->{votes} if defined($param->{votes});
+	    push @$cmd, '--ring0_addr', $param->{ring0_addr} if defined($param->{ring0_addr});
+	    push @$cmd, '--ring1_addr', $param->{ring1_addr} if defined($param->{ring1_addr});
 
-	if (system (@$cmd) != 0) {
-	    my $cmdtxt = join (' ', @$cmd);
-	    die "unable to add node: command failed ($cmdtxt)\n";
-	}
+	    if (system (@$cmd) != 0) {
+		my $cmdtxt = join (' ', @$cmd);
+		die "unable to add node: command failed ($cmdtxt)\n";
+	    }
 
-	my $tmpdir = "$libdir/.pvecm_add.tmp.$$";
-	mkdir $tmpdir;
+	    my $tmpdir = "$libdir/.pvecm_add.tmp.$$";
+	    mkdir $tmpdir;
 
-	eval {
-	    print "copy corosync auth key\n";
-	    $cmd = ['rsync', '--rsh=ssh -l root -o BatchMode=yes', '-lpgoq',
-		    "[$host]:$authfile $clusterconf", $tmpdir];
+	    eval {
+		print "copy corosync auth key\n";
+		$cmd = ['rsync', '--rsh=ssh -l root -o BatchMode=yes', '-lpgoq',
+			"[$host]:$authfile $clusterconf", $tmpdir];
 
-	    system(@$cmd) == 0 || die "can't rsync data from host '$host'\n";
+		system(@$cmd) == 0 || die "can't rsync data from host '$host'\n";
 
-	    my $corosync_conf = PVE::Tools::file_get_contents("$tmpdir/corosync.conf");
-	    my $corosync_authkey = PVE::Tools::file_get_contents("$tmpdir/authkey");
+		my $corosync_conf = PVE::Tools::file_get_contents("$tmpdir/corosync.conf");
+		my $corosync_authkey = PVE::Tools::file_get_contents("$tmpdir/authkey");
 
-	    PVE::Cluster::finish_join($host, $corosync_conf, $corosync_authkey);
+		PVE::Cluster::finish_join($host, $corosync_conf, $corosync_authkey);
+	    };
+	    my $err = $@;
+
+	    rmtree $tmpdir;
+
+	    die $err if $err;
 	};
-	my $err = $@;
 
-	rmtree $tmpdir;
+	# use a synced worker so we get a nice task log when joining through CLI
+	my $rpcenv = PVE::RPCEnvironment::get();
+	my $authuser = $rpcenv->get_user();
 
-	die $err if $err;
+	$rpcenv->fork_worker('clusterjoin', '',  $authuser, $worker);
 
 	return undef;
     }});
