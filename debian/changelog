@@ -1,3 +1,29 @@
+pve-cluster (5.0-21) stable; urgency=medium
+
+  * datacenter.cfg: add bwlimit
+
+  * api/cluster: move addnode/delnode from CLI to API
+
+  * api/cluster/addnode: return cluster config and authkey
+
+  * api/cluster: add join endpoint
+
+  * pvecm add: use API by default to join cluster
+
+  * cluster create: restart corosync & pmxfs in one go
+
+  * api/cluster: move cluster create from CLI to API
+
+  * api/cluster: add endpoint to GET cluster join information
+
+  * use resolved IP address for ring0_addr as default
+
+  * lock locally on cluster create and join
+
+  * pvecm: add: create task log on cluster join
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 27 Feb 2018 09:56:14 +0100
+
 pve-cluster (5.0-20) stable; urgency=medium
 
   * mtunnel: don't read extra files passed via the command line as input
