@@ -123,7 +123,7 @@ __PACKAGE__->register_method ({
 		PVE::Tools::lock_file($local_cluster_lock, 10, \&PVE::Cluster::join, $param);
 
 		if (my $err = $@) {
-		    if (ref($err) eq 'PVE::APIClient::Exception' && $err->{code} == 501) {
+		    if (ref($err) eq 'PVE::APIClient::Exception' && defined($err->{code}) && $err->{code} == 501) {
 			$err = "Remote side is not able to use API for Cluster join!\n" .
 			       "Pass the 'use_ssh' switch or update the remote side.\n";
 		    }
