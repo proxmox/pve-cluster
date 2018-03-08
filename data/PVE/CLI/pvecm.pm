@@ -289,25 +289,7 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	PVE::Cluster::setup_rootsshconfig();
-
-	PVE::Cluster::gen_pve_vzdump_symlink();
-
-	if (!PVE::Cluster::check_cfs_quorum(1)) {
-	    return undef if $param->{silent};
-	    die "no quorum - unable to update files\n";
-	}
-
-	PVE::Cluster::setup_ssh_keys();
-
-	my $nodename = PVE::INotify::nodename();
-
-	my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
-
-	PVE::Cluster::gen_pve_node_files($nodename, $local_ip_address, $param->{force});
-	PVE::Cluster::ssh_merge_keys();
-	PVE::Cluster::ssh_merge_known_hosts($nodename, $local_ip_address);
-	PVE::Cluster::gen_pve_vzdump_files();
+	PVE::Cluster::updatecerts_and_ssh($param->@{qw(force silent)});
 
 	return undef;
     }});

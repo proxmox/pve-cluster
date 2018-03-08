@@ -1863,19 +1863,41 @@ sub finish_join {
     }
     print "OK\n" if !$printqmsg;
 
-    my $local_ip_address = remote_node_ip($nodename);
+    updatecerts_and_ssh(1);
 
-    print "generating node certificates\n";
-    gen_pve_node_files($nodename, $local_ip_address);
-
-    print "merge known_hosts file\n";
-    ssh_merge_known_hosts($nodename, $local_ip_address, 1);
-
-    print "node certificate changed, restart pveproxy and pvedaemon services\n";
+    print "generated new node certificate, restart pveproxy and pvedaemon services\n";
     run_command(['systemctl', 'reload-or-restart', 'pvedaemon', 'pveproxy']);
 
     print "successfully added node '$nodename' to cluster.\n";
 }
 
+sub updatecerts_and_ssh {
+    my ($force_new_cert, $silent) = @_;
+
+    my $p = sub { print "$_[0]\n" if !$silent };
+
+    setup_rootsshconfig();
+
+    gen_pve_vzdump_symlink();
+
+    if (!check_cfs_quorum(1)) {
+	return undef if $silent;
+	die "no quorum - unable to update files\n";
+    }
+
+    setup_ssh_keys();
+
+    my $nodename = PVE::INotify::nodename();
+    my $local_ip_address = remote_node_ip($nodename);
+
+    $p->("(re)generate node files");
+    $p->("generate new node certificate") if $force_new_cert;
+    gen_pve_node_files($nodename, $local_ip_address, $force_new_cert);
+
+    $p->("merge authorized SSH keys and known hosts");
+    ssh_merge_keys();
+    ssh_merge_known_hosts($nodename, $local_ip_address);
+    gen_pve_vzdump_files();
+}
 
 1;
