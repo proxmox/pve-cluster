@@ -1762,6 +1762,7 @@ my $backup_cfs_database = sub {
 
     if ((my $count = scalar(@$backups)) > $maxfiles) {
 	foreach my $f (@$backups[$maxfiles..$count-1]) {
+	    next if $f !~ m/^(\S+)$/; # untaint
 	    print "delete old backup '$1'\n";
 	    unlink $1;
 	}
