@@ -1743,35 +1743,28 @@ sub assert_joinable {
     }
 }
 
+# NOTE: filesystem must be offline here, no DB changes allowed
 my $backup_cfs_database = sub {
     my ($dbfile) = @_;
 
     mkdir $dbbackupdir;
 
-    print "backup old database\n";
     my $ctime = time();
-    my $cmd = [
-	['echo', '.dump'],
-	['sqlite3', $dbfile],
-	['gzip', '-', \ ">${dbbackupdir}/config-${ctime}.sql.gz"],
-    ];
+    my $backup_fn = "$dbbackupdir/config-$ctime.sql.gz";
 
-    PVE::Tools::run_command($cmd, 'errmsg' => "cannot backup old database\n");
+    print "backup old database to '$backup_fn'\n";
 
-    # purge older backup
-    my $maxfiles = 10;
-    my @bklist = ();
-    foreach my $fn (<$dbbackupdir/config-*.sql.gz>) {
-	if ($fn =~ m!/config-(\d+)\.sql.gz$!) {
-	    push @bklist, [$fn, $1];
+    my $cmd = [ ['sqlite3', $dbfile, '.dump'], ['gzip', '-', \ ">${backup_fn}"] ];
+    run_command($cmd, 'errmsg' => "cannot backup old database\n");
+
+    my $maxfiles = 10; # purge older backup
+    my $backups = [ sort { $b cmp $a } <$dbbackupdir/config-*.sql.gz> ];
+
+    if ((my $count = scalar(@$backups)) > $maxfiles) {
+	foreach my $f (@$backups[$maxfiles..$count-1]) {
+	    print "delete old backup '$1'\n";
+	    unlink $1;
 	}
-    }
-
-    @bklist = sort { $b->[1] <=> $a->[1] } @bklist;
-    while (scalar (@bklist) >= $maxfiles) {
-	my $d = pop @bklist;
-	print "delete old backup '$d->[0]'\n";
-	unlink $d->[0];
     }
 };
 
