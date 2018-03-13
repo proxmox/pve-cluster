@@ -1,3 +1,17 @@
+pve-cluster (5.0-22) unstable; urgency=medium
+
+  * fix tainted input in backup_cfs_database
+
+  * refactor backup_cfs_database
+
+  * cluster join: ensure updatecerts gets called on quorate cluster
+
+  * api: add fork worker ID for create and join
+
+  * pvecm: check if APIClient exception code is defined
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 13 Mar 2018 12:35:43 +0100
+
 pve-cluster (5.0-21) stable; urgency=medium
 
   * datacenter.cfg: add bwlimit
