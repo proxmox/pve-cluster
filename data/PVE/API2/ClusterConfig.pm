@@ -121,6 +121,7 @@ __PACKAGE__->register_method ({
 	my $authuser = $rpcenv->get_user();
 
 	my $code = sub {
+	    STDOUT->autoflush();
 	    PVE::Cluster::setup_sshd_config(1);
 	    PVE::Cluster::setup_rootsshconfig();
 	    PVE::Cluster::setup_ssh_keys();
@@ -512,6 +513,7 @@ __PACKAGE__->register_method ({
 	my $authuser = $rpcenv->get_user();
 
 	my $worker = sub {
+	    STDOUT->autoflush();
 	    PVE::Tools::lock_file($local_cluster_lock, 10, \&PVE::Cluster::join, $param);
 	    die $@ if $@;
 	};
