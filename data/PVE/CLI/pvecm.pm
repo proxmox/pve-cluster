@@ -107,6 +107,7 @@ __PACKAGE__->register_method ({
 	my $nodename = PVE::INotify::nodename();
 
 	my $host = $param->{hostname};
+	my $local_ip_address = remote_node_ip($nodename);
 
 	PVE::Cluster::assert_joinable($param->{ring0_addr}, $param->{ring1_addr}, $param->{force});
 
@@ -150,7 +151,7 @@ __PACKAGE__->register_method ({
 
 	    push @$cmd, '--nodeid', $param->{nodeid} if $param->{nodeid};
 	    push @$cmd, '--votes', $param->{votes} if defined($param->{votes});
-	    push @$cmd, '--ring0_addr', $param->{ring0_addr} if defined($param->{ring0_addr});
+	    push @$cmd, '--ring0_addr', $param->{ring0_addr} // $local_ip_address;
 	    push @$cmd, '--ring1_addr', $param->{ring1_addr} if defined($param->{ring1_addr});
 
 	    if (system (@$cmd) != 0) {
