@@ -1,3 +1,11 @@
+pve-cluster (5.0-23) unstable; urgency=medium
+
+  * API/Cluster: autoflush STDOUT for join and create
+
+  * pvecm join: also default to resolved IP with use_ssh param
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 05 Apr 2018 12:24:49 +0200
+
 pve-cluster (5.0-22) unstable; urgency=medium
 
   * fix tainted input in backup_cfs_database
