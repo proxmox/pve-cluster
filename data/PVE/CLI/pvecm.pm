@@ -107,7 +107,7 @@ __PACKAGE__->register_method ({
 	my $nodename = PVE::INotify::nodename();
 
 	my $host = $param->{hostname};
-	my $local_ip_address = remote_node_ip($nodename);
+	my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
 
 	PVE::Cluster::assert_joinable($param->{ring0_addr}, $param->{ring1_addr}, $param->{force});
 
