@@ -1890,7 +1890,7 @@ sub updatecerts_and_ssh {
 
     $p->("merge authorized SSH keys and known hosts");
     ssh_merge_keys();
-    ssh_merge_known_hosts($nodename, $local_ip_address);
+    ssh_merge_known_hosts($nodename, $local_ip_address, 1);
     gen_pve_vzdump_files();
 }
 
