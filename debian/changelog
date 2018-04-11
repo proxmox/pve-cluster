@@ -1,3 +1,11 @@
+pve-cluster (5.0-24) unstable; urgency=medium
+
+  * fix #1723: cluster joining via the CLI
+
+  * create known_hosts symlink on join
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 11 Apr 2018 11:28:27 +0200
+
 pve-cluster (5.0-23) unstable; urgency=medium
 
   * API/Cluster: autoflush STDOUT for join and create
