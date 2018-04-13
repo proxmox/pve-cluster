@@ -1374,8 +1374,8 @@ my $datacenter_schema = {
 	console => {
 	    optional => 1,
 	    type => 'string',
-	    description => "Select the default Console viewer. You can either use the builtin java applet (VNC; deprecated and maps to html5), an external virt-viewer comtatible application (SPICE), or an HTML5 based viewer (noVNC).",
-	    enum => ['applet', 'vv', 'html5'],
+	    description => "Select the default Console viewer. You can either use the builtin java applet (VNC; deprecated and maps to html5), an external virt-viewer comtatible application (SPICE), an HTML5 based vnc viewer (noVNC), or a HTML5 based console client (xtermjs). If the selected viewer is not available (e.g. SPICE not activated for the VM), the fallback is noVNC.",
+	    enum => ['applet', 'vv', 'html5', 'xtermjs'],
 	},
 	email_from => {
 	    optional => 1,
