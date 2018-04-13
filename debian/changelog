@@ -1,3 +1,10 @@
+pve-cluster (5.0-25) unstable; urgency=medium
+
+  * fix daemonization of pmxcfs to avoid races with other services and its own
+    post-start hook trying to communicate with it before it's ready
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 13 Apr 2018 13:48:19 +0200
+
 pve-cluster (5.0-24) unstable; urgency=medium
 
   * fix #1723: cluster joining via the CLI
