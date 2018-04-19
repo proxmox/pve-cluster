@@ -960,6 +960,14 @@ sub cfs_lock_domain {
     &$cfs_lock($lockid, $timeout, $code, @param);
 }
 
+sub cfs_lock_acme {
+    my ($account, $timeout, $code, @param) = @_;
+
+    my $lockid = "acme-$account";
+
+    &$cfs_lock($lockid, $timeout, $code, @param);
+}
+
 my $log_levels = {
     "emerg" => 0,
     "alert" => 1,
