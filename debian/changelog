@@ -1,3 +1,9 @@
+pve-cluster (5.0-26) unstable; urgency=medium
+
+  * add 'xtermjs' as possible default console type option
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 24 Apr 2018 11:07:25 +0200
+
 pve-cluster (5.0-25) unstable; urgency=medium
 
   * fix daemonization of pmxcfs to avoid races with other services and its own
