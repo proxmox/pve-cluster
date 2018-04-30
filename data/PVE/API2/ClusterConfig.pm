@@ -399,6 +399,9 @@ __PACKAGE__->register_method ({
 __PACKAGE__->register_method ({
     name => 'join_info',
     path => 'join',
+    permissions => {
+	check => ['perm', '/', [ 'Sys.Audit' ]],
+    },
     method => 'GET',
     description => "Get information needed to join this cluster over the connected node.",
     parameters => {
