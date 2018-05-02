@@ -775,6 +775,7 @@ int main(int argc, char *argv[])
 {
 	int ret = -1;
 	int lockfd = -1;
+	int pipefd[2];
 
 	gboolean foreground = FALSE;
 	gboolean force_local_mode = FALSE;
@@ -954,17 +955,39 @@ int main(int argc, char *argv[])
 	fuse_set_signal_handlers(fuse_get_session(fuse));
 
 	if (!foreground) {
+		if (pipe(pipefd) == -1) {
+			cfs_critical("pipe error: %s", strerror(errno));
+			goto err;
+		}
+
 		pid_t cpid = fork();
 
 		if (cpid == -1) {
 			cfs_critical("failed to daemonize program - %s", strerror (errno));
 			goto err;
 		} else if (cpid) {
+			int readbytes, errno_tmp;
+			char readbuffer;
+			close(pipefd[1]);
+			readbytes = read(pipefd[0], &readbuffer, sizeof(readbuffer));
+			errno_tmp = errno;
+			close(pipefd[0]);
+			if (readbytes == -1) {
+				cfs_critical("read error: %s", strerror(errno_tmp));
+				kill(cpid, SIGKILL);
+				goto err;
+			} else if (readbytes != 1 || readbuffer != '1') {
+				cfs_critical("child failed to send '1'");
+				kill(cpid, SIGKILL);
+				goto err;
+			}
+			/* child finished starting up */
 			write_pidfile(cpid);
 			qb_log_fini();
 			_exit (0);
 		} else {
 			int nullfd;
+			close(pipefd[0]);
 
 			chroot("/");
 
@@ -1021,6 +1044,12 @@ int main(int argc, char *argv[])
 	server_start(memdb);
 
 	unlink(RESTART_FLAG_FILE);
+
+	if (!foreground) {
+		/* finished starting up, signaling parent */
+		write(pipefd[1], "1", 1);
+		close(pipefd[1]);
+	}
 
 	ret = fuse_loop_mt(fuse);
 
