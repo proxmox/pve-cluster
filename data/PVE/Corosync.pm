@@ -193,7 +193,7 @@ sub create_conf {
 
     my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
     my $ring0_addr = $param{ring0_addr} // $local_ip_address;
-    my $bindnet0_addr = $param{bindnet0_addr} // $local_ip_address;
+    my $bindnet0_addr = $param{bindnet0_addr} // $ring0_addr;
 
     my $use_ipv6 = ip_is_ipv6($ring0_addr);
     die "ring 0 addresses must be from same IP family!\n"
