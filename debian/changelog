@@ -1,3 +1,15 @@
+pve-cluster (4.0-55) unstable; urgency=medium
+
+  * datacenter.cfg write: retransform migration property to string
+
+  * pmxcfs: only exit parent when successfully started
+
+  * add pmxcfs restart detection heuristic for IPCC
+
+  * pmxcfs: do not wait artificially when stopping
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 02 May 2018 10:25:03 +0200
+
 pve-cluster (4.0-54) stable; urgency=medium
 
   * fix #1559: pmxcfs: add missing lock when dumping .rrd
