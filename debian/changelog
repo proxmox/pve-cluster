@@ -1,3 +1,13 @@
+pve-cluster (5.0-27) unstable; urgency=medium
+
+  * fix #1743: cluster create: default to ring0_addr for bindnet0
+
+  * api: allow cluster wide sys auditors to get join info
+
+  * add lock helper for ACME
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 04 May 2018 12:55:49 +0200
+
 pve-cluster (5.0-26) unstable; urgency=medium
 
   * add 'xtermjs' as possible default console type option
