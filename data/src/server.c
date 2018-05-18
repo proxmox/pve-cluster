@@ -38,6 +38,7 @@
 #include <glib.h>
 
 #include "cfs-utils.h"
+#include "cfs-ipc-ops.h"
 #include "status.h"
 #include "memdb.h"
 #include "logger.h"
@@ -171,7 +172,7 @@ static int32_t s1_msg_process_fn(
 	g_string_truncate(outbuf, 0);
 
 	int32_t result = -ECHRNG;
-	if (req_pt->id == 1) {
+	if (req_pt->id == CFS_IPC_GET_FS_VERSION) {
 
 		if (req_pt->size != sizeof(struct qb_ipc_request_header)) {
 			result = -EINVAL;
@@ -179,7 +180,7 @@ static int32_t s1_msg_process_fn(
 			result = cfs_create_version_msg(outbuf);
 		}
 
-	} else if (req_pt->id == 2) {
+	} else if (req_pt->id == CFS_IPC_GET_CLUSTER_INFO) {
 
 		if (req_pt->size != sizeof(struct qb_ipc_request_header)) {
 			result = -EINVAL;
@@ -187,14 +188,14 @@ static int32_t s1_msg_process_fn(
 			result = cfs_create_memberlist_msg(outbuf);
 		}
 
-	} else if (req_pt->id == 3) {
+	} else if (req_pt->id == CFS_IPC_GET_GUEST_LIST) {
 		
 		if (req_pt->size != sizeof(struct qb_ipc_request_header)) {
 			result = -EINVAL;
 		} else {
 			result = cfs_create_vmlist_msg(outbuf);
 		}
-	} else if (req_pt->id == 4) {
+	} else if (req_pt->id == CFS_IPC_SET_STATUS) {
 
 		cfs_status_update_request_header_t *rh = 
 			(cfs_status_update_request_header_t *)data;
@@ -213,7 +214,7 @@ static int32_t s1_msg_process_fn(
 
 			result = cfs_status_set(rh->name, dataptr, datasize);
 		}
-	} else if (req_pt->id == 5) {
+	} else if (req_pt->id == CFS_IPC_GET_STATUS) {
 
 		cfs_status_get_request_header_t *rh =
 			(cfs_status_get_request_header_t *)data;
@@ -229,7 +230,7 @@ static int32_t s1_msg_process_fn(
 
 			result = cfs_create_status_msg(outbuf, rh->nodename, rh->name);
 		}
-	} else if (req_pt->id == 6) {
+	} else if (req_pt->id == CFS_IPC_GET_CONFIG) {
 
 		int pathlen = req_pt->size - sizeof(struct qb_ipc_request_header);
 
@@ -251,7 +252,7 @@ static int32_t s1_msg_process_fn(
 				}
 			}
 		}			
-	} else if (req_pt->id == 7) {
+	} else if (req_pt->id == CFS_IPC_LOG_CLUSTER_MSG) {
 
 		cfs_log_msg_request_header_t *rh = 
 			(cfs_log_msg_request_header_t *)data;
@@ -286,7 +287,7 @@ static int32_t s1_msg_process_fn(
 				result = -EINVAL;
 			}
 		}
-	} else if (req_pt->id == 8) {
+	} else if (req_pt->id == CFS_IPC_GET_CLUSTER_LOG) {
 
 		cfs_log_get_request_header_t *rh = 
 			(cfs_log_get_request_header_t *)data;
@@ -304,7 +305,7 @@ static int32_t s1_msg_process_fn(
 			cfs_cluster_log_dump(outbuf, user, max);
 			result = 0;
 		}
-	} else if (req_pt->id == 10) {	
+	} else if (req_pt->id == CFS_IPC_GET_RRD_DUMP) {
 	
 		if (req_pt->size != sizeof(struct qb_ipc_request_header)) {
 			result = -EINVAL;

@@ -4,6 +4,10 @@ IPCC.c: IPCC.xs
 	xsubpp IPCC.xs > IPCC.xsc
 	mv IPCC.xsc IPCC.c
 
+Cluster/IPCConst.pm: Cluster/IPCConst.pm.awk
+	awk -f $^ ../src/cfs-ipc-ops.h > $@.tmp
+	mv $@.tmp $@
+
 AM_CFLAGS = -shared -fPIC -Wl,-z,relro -Wall -Werror -Wno-strict-aliasing $(PERL_INC) -DXS_VERSION=VERSION
 LDADD = $(QB_LIBS)
 
@@ -21,12 +25,16 @@ export PERLLIB=..
 	mv $@.tmp $@
 
 man1_MANS = pvecm.1
+pvecm.1-synopsis.adoc: Cluster/IPCConst.pm
 man5_MANS = datacenter.cfg.5
 
 IPCC_so_SOURCES = IPCC.c ppport.h
 
 pvelib_DATA = IPCC.pm Cluster.pm Corosync.pm
 pvelibdir = $(PERL_VENDORLIB)/PVE
+
+pveclusterlib_DATA = Cluster/IPCConst.pm
+pveclusterlibdir = $(PERL_VENDORLIB)/PVE/Cluster
 
 noinst_DATA = pvecm.bash-completion
 

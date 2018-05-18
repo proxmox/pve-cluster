@@ -17,6 +17,7 @@ use PVE::IPCC;
 use PVE::SafeSyslog;
 use PVE::JSONSchema;
 use PVE::Network;
+use PVE::Cluster::IPCConst;
 use JSON;
 use RRDs;
 use Encode;
@@ -408,7 +409,7 @@ my $ipcc_get_config = sub {
     my ($path) = @_;
 
     my $bindata = pack "Z*", $path;
-    my $res = PVE::IPCC::ipcc_send_rec(6, $bindata);
+    my $res = PVE::IPCC::ipcc_send_rec(CFS_IPC_GET_CONFIG, $bindata);
     if (!defined($res)) {
 	if ($! != 0) {
 	    return undef if $! == ENOENT;
@@ -424,7 +425,7 @@ my $ipcc_get_status = sub {
     my ($name, $nodename) = @_;
 
     my $bindata = pack "Z[256]Z[256]", $name, ($nodename || "");
-    return PVE::IPCC::ipcc_send_rec(5, $bindata);
+    return PVE::IPCC::ipcc_send_rec(CFS_IPC_GET_STATUS, $bindata);
 };
 
 my $ipcc_update_status = sub {
@@ -434,7 +435,7 @@ my $ipcc_update_status = sub {
     # update status
     my $bindata = pack "Z[256]Z*", $name, $raw;
 
-    return &$ipcc_send_rec(4, $bindata);
+    return &$ipcc_send_rec(CFS_IPC_SET_STATUS, $bindata);
 };
 
 my $ipcc_log = sub {
@@ -443,7 +444,7 @@ my $ipcc_log = sub {
     my $bindata = pack "CCCZ*Z*Z*", $priority, bytes::length($ident) + 1,
     bytes::length($tag) + 1, $ident, $tag, $msg;
 
-    return &$ipcc_send_rec(7, $bindata);
+    return &$ipcc_send_rec(CFS_IPC_LOG_CLUSTER_MSG, $bindata);
 };
 
 my $ipcc_get_cluster_log = sub {
@@ -452,7 +453,7 @@ my $ipcc_get_cluster_log = sub {
     $max = 0 if !defined($max);
 
     my $bindata = pack "VVVVZ*", $max, 0, 0, 0, ($user || "");
-    return &$ipcc_send_rec(8, $bindata);
+    return &$ipcc_send_rec(CFS_IPC_GET_CLUSTER_LOG, $bindata);
 };
 
 my $ccache = {};
@@ -460,7 +461,7 @@ my $ccache = {};
 sub cfs_update {
     my ($fail) = @_;
     eval {
-	my $res = &$ipcc_send_rec_json(1);
+	my $res = &$ipcc_send_rec_json(CFS_IPC_GET_FS_VERSION);
 	#warn "GOT1: " . Dumper($res);
 	die "no starttime\n" if !$res->{starttime};
 
@@ -487,7 +488,7 @@ sub cfs_update {
     eval {
 	if (!$clinfo->{version} || $clinfo->{version} != $versions->{clinfo}) {
 	    #warn "detected new clinfo\n";
-	    $clinfo = &$ipcc_send_rec_json(2);
+	    $clinfo = &$ipcc_send_rec_json(CFS_IPC_GET_CLUSTER_INFO);
 	}
     };
     $err = $@;
@@ -500,7 +501,7 @@ sub cfs_update {
     eval {
 	if (!$vmlist->{version} || $vmlist->{version} != $versions->{vmlist}) {
 	    #warn "detected new vmlist1\n";
-	    $vmlist = &$ipcc_send_rec_json(3);
+	    $vmlist = &$ipcc_send_rec_json(CFS_IPC_GET_GUEST_LIST);
 	}
     };
     $err = $@;
@@ -617,7 +618,7 @@ sub rrd_dump {
 
     my $raw;
     eval {
-	$raw = &$ipcc_send_rec(10);
+	$raw = &$ipcc_send_rec(CFS_IPC_GET_RRD_DUMP);
     };
     my $err = $@;
 
