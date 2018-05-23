@@ -4,9 +4,10 @@ IPCC.c: IPCC.xs
 	xsubpp IPCC.xs > IPCC.xsc
 	mv IPCC.xsc IPCC.c
 
-Cluster/IPCConst.pm: Cluster/IPCConst.pm.awk
-	awk -f $^ ../src/cfs-ipc-ops.h > $@.tmp
+Cluster/IPCConst.pm: ../src/cfs-ipc-ops.h
+	awk -f Cluster/IPCConst.pm.awk $< > $@.tmp
 	mv $@.tmp $@
+Cluster/IPCConst.pm: Cluster/IPCConst.pm.awk
 
 AM_CFLAGS = -shared -fPIC -Wl,-z,relro -Wall -Werror -Wno-strict-aliasing $(PERL_INC) -DXS_VERSION=VERSION
 LDADD = $(QB_LIBS)
