@@ -290,7 +290,9 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	PVE::Cluster::updatecerts_and_ssh($param->@{qw(force silent)});
+	PVE::Tools::run_with_timeout(30, sub {
+	    PVE::Cluster::updatecerts_and_ssh($param->@{qw(force silent)});
+	});
 
 	return undef;
     }});
