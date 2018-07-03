@@ -1,3 +1,11 @@
+pve-cluster (5.0-28) unstable; urgency=medium
+
+  * pvecm updatecerts: run in fork and time out after 30 seconds
+
+  * use constants for IPC request types
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 03 Jul 2018 14:12:33 +0200
+
 pve-cluster (5.0-27) unstable; urgency=medium
 
   * fix #1743: cluster create: default to ring0_addr for bindnet0
