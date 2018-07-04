@@ -4,6 +4,5 @@ all:
 check:
 	./corosync_parser_test.pl
 
-install: check
 distclean: clean
 clean:

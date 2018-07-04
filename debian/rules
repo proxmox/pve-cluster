@@ -5,7 +5,7 @@
 #export DH_VERBOSE=1
 
 %:
-	dh $@ --with=systemd --with=autoreconf
+	dh $@ --with=systemd
 
 override_dh_strip:
 	dh_strip --dbgsym-migration='pve-cluster-dbg (<< 5.0-16)'
