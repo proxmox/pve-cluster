@@ -1,18 +1,17 @@
+SUBDIRS := PVE src test
+
 all:
+	for i in $(SUBDIRS); do $(MAKE) -C $$i $@; done
 
 .PHONY: install
 install:
-	$(MAKE) -C src install
-	$(MAKE) -C PVE install
+	for i in $(SUBDIRS); do $(MAKE) -C $$i $@; done
 
 
 .PHONY: check
 check:
-	$(MAKE) -C test check
-	$(MAKE) -C src check
-	$(MAKE) -C PVE check
+	for i in $(SUBDIRS); do $(MAKE) -C $$i $@; done
 
 .PHONY: clean
 clean:
-	$(MAKE) -C src clean
-	$(MAKE) -C PVE clean
+	for i in $(SUBDIRS); do $(MAKE) -C $$i $@; done
