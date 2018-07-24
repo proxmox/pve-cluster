@@ -1,3 +1,9 @@
+pve-cluster (5.0-29) unstable; urgency=medium
+
+  * fix #1843: always free certificate file after reading it
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 24 Jul 2018 11:16:07 +0200
+
 pve-cluster (5.0-28) unstable; urgency=medium
 
   * pvecm updatecerts: run in fork and time out after 30 seconds
