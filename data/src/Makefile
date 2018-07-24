@@ -14,7 +14,7 @@ AR = ar
 ARFLAGS = crs
 
 .c.o:
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $< -MMD -MT $@ -MF $@.d
 
 all: pmxcfs create_pmxcfs_db logtest check_memdb
 
@@ -55,3 +55,5 @@ check: check_memdb
 .PHONY: clean
 clean:
 	rm -f *.o *.a pmxcfs create_pmxcfs_db check_memdb logtest pmxcfs.8
+
+-include *.o.d
