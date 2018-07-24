@@ -1535,7 +1535,7 @@ sub read_ssl_cert_fingerprint {
     my $cert = Net::SSLeay::PEM_read_bio_X509($bio);
     Net::SSLeay::BIO_free($bio);
 
-    die "unable to read certificate from '$cert_path'\n" if (!$cert);
+    die "unable to read certificate from '$cert_path'\n" if !$cert;
 
     my $fp = Net::SSLeay::X509_get_fingerprint($cert, 'sha256');
     Net::SSLeay::X509_free($cert);
