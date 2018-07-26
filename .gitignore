@@ -1,4 +1,4 @@
 build
 *.deb
 *.changes
-
+*.buildinfo
