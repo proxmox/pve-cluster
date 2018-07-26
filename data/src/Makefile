@@ -54,6 +54,6 @@ check: check_memdb
 
 .PHONY: clean
 clean:
-	rm -f *.o *.a pmxcfs create_pmxcfs_db check_memdb logtest pmxcfs.8
+	rm -f *.o *.o.d *.a pmxcfs create_pmxcfs_db check_memdb logtest pmxcfs.8
 
 -include *.o.d
