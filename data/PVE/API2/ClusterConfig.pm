@@ -521,7 +521,7 @@ __PACKAGE__->register_method ({
 	    die $@ if $@;
 	};
 
-	return $rpcenv->fork_worker('clusterjoin', $param->{hostname},  $authuser, $worker);
+	return $rpcenv->fork_worker('clusterjoin', undef,  $authuser, $worker);
     }});
 
 
