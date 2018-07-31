@@ -1812,7 +1812,7 @@ sub join {
 	$conn_args->{manual_verification} = 1;
     }
 
-    print "Etablishing API connection with host '$host'\n";
+    print "Establishing API connection with host '$host'\n";
 
     my $conn = PVE::APIClient::LWP->new(%$conn_args);
     $conn->login();
