@@ -1,3 +1,17 @@
+pve-cluster (5.0-30) unstable; urgency=medium
+
+  * simplify buildsys: replace autotools with plain makefiles
+
+  * api/join: avoid using an IPv6 address as worker task ID
+
+  * Fix #1848: typo in PVE::Cluster::join()
+
+  * Fix #1849: typos: aquire -> acquire
+
+  * add missing languages to datacenter_schema
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 23 Aug 2018 13:59:49 +0200
+
 pve-cluster (5.0-29) unstable; urgency=medium
 
   * fix #1843: always free certificate file after reading it
