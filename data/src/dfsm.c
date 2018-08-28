@@ -1137,10 +1137,10 @@ dfsm_cpg_confchg_callback(
 	}
 
 	int lowest_nodeid = 0;
-	GString *str = g_string_new("members: ");
+	GString *member_ids = g_string_new(NULL);
 	for (int i = 0; i < member_list_entries; i++) {
 
-		g_string_append_printf(str, i ? ", %d/%d" : "%d/%d",
+		g_string_append_printf(member_ids, i ? ", %d/%d" : "%d/%d",
 				       member_list[i].nodeid, member_list[i].pid);
 
 		if (lowest_nodeid == 0 || lowest_nodeid > member_list[i].nodeid)
@@ -1153,9 +1153,9 @@ dfsm_cpg_confchg_callback(
 
 
 	if ((dfsm->we_are_member || mode != DFSM_MODE_START))
-		cfs_dom_message(dfsm->log_domain, str->str);
+		cfs_dom_message(dfsm->log_domain, "members: %s",  member_ids->str);
 
-	g_string_free(str, 1);
+	g_string_free(member_ids, 1);
 
 	dfsm->lowest_nodeid = lowest_nodeid;
 

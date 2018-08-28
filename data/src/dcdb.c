@@ -632,8 +632,8 @@ dcdb_process_state_update(
 	memdb_index_t *leaderidx = idx[leader];
 	localsi->master = leaderidx;
 
-	GString *str = g_string_new("synced members:");
-	g_string_append_printf(str, " %d/%d", syncinfo->nodes[leader].nodeid, syncinfo->nodes[leader].pid);
+	GString *synced_member_ids = g_string_new(NULL);
+	g_string_append_printf(synced_member_ids, "%d/%d", syncinfo->nodes[leader].nodeid, syncinfo->nodes[leader].pid);
 
 	for (int i = 0; i < syncinfo->node_count; i++) {
 		dfsm_node_info_t *ni = &syncinfo->nodes[i];
@@ -643,14 +643,14 @@ dcdb_process_state_update(
 			if (leaderidx->bytes == idx[i]->bytes &&
 			    memcmp(leaderidx, idx[i], leaderidx->bytes) == 0) {
 				ni->synced = 1;
-				g_string_append_printf(str, ", %d/%d", ni->nodeid, ni->pid);
+				g_string_append_printf(synced_member_ids, ", %d/%d", ni->nodeid, ni->pid);
 			}
 		}
 		if (dfsm_nodeid_is_local(dfsm, ni->nodeid, ni->pid)) 
 			localsi->idx = idx[i];
 	}
-	cfs_message(str->str);
-	g_string_free(str, 1);
+	cfs_message("synced members: %s", synced_member_ids->str);
+	g_string_free(synced_member_ids, 1);
 
 	/* send update */
 	if (dfsm_nodeid_is_local(dfsm, syncinfo->nodes[leader].nodeid, syncinfo->nodes[leader].pid)) {

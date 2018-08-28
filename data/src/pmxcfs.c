@@ -81,7 +81,7 @@ static void glib_log_handler(const gchar *log_domain,
 			     gpointer user_data)
 {
 
-	cfs_log(log_domain, log_level, NULL, 0, NULL, message);
+	cfs_log(log_domain, log_level, NULL, 0, NULL, "%s", message);
 }
 
 static gboolean write_pidfile(pid_t pid)
