@@ -27,7 +27,10 @@ install: pvecm ${SOURCES} IPCC.so pvecm.1 pvecm.bash-completion datacenter.cfg.5
 	LD_LIBRARY_PATH=. perl -I.. -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_bash_completions();" >$@.tmp
 	mv $@.tmp $@
 
-check:
+Cluster/IPCConst.pm:
+	$(MAKE) -C Cluster IPCConst.pm
+
+check: IPCC.so Cluster/IPCConst.pm
 	LD_LIBRARY_PATH=. perl -I.. -T -e "use PVE::CLI::pvecm; PVE::CLI::pvecm->verify_api();"
 
 CC=gcc
