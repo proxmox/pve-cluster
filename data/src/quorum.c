@@ -56,7 +56,7 @@ static void quorum_notification_fn(
 
 	result = quorum_context_get(handle, (gconstpointer *)&private);
 	if (result != CS_OK || !private) {
-		cfs_critical("quorum_context_get error: %d (%p)", result, private);
+		cfs_critical("quorum_context_get error: %d (%p)", result, (void *) private);
 		return;
 	}
 

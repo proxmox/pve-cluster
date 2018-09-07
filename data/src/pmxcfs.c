@@ -107,7 +107,7 @@ static cfs_plug_t *find_plug(const char *path, char **sub)
 
 	cfs_plug_t *plug = root_plug->lookup_plug(root_plug, &subpath);
 
-	cfs_debug("find_plug end %s = %p (%s)", path, plug, subpath);
+	cfs_debug("find_plug end %s = %p (%s)", path, (void *) plug, subpath);
 
 	if (subpath && subpath[0])
 		*sub = g_strdup(subpath);

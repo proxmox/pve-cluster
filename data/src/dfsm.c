@@ -650,7 +650,7 @@ dfsm_cpg_deliver_callback(
 	dfsm_t *dfsm = NULL;
 	result = cpg_context_get(handle, (gpointer *)&dfsm);
 	if (result != CS_OK || !dfsm || dfsm->cpg_callbacks != &cpg_callbacks) {
-		cfs_critical("cpg_context_get error: %d (%p)", result, dfsm);
+		cfs_critical("cpg_context_get error: %d (%p)", result, (void *) dfsm);
 		return; /* we have no valid dfsm pointer, so we can just ignore this */
 	}
 	dfsm_mode_t mode = dfsm_get_mode(dfsm);
@@ -1108,7 +1108,7 @@ dfsm_cpg_confchg_callback(
 	dfsm_t *dfsm = NULL;
 	result = cpg_context_get(handle, (gpointer *)&dfsm);
 	if (result != CS_OK || !dfsm || dfsm->cpg_callbacks != &cpg_callbacks) {
-		cfs_critical("cpg_context_get error: %d (%p)", result, dfsm);
+		cfs_critical("cpg_context_get error: %d (%p)", result, (void *) dfsm);
 		return; /* we have no valid dfsm pointer, so we can just ignore this */
 	}
 
