@@ -927,7 +927,7 @@ leave:
 	res = -1;
 	goto ret;
 
-};
+}
 
 static dfsm_callbacks_t dcdb_dfsm_callbacks = {
 	.dfsm_deliver_fn = dcdb_deliver,

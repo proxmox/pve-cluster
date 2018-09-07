@@ -220,7 +220,7 @@ clog_copy(
 	clog_entry_t *new;
 	if ((new = clog_alloc_entry(clog, size)))
 		memcpy((char *)new + 8, (char *)entry + 8, size - 8);
-};
+}
 
 uint32_t
 clog_pack(
@@ -613,7 +613,7 @@ clusterlog_insert(
 	}
 
 	g_mutex_unlock(&cl->mutex);
-};
+}
 
 void
 clusterlog_add(
