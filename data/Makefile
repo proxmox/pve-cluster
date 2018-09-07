@@ -1,5 +1,8 @@
 SUBDIRS := PVE src test
 
+export LD_LIBRARY_PATH+=$(CURDIR)/PVE
+export PERLLIB+=$(CURDIR)/PVE
+
 all:
 	for i in $(SUBDIRS); do $(MAKE) -C $$i $@; done
 

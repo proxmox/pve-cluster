@@ -24,14 +24,14 @@ install: pvecm ${SOURCES} IPCC.so pvecm.1 pvecm.bash-completion datacenter.cfg.5
 	for d in ${SUBDIRS}; do $(MAKE) -C $$d install; done
 
 %.bash-completion:
-	LD_LIBRARY_PATH=. perl -I.. -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_bash_completions();" >$@.tmp
+	perl -I.. -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_bash_completions();" >$@.tmp
 	mv $@.tmp $@
 
 Cluster/IPCConst.pm:
 	$(MAKE) -C Cluster IPCConst.pm
 
 check: IPCC.so Cluster/IPCConst.pm
-	LD_LIBRARY_PATH=. perl -I.. -T -e "use PVE::CLI::pvecm; PVE::CLI::pvecm->verify_api();"
+	perl -I.. -T -e "use PVE::CLI::pvecm; PVE::CLI::pvecm->verify_api();"
 
 CC=gcc
 CFLAGS += -fPIC -Wl,-z,relro -Wall -Werror -Wno-strict-aliasing -g -O2 -shared
@@ -48,7 +48,6 @@ IPCC.c: IPCC.xs ppport.h
 IPCC.so: IPCC.o
 	$(CC) ${CFLAGS} ${LDFLAGS} -shared -o $@ $<
 
-export PERLLIB=..
 export NOVIEW=1
 -include /usr/share/pve-doc-generator/pve-doc-generator.mk
 
