@@ -48,7 +48,7 @@ struct memdb_tree_entry {
 		GHashTable *entries;
 		gpointer value;
 	} data;
-	char name[0];
+	char name[];
 };
 
 typedef struct {
@@ -63,7 +63,7 @@ typedef struct {
 	guint32 mtime;
 	guint32 size;  /* number of entries */
 	guint32 bytes; /* total bytes allocated */
-	memdb_index_extry_t entries[0];
+	memdb_index_extry_t entries[];
 } memdb_index_t;
 
 typedef struct db_backend db_backend_t;
