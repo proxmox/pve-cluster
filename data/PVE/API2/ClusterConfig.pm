@@ -209,7 +209,7 @@ __PACKAGE__->register_method ({
     path => 'nodes/{node}',
     method => 'POST',
     protected => 1,
-    description => "Adds a node to the cluster configuration.",
+    description => "Adds a node to the cluster configuration. This call is for internal use.",
     parameters => {
 	additionalProperties => 0,
 	properties => {
