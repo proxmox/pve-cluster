@@ -1,3 +1,9 @@
+pve-cluster (5.0-31) unstable; urgency=medium
+
+  * add 'for internal use' to description of addnode
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 29 Nov 2018 13:06:11 +0100
+
 pve-cluster (5.0-30) unstable; urgency=medium
 
   * simplify buildsys: replace autotools with plain makefiles
