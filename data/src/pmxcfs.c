@@ -832,11 +832,11 @@ int main(int argc, char *argv[])
 	for (int i = 10; i >= 0; i--) {
 		if (flock(lockfd, LOCK_EX|LOCK_NB) != 0) {
 			if (!i) {
-				cfs_critical("unable to aquire pmxcfs lock: %s", strerror (errno));
+				cfs_critical("unable to acquire pmxcfs lock: %s", strerror (errno));
 				goto err;
 			}
 			if (i == 10)
-				cfs_message("unable to aquire pmxcfs lock - trying again");
+				cfs_message("unable to acquire pmxcfs lock - trying again");
 
 			sleep(1);
 		}
