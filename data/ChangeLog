@@ -232,7 +232,7 @@
 
 	* src/Makefile.am (CFLAGS): use -std=gnu99 
 
-	* src/pmxcfs.c (main): wait up to 10 seconds to aquire lock.
+	* src/pmxcfs.c (main): wait up to 10 seconds to acquire lock.
 
 	* src/cfs-plug-memdb.c (dcdb_sync_cluster_conf): only write
 	cluster config when there are changes.
