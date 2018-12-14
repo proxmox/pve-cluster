@@ -260,9 +260,9 @@ __PACKAGE__->register_method ({
 
 		while (my ($k, $v) = each %$nodelist) {
 		    next if $k eq $name; # allows re-adding a node if force is set
-			if ($v->{ring0_addr} eq $addr || ($v->{ring1_addr} && $v->{ring1_addr} eq $addr)) {
-			    die "corosync: address '$addr' already defined by node '$k'\n";
-			}
+		    if ($v->{ring0_addr} eq $addr || ($v->{ring1_addr} && $v->{ring1_addr} eq $addr)) {
+			die "corosync: address '$addr' already defined by node '$k'\n";
+		    }
 		}
 	    };
 
