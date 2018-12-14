@@ -93,20 +93,11 @@ sub run_silent_cmd {
     my ($cmd) = @_;
 
     my $outbuf = '';
+    my $record = sub { $outbuf .= shift . "\n"; };
 
-    my $record_output = sub {
-	$outbuf .= shift;
-	$outbuf .= "\n";
-    };
+    eval { run_command($cmd, outfunc => $record, errfunc => $record) };
 
-    eval {
-	PVE::Tools::run_command($cmd, outfunc => $record_output,
-				errfunc => $record_output);
-    };
-
-    my $err = $@;
-
-    if ($err) {
+    if (my $err = $@) {
 	print STDERR $outbuf;
 	die $err;
     }
