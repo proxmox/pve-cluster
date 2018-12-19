@@ -7,6 +7,8 @@ BASHCOMPLETION=${DESTDIR}/usr/share/bash-completion/completions
 PERL_VENDORARCH=$(shell perl -MConfig -e 'print $$Config{vendorarch};')
 PVE_VENDORARCH=${DESTDIR}/${PERL_VENDORARCH}/auto/PVE/IPCC
 
+PERL_DOC_INC_DIRS:=..
+
 SUBDIRS=Cluster CLI API2
 SOURCES=IPCC.pm Cluster.pm Corosync.pm
 
