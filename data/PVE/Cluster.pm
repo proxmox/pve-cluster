@@ -86,6 +86,7 @@ my $observed = {
     'ha/groups.cfg' => 1,
     'ha/fence.cfg' => 1,
     'status.cfg' => 1,
+    'ceph.conf' => 1,
 };
 
 # only write output if something fails
