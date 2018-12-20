@@ -67,6 +67,9 @@ my $rootsshauthkeys = "/root/.ssh/authorized_keys";
 my $rootsshauthkeysbackup = "${rootsshauthkeys}.org";
 my $rootsshconfig = "/root/.ssh/config";
 
+# this is just a readonly copy, the relevant one is in status.c from pmxcfs
+# observed files are the one we can get directly through IPCC, they are cached
+# using a computed version and only those can be used by the cfs_*_file methods
 my $observed = {
     'vzdump.cron' => 1,
     'storage.cfg' => 1,
