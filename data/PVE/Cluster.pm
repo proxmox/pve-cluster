@@ -1341,6 +1341,17 @@ my $migration_format = {
     },
 };
 
+my $ha_format = {
+    shutdown_policy => {
+	type => 'string',
+	enum => ['freeze', 'failover', 'conditional'],
+	description => "The policy for HA services on node shutdown. 'freeze' disables auto-recovery, 'failover' ensures recovery, 'conditional' recovers on poweroff and freezes on reboot. Running HA Services will always get stopped first on shutdown.",
+	verbose_description => "Describes the policy for handling HA services on poweroff or reboot of a node. Freeze will always freeze services which are still located on the node on shutdown, those services won't be recovered by the HA manager. Failover will not mark the services as frozen and thus the services will get recovered to other nodes, if the shutdown node does not come up again quickly (< 1min). 'conditional' chooses automatically depending on the type of shutdown, i.e., on a reboot the service will be frozen but on a poweroff the service will stay as is, and thus get recovered after about 2 minutes.",
+	default => 'conditional',
+    }
+};
+
+
 my $datacenter_schema = {
     type => "object",
     additionalProperties => 0,
@@ -1424,6 +1435,11 @@ my $datacenter_schema = {
 	      " With both all two modes are used." .
 	      "\n\nWARNING: 'hardware' and 'both' are EXPERIMENTAL & WIP",
 	},
+	ha => {
+	    optional => 1,
+	    type => 'string', format => $ha_format,
+	    description => "Cluster wide HA settings.",
+	},
 	mac_prefix => {
 	    optional => 1,
 	    type => 'string',
@@ -1444,6 +1460,10 @@ sub parse_datacenter_config {
 
     if (my $migration = $res->{migration}) {
 	$res->{migration} = PVE::JSONSchema::parse_property_string($migration_format, $migration);
+    }
+
+    if (my $ha = $res->{ha}) {
+	$res->{ha} = PVE::JSONSchema::parse_property_string($ha_format, $ha);
     }
 
     # for backwards compatibility only, new migration property has precedence
@@ -1480,6 +1500,10 @@ sub write_datacenter_config {
 
     if (my $migration = $cfg->{migration}) {
 	$cfg->{migration} = PVE::JSONSchema::print_property_string($migration, $migration_format);
+    }
+
+    if (my $ha = $cfg->{ha}) {
+	$cfg->{ha} = PVE::JSONSchema::print_property_string($ha, $ha_format);
     }
 
     return PVE::JSONSchema::dump_config($datacenter_schema, $filename, $cfg);
