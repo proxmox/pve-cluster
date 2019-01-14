@@ -2,14 +2,14 @@
 Description=The Proxmox VE cluster filesystem
 ConditionFileIsExecutable=/usr/bin/pmxcfs
 Wants=corosync.service
-Wants=systemd-timesyncd.service
+Wants=time-sync.target
 Wants=rrdcached.service
 Before=corosync.service
 Before=ceph.service
 Before=cron.service
 After=network.target
 After=sys-fs-fuse-connections.mount
-After=systemd-timesyncd.service
+After=time-sync.target
 After=rrdcached.service
 DefaultDependencies=no
 Before=shutdown.target
