@@ -520,10 +520,7 @@ sub get_members {
 }
 
 sub get_nodelist {
-
     my $nodelist = $clinfo->{nodelist};
-
-    my $result = [];
 
     my $nodename = PVE::INotify::nodename();
 
