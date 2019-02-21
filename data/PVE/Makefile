@@ -3,6 +3,7 @@ PERL5DIR=${DESTDIR}/usr/share/perl5
 PVEDIR=${PERL5DIR}/PVE
 MAN=${DESTDIR}/usr/share/man
 BASHCOMPLETION=${DESTDIR}/usr/share/bash-completion/completions
+ZSHCOMPLETION=${DESTDIR}/usr/share/zsh/vendor-completions
 
 PERL_VENDORARCH=$(shell perl -MConfig -e 'print $$Config{vendorarch};')
 PVE_VENDORARCH=${DESTDIR}/${PERL_VENDORARCH}/auto/PVE/IPCC
@@ -15,7 +16,7 @@ SOURCES=IPCC.pm Cluster.pm Corosync.pm
 all:
 
 .PHONY: install
-install: pvecm ${SOURCES} IPCC.so pvecm.1 pvecm.bash-completion datacenter.cfg.5
+install: pvecm ${SOURCES} IPCC.so pvecm.1 pvecm.bash-completion pvecm.zsh-completion datacenter.cfg.5
 	install -D -m 0755 pvecm ${DESTDIR}/usr/bin/pvecm
 	install -d ${PVEDIR}
 	for f in ${SOURCES}; do install -m 0664 $$f ${PVEDIR}/$$f; done
@@ -23,10 +24,15 @@ install: pvecm ${SOURCES} IPCC.so pvecm.1 pvecm.bash-completion datacenter.cfg.5
 	install -D pvecm.1 ${MAN}/man1/pvecm.1
 	install -D datacenter.cfg.5 ${MAN}/man5/datacenter.cfg.5
 	install -m 0644 -D pvecm.bash-completion ${BASHCOMPLETION}/pvecm
+	install -m 0644 -D pvecm.zsh-completion ${ZSHCOMPLETION}/_pvecm
 	for d in ${SUBDIRS}; do $(MAKE) -C $$d install; done
 
 %.bash-completion:
 	perl -I.. -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_bash_completions();" >$@.tmp
+	mv $@.tmp $@
+
+%.zsh-completion:
+	perl -I.. -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_zsh_completions();" >$@.tmp
 	mv $@.tmp $@
 
 Cluster/IPCConst.pm:
@@ -56,5 +62,5 @@ export NOVIEW=1
 .PHONY: clean
 clean:
 	$(MAKE) cleanup-docgen
-	rm -f IPCC.so IPCC.o IPCC.c pvecm.bash-completion
+	rm -f IPCC.so IPCC.o IPCC.c pvecm.bash-completion pvecm.zsh-completion
 	for d in ${SUBDIRS}; do $(MAKE) -C $$d clean; done
