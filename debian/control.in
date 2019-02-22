@@ -20,7 +20,7 @@ Build-Depends: autotools-dev,
                librrds-perl,
                libsqlite3-dev,
                libuuid-perl,
-               pve-doc-generator,
+               pve-doc-generator (>= 5.3-3),
                rrdcached,
                sqlite3,
 Standards-Version: 3.7.3
