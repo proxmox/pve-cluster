@@ -63,6 +63,253 @@ __PACKAGE__->register_method ({
 	return undef;
     }});
 
+my $foreach_member = sub {
+    my ($code, $noerr) = @_;
+
+    my $members = PVE::Cluster::get_members();
+    foreach my $node (sort keys %$members) {
+	if (my $ip = $members->{$node}->{ip}) {
+	    $code->($node, $ip);
+	} else {
+	    die "cannot get the cluster IP for node '$node'.\n" if !$noerr;
+	    warn "cannot get the cluster IP for node '$node'.\n";
+	    return undef;
+	}
+    }
+};
+
+__PACKAGE__->register_method ({
+    name => 'setup_qdevice',
+    path => 'setup_qdevice',
+    method => 'PUT',
+    description => "Setup the use of a QDevice",
+    parameters => {
+        additionalProperties => 0,
+	properties => {
+	    address => {
+		type => 'string', format => 'ip',
+		description => "Specifies the network address of an external corosync QDevice" ,
+	    },
+	    network => {
+		type => 'string',
+		format => 'CIDR',
+		description => 'The network which should be used to connect to the external qdevice',
+		optional => 1,
+	    },
+	    force => {
+		type => 'boolean',
+		description => "Do not throw error on possible dangerous operations.",
+		optional => 1,
+	    },
+	},
+    },
+    returns => { type => 'null' },
+
+    code => sub {
+	my ($param) = @_;
+
+	die "Node not in a cluster. Aborting.\n"
+	    if !PVE::Corosync::check_conf_exists(1);
+
+	my $members = PVE::Cluster::get_members();
+	foreach my $node (sort keys %$members) {
+	    die "All nodes must be online! Node $node is offline, aborting.\n"
+		if !$members->{$node}->{online};
+	}
+
+	my $conf = PVE::Cluster::cfs_read_file("corosync.conf");
+
+	die "QDevice already configured!\n"
+	    if defined($conf->{main}->{quorum}->{device}) && !$param->{force};
+
+	my $network = $param->{network};
+
+	my $model = "net";
+	my $algorithm = 'ffsplit';
+	if (scalar($members) & 1) {
+	    if ($param->{force}) {
+		$algorithm = 'lms';
+	    } else {
+		die "Clusters with an odd node count are not officially supported!\n";
+	    }
+	}
+
+	my $qnetd_addr = $param->{address};
+	my $base_dir = "/etc/corosync/qdevice/net";
+	my $db_dir_qnetd = "/etc/corosync/qnetd/nssdb";
+	my $db_dir_node = "$base_dir/nssdb";
+	my $ca_export_base = "qnetd-cacert.crt";
+	my $ca_export_file = "$db_dir_qnetd/$ca_export_base";
+	my $crq_file_base = "qdevice-net-node.crq";
+	my $p12_file_base = "qdevice-net-node.p12";
+	my $qdevice_certutil = "corosync-qdevice-net-certutil";
+	my $qnetd_certutil= "corosync-qnetd-certutil";
+	my $clustername = $conf->{main}->{totem}->{cluster_name};
+
+	run_command(['ssh-copy-id', '-i', '/root/.ssh/id_rsa', "root\@$qnetd_addr"]);
+
+	if (-d $db_dir_node) {
+	    # FIXME: check on all nodes?!
+	    if ($param->{force}) {
+		rmtree $db_dir_node;
+	    } else {
+		die "QDevice certificate store already initialised, set force to delete!\n";
+	    }
+	}
+
+	my $ssh_cmd = ['ssh', '-o', 'BatchMode=yes', '-lroot'];
+	my $scp_cmd = ['scp', '-o', 'BatchMode=yes'];
+
+	print "\nINFO: initializing qnetd server\n";
+	run_command(
+	    [@$ssh_cmd, $qnetd_addr, $qnetd_certutil, "-i"],
+	    noerr => 1
+	);
+
+	print "\nINFO: copying CA cert and initializing on all nodes\n";
+	run_command([@$scp_cmd, "root\@\[$qnetd_addr\]:$ca_export_file", "/etc/pve/$ca_export_base"]);
+	$foreach_member->(sub {
+	    my ($node, $ip) = @_;
+	    my $outsub = sub { print "\nnode '$node': " . shift };
+	    run_command(
+		[@$ssh_cmd, $ip, $qdevice_certutil, "-i", "-c", "/etc/pve/$ca_export_base"],
+		noerr => 1, outfunc => \&$outsub
+	    );
+	});
+	unlink "/etc/pve/$ca_export_base";
+
+	print "\nINFO: generating cert request\n";
+	run_command([$qdevice_certutil, "-r", "-n", $clustername]);
+
+	print "\nINFO: copying exported cert request to qnetd server\n";
+	run_command([@$scp_cmd, "$db_dir_node/$crq_file_base", "root\@\[$qnetd_addr\]:/tmp"]);
+
+	print "\nINFO: sign and export cluster cert\n";
+	run_command([
+		@$ssh_cmd, $qnetd_addr, $qnetd_certutil, "-s", "-c",
+		"/tmp/$crq_file_base", "-n", "$clustername"
+	    ]);
+
+	print "\nINFO: copy exported CRT\n";
+	run_command([
+		@$scp_cmd, "root\@\[$qnetd_addr\]:$db_dir_qnetd/cluster-$clustername.crt",
+		"$db_dir_node"
+	    ]);
+
+	print "\nINFO: import certificate\n";
+	run_command(["$qdevice_certutil", "-M", "-c", "$db_dir_node/cluster-$clustername.crt"]);
+
+	print "\nINFO: copy and import pk12 cert to all nodes\n";
+	run_command([@$scp_cmd, "$db_dir_node/$p12_file_base", "/etc/pve/"]);
+	$foreach_member->(sub {
+	    my ($node, $ip) = @_;
+	    my $outsub = sub { print "\nnode '$node': " . shift };
+	    run_command([
+		    @$ssh_cmd, $ip, "$qdevice_certutil", "-m", "-c",
+		    "/etc/pve/$p12_file_base"], outfunc => \&$outsub
+		);
+	});
+	unlink "/etc/pve/$p12_file_base";
+
+
+	my $code = sub {
+	    my $conf = PVE::Cluster::cfs_read_file("corosync.conf");
+	    my $quorum_section = $conf->{main}->{quorum};
+
+	    die "Qdevice already configured, must be removed before setting up new one!\n"
+		if defined($quorum_section->{device}); # must not be forced!
+
+	    my $qdev_section = {
+		model => $model,
+		"$model" => {
+		    tls => 'on',
+		    host => $qnetd_addr,
+		    algorithm => $algorithm,
+		}
+	    };
+	    $qdev_section->{votes} = 1 if $algorithm eq 'ffsplit';
+
+	    $quorum_section->{device} = $qdev_section;
+
+	    PVE::Corosync::atomic_write_conf($conf);
+	};
+
+	print "\nINFO: add QDevice to cluster configuration\n";
+	PVE::Cluster::cfs_lock_file('corosync.conf', 10, $code);
+	die $@ if $@;
+
+	$foreach_member->(sub {
+	    my ($node, $ip) = @_;
+	    my $outsub = sub { print "\nnode '$node': " . shift };
+	    print "\nINFO: start and enable corosync qdevice daemon on node '$node'...\n";
+	    run_command([@$ssh_cmd, $ip, 'systemctl', 'start', 'corosync-qdevice'], outfunc => \&$outsub);
+	    run_command([@$ssh_cmd, $ip, 'systemctl', 'enable', 'corosync-qdevice'], outfunc => \&$outsub);
+	});
+
+	run_command(['corosync-cfgtool', '-R']); # do cluster wide config reload
+
+	return undef;
+}});
+
+__PACKAGE__->register_method ({
+    name => 'remove_qdevice',
+    path => 'remove_qdevice',
+    method => 'DELETE',
+    description => "Remove a configured QDevice",
+    parameters => {
+        additionalProperties => 0,
+	properties => {},
+    },
+    returns => { type => 'null' },
+
+    code => sub {
+	my ($param) = @_;
+
+	die "Node not in a cluster. Aborting.\n"
+	    if !PVE::Corosync::check_conf_exists(1);
+
+	my $members = PVE::Cluster::get_members();
+	foreach my $node (sort keys %$members) {
+	    die "All nodes must be online! Node $node is offline, aborting.\n"
+		if !$members->{$node}->{online};
+	}
+
+	my $ssh_cmd = ['ssh', '-o', 'BatchMode=yes', '-lroot'];
+
+	my $code = sub {
+	    my $conf = PVE::Cluster::cfs_read_file("corosync.conf");
+	    my $quorum_section = $conf->{main}->{quorum};
+
+	    die "No QDevice configured!\n" if !defined($quorum_section->{device});
+
+	    delete $quorum_section->{device};
+
+	    PVE::Corosync::atomic_write_conf($conf);
+
+	    # cleanup qdev state (cert storage)
+	    my $qdev_state_dir =  "/etc/corosync/qdevice";
+	    $foreach_member->(sub {
+		my (undef, $ip) = @_;
+		run_command([@$ssh_cmd, $ip, '--', 'rm', '-rf', $qdev_state_dir]);
+	    });
+	};
+
+	PVE::Cluster::cfs_lock_file('corosync.conf', 10, $code);
+	die $@ if $@;
+
+	$foreach_member->(sub {
+	    my (undef, $ip) = @_;
+	    run_command([@$ssh_cmd, $ip, 'systemctl', 'stop', 'corosync-qdevice']);
+	    run_command([@$ssh_cmd, $ip, 'systemctl', 'disable', 'corosync-qdevice']);
+	});
+
+	run_command(['corosync-cfgtool', '-R']);
+
+	print "\nRemoved Qdevice.\n";
+
+	return undef;
+}});
+
 __PACKAGE__->register_method ({
     name => 'add',
     path => 'add',
@@ -396,6 +643,10 @@ our $cmddef = {
     expected => [ __PACKAGE__, 'expected', ['expected']],
     updatecerts => [ __PACKAGE__, 'updatecerts', []],
     mtunnel => [ __PACKAGE__, 'mtunnel', ['extra-args']],
+    qdevice => {
+	setup => [ __PACKAGE__, 'setup_qdevice', ['address']],
+	remove => [ __PACKAGE__, 'remove_qdevice', []],
+    }
 };
 
 1;
