@@ -158,11 +158,15 @@ sub gen_auth_key {
 
     check_cfs_is_mounted();
 
-    mkdir $authdir || $! == EEXIST || die "unable to create dir '$authdir' - $!\n";
+    cfs_lock_authkey(undef, sub {
+	mkdir $authdir || $! == EEXIST || die "unable to create dir '$authdir' - $!\n";
 
-    run_silent_cmd(['openssl', 'genrsa', '-out', $authprivkeyfn, '2048']);
+	run_silent_cmd(['openssl', 'genrsa', '-out', $authprivkeyfn, '2048']);
 
-    run_silent_cmd(['openssl', 'rsa', '-in', $authprivkeyfn, '-pubout', '-out', $authpubkeyfn]);
+	run_silent_cmd(['openssl', 'rsa', '-in', $authprivkeyfn, '-pubout', '-out', $authpubkeyfn]);
+    });
+
+    die "$@\n" if $@;
 }
 
 sub gen_pveca_key {
