@@ -961,6 +961,12 @@ sub cfs_lock_acme {
     &$cfs_lock($lockid, $timeout, $code, @param);
 }
 
+sub cfs_lock_authkey {
+    my ($timeout, $code, @param) = @_;
+
+    $cfs_lock->('authkey', $timeout, $code, @param);
+}
+
 my $log_levels = {
     "emerg" => 0,
     "alert" => 1,
