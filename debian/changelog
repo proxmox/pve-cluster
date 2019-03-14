@@ -1,3 +1,18 @@
+pve-cluster (5.0-34) unstable; urgency=medium
+
+  * fix #2049: avoid conflict with chrony service
+
+  * fix #1891: Add zsh command completion for pvecm
+
+  * allow to setup and remove qdevice for cluster with the pvecm CLI
+    tool
+
+  * mac_prefix: do not allow multicast prefixes
+
+  * cluster: use lock for legacy authkey generation
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 14 Mar 2019 09:34:16 +0100
+
 pve-cluster (5.0-33) unstable; urgency=medium
 
   * add ha setting format string property to datacenter.cfg
