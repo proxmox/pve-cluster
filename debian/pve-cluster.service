@@ -18,6 +18,7 @@ Conflicts=shutdown.target
 ExecStart=/usr/bin/pmxcfs
 ExecStartPost=-/usr/bin/pvecm updatecerts --silent
 KillMode=mixed
+Restart=on-failure
 TimeoutStopSec=10
 Type=forking
 PIDFile=/var/run/pve-cluster.pid
