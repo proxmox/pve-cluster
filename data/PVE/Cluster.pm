@@ -80,6 +80,7 @@ my $observed = {
     'user.cfg' => 1,
     'domains.cfg' => 1,
     'priv/shadow.cfg' => 1,
+    'priv/tfa.cfg' => 1,
     '/qemu-server/' => 1,
     '/openvz/' => 1,
     '/lxc/' => 1,
