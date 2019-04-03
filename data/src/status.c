@@ -81,6 +81,7 @@ static memdb_change_t memdb_change_array[] = {
 	{ .path = "user.cfg" },
 	{ .path = "domains.cfg" },
 	{ .path = "priv/shadow.cfg" },
+	{ .path = "priv/tfa.cfg" },
 	{ .path = "datacenter.cfg" },
 	{ .path = "vzdump.cron" },
 	{ .path = "ha/crm_commands" },
