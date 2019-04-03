@@ -1,3 +1,11 @@
+pve-cluster (5.0-35) unstable; urgency=medium
+
+  * restart pve-cluster.service on failure
+
+  * add u2f configuration to datacenter.cfg
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 03 Apr 2019 13:37:03 +0200
+
 pve-cluster (5.0-34) unstable; urgency=medium
 
   * fix #2049: avoid conflict with chrony service
