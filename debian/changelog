@@ -1,3 +1,9 @@
+pve-cluster (5.0-36) unstable; urgency=medium
+
+  * datacenter: only print properties to string if not already done
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 10 Apr 2019 15:46:45 +0200
+
 pve-cluster (5.0-35) unstable; urgency=medium
 
   * restart pve-cluster.service on failure
