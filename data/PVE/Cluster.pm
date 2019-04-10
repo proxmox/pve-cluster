@@ -2,26 +2,30 @@ package PVE::Cluster;
 
 use strict;
 use warnings;
-use POSIX qw(EEXIST ENOENT);
+
+use Digest::HMAC_SHA1;
+use Digest::SHA;
+use Encode;
 use File::stat qw();
+use IO::File;
+use JSON;
+use MIME::Base64;
+use Net::SSLeay;
+use POSIX qw(EEXIST ENOENT);
+use RRDs;
 use Socket;
 use Storable qw(dclone);
-use IO::File;
-use MIME::Base64;
-use Digest::SHA;
-use Digest::HMAC_SHA1;
-use Net::SSLeay;
-use PVE::Tools qw(run_command);
+use UUID;
+
 use PVE::INotify;
 use PVE::IPCC;
-use PVE::SafeSyslog;
 use PVE::JSONSchema;
 use PVE::Network;
+use PVE::SafeSyslog;
+use PVE::Tools qw(run_command);
+
 use PVE::Cluster::IPCConst;
-use JSON;
-use RRDs;
-use Encode;
-use UUID;
+
 use base 'Exporter';
 
 our @EXPORT_OK = qw(
