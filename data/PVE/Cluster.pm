@@ -1537,11 +1537,13 @@ sub write_datacenter_config {
 	$cfg->{console} = 'html5';
     }
 
-    if (my $migration = $cfg->{migration}) {
+    if (ref($cfg->{migration})) {
+	my $migration = $cfg->{migration};
 	$cfg->{migration} = PVE::JSONSchema::print_property_string($migration, $migration_format);
     }
 
-    if (my $ha = $cfg->{ha}) {
+    if (ref($cfg->{ha})) {
+	my $ha = $cfg->{ha};
 	$cfg->{ha} = PVE::JSONSchema::print_property_string($ha, $ha_format);
     }
 
