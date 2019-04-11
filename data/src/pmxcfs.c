@@ -863,6 +863,7 @@ int main(int argc, char *argv[])
 
 	mkdir(VARLIBDIR, 0755);
 	mkdir(RUNDIR, 0755);
+	chown(RUNDIR, 0, cfs.gid);
 
 	if ((lockfd = open(LOCKFILE, O_RDWR|O_CREAT|O_APPEND, 0600)) == -1) {
 		cfs_critical("unable to create lock '%s': %s", LOCKFILE, strerror (errno));
@@ -1053,7 +1054,8 @@ int main(int argc, char *argv[])
 
 	ret = fuse_loop_mt(fuse);
 
-	open(RESTART_FLAG_FILE, O_CREAT|O_NOCTTY|O_NONBLOCK);
+	open(RESTART_FLAG_FILE, O_CREAT|O_NOCTTY|O_NONBLOCK, S_IRUSR | S_IRGRP);
+	chown(RESTART_FLAG_FILE, 0, cfs.gid);
 
 	cfs_message("teardown filesystem");
 
