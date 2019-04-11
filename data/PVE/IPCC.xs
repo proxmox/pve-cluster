@@ -30,7 +30,7 @@
 #include <qb/qbipcc.h>
 
 #define RESTART_FLAG_FILE "/run/pve-cluster/cfs-restart-flag"
-#define RESTART_GRACE_PERIOD 5
+#define RESTART_GRACE_PERIOD 10
 
 #define PCS_SOCKET_NAME "pve2"
 
