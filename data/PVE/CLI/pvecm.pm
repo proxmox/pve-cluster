@@ -356,7 +356,7 @@ __PACKAGE__->register_method ({
 	my $host = $param->{hostname};
 	my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
 
-	PVE::Cluster::assert_joinable($param->{ring0_addr}, $param->{ring1_addr}, $param->{force});
+	PVE::Cluster::assert_joinable($local_ip_address, $param->{ring0_addr}, $param->{ring1_addr}, $param->{force});
 
 	my $worker = sub {
 

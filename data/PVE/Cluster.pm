@@ -1785,7 +1785,7 @@ sub ssh_info_to_command {
 }
 
 sub assert_joinable {
-    my ($ring0_addr, $ring1_addr, $force) = @_;
+    my ($local_addr, $ring0_addr, $ring1_addr, $force) = @_;
 
     my $errors = '';
     my $error = sub { $errors .= "* $_[0]\n"; };
@@ -1827,6 +1827,7 @@ sub assert_joinable {
 	    if (scalar(@$configured_ips) != 1);
     };
 
+    $check_ip->($local_addr, 'local node address');
     $check_ip->($ring0_addr, 'ring0');
     $check_ip->($ring1_addr, 'ring1');
 
@@ -1866,21 +1867,20 @@ sub join {
     my ($param) = @_;
 
     my $nodename = PVE::INotify::nodename();
+    my $local_ip_address = remote_node_ip($nodename);
+
+    my ($ring0_addr, $ring1_addr) = $param->@{'ring0_addr', 'ring1_addr'};
+    # check if we can join with the given parameters and current node state
+    assert_joinable($local_ip_address, $ring0_addr, $ring1_addr, $param->{force});
 
     setup_sshd_config();
     setup_rootsshconfig();
     setup_ssh_keys();
 
-    # check if we can join with the given parameters and current node state
-    my ($ring0_addr, $ring1_addr) = $param->@{'ring0_addr', 'ring1_addr'};
-    assert_joinable($ring0_addr, $ring1_addr, $param->{force});
-
     # make sure known_hosts is on local filesystem
     ssh_unmerge_known_hosts();
 
     my $host = $param->{hostname};
-    my $local_ip_address = remote_node_ip($nodename);
-
     my $conn_args = {
 	username => 'root@pam',
 	password => $param->{password},
