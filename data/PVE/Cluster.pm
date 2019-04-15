@@ -1810,11 +1810,12 @@ sub assert_joinable {
     # check if corosync ring IPs are configured on the current nodes interfaces
     my $check_ip = sub {
 	my $ip = shift // return;
+	my $logid = shift;
 	if (!PVE::JSONSchema::pve_verify_ip($ip, 1)) {
 	    my $host = $ip;
 	    eval { $ip = PVE::Network::get_ip_from_hostname($host); };
 	    if ($@) {
-		$error->("cannot use '$host': $@\n") ;
+		$error->("$logid: cannot use '$host': $@\n") ;
 		return;
 	    }
 	}
@@ -1822,12 +1823,12 @@ sub assert_joinable {
 	my $cidr = (Net::IP::ip_is_ipv6($ip)) ? "$ip/128" : "$ip/32";
 	my $configured_ips = PVE::Network::get_local_ip_from_cidr($cidr);
 
-	$error->("cannot use IP '$ip', it must be configured exactly once on local node!\n")
+	$error->("$logid: cannot use IP '$ip', it must be configured exactly once on local node!\n")
 	    if (scalar(@$configured_ips) != 1);
     };
 
-    $check_ip->($ring0_addr);
-    $check_ip->($ring1_addr);
+    $check_ip->($ring0_addr, 'ring0');
+    $check_ip->($ring1_addr, 'ring1');
 
     if ($errors) {
 	warn "detected the following error(s):\n$errors";
