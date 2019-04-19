@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Build-Depends: autotools-dev,
                check,
-               corosync-dev (>= 2.3.4-1),
+               libcorosync-common-dev,
                debhelper (>= 7),
                dh-systemd,
                libcmap-dev (>= 0.17.1-1),
