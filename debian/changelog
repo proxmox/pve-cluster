@@ -1,3 +1,14 @@
+pve-cluster (5.0-37) unstable; urgency=medium
+
+  * ipcc: increase restart grace period
+
+  * pmxcfs: allow read access for www-data to /run dir to let pveproxy
+    detect pmxcfs restarts
+
+  * fix #1777: join: assert that local nodename bound IP is configured
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 30 Apr 2019 13:58:42 +0000
+
 pve-cluster (5.0-36) unstable; urgency=medium
 
   * datacenter: only print properties to string if not already done

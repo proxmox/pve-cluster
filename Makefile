@@ -1,6 +1,6 @@
 PACKAGE=pve-cluster
 PKGVER=5.0
-PKGREL=36
+PKGREL=37
 
 ARCH:=$(shell dpkg-architecture -qDEB_BUILD_ARCH)
 GITVERSION:=$(shell git rev-parse HEAD)
