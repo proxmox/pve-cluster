@@ -159,6 +159,18 @@ static void vminfo_free(vminfo_t *vminfo)
 	g_free(vminfo);
 }
 
+static const char *vminfo_type_to_string(vminfo_t *vminfo) {
+    if (vminfo->vmtype == VMTYPE_QEMU) {
+        return "qemu";
+    } else if (vminfo->vmtype == VMTYPE_OPENVZ) {
+        return "openvz";
+    } else if (vminfo->vmtype == VMTYPE_LXC) {
+        return "lxc";
+    } else {
+        return "unknown";
+    }
+}
+
 void cfs_clnode_destroy(
 	cfs_clnode_t *clnode)
 {
@@ -732,16 +744,7 @@ cfs_create_vmlist_msg(GString *str)
 		int first = 1;
 		while (g_hash_table_iter_next (&iter, &key, &value)) {
 			vminfo_t *vminfo = (vminfo_t *)value;
-			char *type;
-			if (vminfo->vmtype == VMTYPE_QEMU) {
-				type = "qemu";
-			} else if (vminfo->vmtype == VMTYPE_OPENVZ) {
-				type = "openvz";
-			} else if (vminfo->vmtype == VMTYPE_LXC) {
-				type = "lxc";
-			} else {
-				type = "unknown";
-			}
+			const char *type = vminfo_type_to_string(vminfo);
 
 			if (!first)
 				g_string_append_printf(str, ",\n");
@@ -1672,4 +1675,3 @@ cfs_set_quorate(
 
 	g_mutex_unlock (&mutex);
 }
-
