@@ -432,6 +432,12 @@ my $ipcc_get_status = sub {
     return PVE::IPCC::ipcc_send_rec(CFS_IPC_GET_STATUS, $bindata);
 };
 
+my $ipcc_remove_status = sub {
+    my ($name) = @_;
+    my $bindata = pack "Z[256]", $name;
+    return &$ipcc_send_rec(CFS_IPC_SET_STATUS, $bindata);
+};
+
 my $ipcc_update_status = sub {
     my ($name, $data) = @_;
 

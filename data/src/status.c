@@ -792,7 +792,9 @@ kventry_hash_set(
 	g_return_val_if_fail(data != NULL, FALSE);
 
 	kventry_t *entry;
-	if ((entry = (kventry_t *)g_hash_table_lookup(kvhash, key))) {
+	if (!len) {
+		g_hash_table_remove(kvhash, key);
+	} else if ((entry = (kventry_t *)g_hash_table_lookup(kvhash, key))) {
 		g_free(entry->data);
 		entry->data = g_memdup(data, len);
 		entry->len = len;
