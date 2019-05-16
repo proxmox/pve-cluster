@@ -546,6 +546,54 @@ sub get_nodelist {
     return [ keys %$nodelist ];
 }
 
+# best effort data store for cluster
+# this data is gone if the pmxcfs is restarted, but only the local data,
+# so we should not use this for very important data
+sub broadcast_node_kv {
+    my ($key, $data) = @_;
+
+    if (!defined($data)) {
+	eval {
+	    $ipcc_remove_status->("kv/$key");
+	};
+    } else {
+	die "cannot send a reference\n" if ref($data);
+	my $size = length($data);
+	# pmxcfs has an upper bound of 32k for each entry
+	die "data for '$key' too big\n"
+	    if $size >= (32*1024);
+
+	eval {
+	    $ipcc_update_status->("kv/$key", $data);
+	};
+    }
+
+    warn $@ if $@;
+}
+
+sub get_node_kv {
+    my ($key, $nodename) = @_;
+
+    my $res = {};
+    my $get_node_data = sub {
+	my ($node) = @_;
+	my $raw = $ipcc_get_status->("kv/$key", $node);
+	$res->{$node} = $raw if $raw;
+    };
+
+    if ($nodename) {
+	$get_node_data->($nodename);
+    } else {
+	my $nodelist = get_nodelist();
+
+	foreach my $node (@$nodelist) {
+	    $get_node_data->($node);
+	}
+    }
+
+    return $res;
+}
+
 # $data must be a chronological descending ordered array of tasks
 sub broadcast_tasklist {
     my ($data) = @_;
