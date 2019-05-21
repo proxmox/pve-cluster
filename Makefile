@@ -1,12 +1,12 @@
-PACKAGE=pve-cluster
-PKGVER=5.0
-PKGREL=37
+include /usr/share/dpkg/pkg-info.mk
+include /usr/share/dpkg/architecture.mk
 
-ARCH:=$(shell dpkg-architecture -qDEB_BUILD_ARCH)
+PACKAGE=pve-cluster
+
 GITVERSION:=$(shell git rev-parse HEAD)
 
-DEB=${PACKAGE}_${PKGVER}-${PKGREL}_${ARCH}.deb
-DBG_DEB=${PACKAGE}-dbgsym_${PKGVER}-${PKGREL}_${ARCH}.deb
+DEB=${PACKAGE}_${DEB_VERSION_UPSTREAM_REVISION}_${DEB_BUILD_ARCH}.deb
+DBGDEB=${PACKAGE}-dbgsym_${DEB_VERSION_UPSTREAM_REVISION}_${DEB_BUILD_ARCH}.deb
 
 PERL_APIVER := `perl -MConfig -e 'print $$Config{debian_abi}//$$Config{version};'`
 
@@ -34,8 +34,8 @@ ${DEB}:
 
 .PHONY: upload
 upload: ${DEB} ${DBG_DEB}
-	tar cf - ${DEB} ${DBG_DEB}| ssh -X repoman@repo.proxmox.com -- upload --product pve --dist stretch --arch ${ARCH}
+	tar cf - ${DEB} ${DBG_DEB}| ssh -X repoman@repo.proxmox.com -- upload --product pve --dist stretch --arch ${DEB_BUILD_ARCH}
 
 .PHONY: clean
 clean:
-	rm -rf *~ build *_${ARCH}.deb *.changes *.dsc ${CSDIR} *.buildinfo
+	rm -rf *~ build *.deb *.changes *.dsc ${CSDIR} *.buildinfo
