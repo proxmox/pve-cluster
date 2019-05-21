@@ -28,18 +28,18 @@ install: pvecm ${SOURCES} IPCC.so pvecm.1 pvecm.bash-completion pvecm.zsh-comple
 	for d in ${SUBDIRS}; do $(MAKE) -C $$d install; done
 
 %.bash-completion:
-	perl -I.. -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_bash_completions();" >$@.tmp
+	perl ${PERL_DOC_INC} -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_bash_completions();" >$@.tmp
 	mv $@.tmp $@
 
 %.zsh-completion:
-	perl -I.. -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_zsh_completions();" >$@.tmp
+	perl ${PERL_DOC_INC} -T -e "use PVE::CLI::$*; PVE::CLI::$*->generate_zsh_completions();" >$@.tmp
 	mv $@.tmp $@
 
 Cluster/IPCConst.pm:
 	$(MAKE) -C Cluster IPCConst.pm
 
 check: IPCC.so Cluster/IPCConst.pm
-	perl -I.. -T -e "use PVE::CLI::pvecm; PVE::CLI::pvecm->verify_api();"
+	perl ${PERL_DOC_INC} -T -e "use PVE::CLI::pvecm; PVE::CLI::pvecm->verify_api();"
 
 CC=gcc
 CFLAGS += -fPIC -Wl,-z,relro -Wall -Werror -Wno-strict-aliasing -g -O2 -shared
