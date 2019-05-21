@@ -23,7 +23,7 @@ Build-Depends: autotools-dev,
                pve-doc-generator (>= 5.3-3),
                rrdcached,
                sqlite3,
-Standards-Version: 3.7.3
+Standards-Version: 4.3.0
 
 Package: pve-cluster
 Architecture: any
