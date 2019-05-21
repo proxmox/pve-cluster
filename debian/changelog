@@ -1,3 +1,9 @@
+pve-cluster (6.0-0+1) pve; urgency=medium
+
+  * update version for Debian Buster
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 21 May 2019 18:10:10 +0200
+
 pve-cluster (5.0-37) unstable; urgency=medium
 
   * ipcc: increase restart grace period
