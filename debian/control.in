@@ -2,11 +2,9 @@ Source: pve-cluster
 Section: admin
 Priority: optional
 Maintainer: Proxmox Support Team <support@proxmox.com>
-Build-Depends: autotools-dev,
-               check,
+Build-Depends: check,
                libcorosync-common-dev,
-               debhelper (>= 7),
-               dh-systemd,
+               debhelper (>= 10),
                libcmap-dev (>= 0.17.1-1),
                libcpg-dev (>= 2.3.4-1),
                libdigest-hmac-perl,
