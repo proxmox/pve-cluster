@@ -434,6 +434,8 @@ my $ipcc_get_status = sub {
 
 my $ipcc_remove_status = sub {
     my ($name) = @_;
+    # we just omit the data payload, pmxcfs takes this as hint and removes this
+    # key from the status hashtable
     my $bindata = pack "Z[256]", $name;
     return &$ipcc_send_rec(CFS_IPC_SET_STATUS, $bindata);
 };
@@ -546,9 +548,9 @@ sub get_nodelist {
     return [ keys %$nodelist ];
 }
 
-# best effort data store for cluster
-# this data is gone if the pmxcfs is restarted, but only the local data,
-# so we should not use this for very important data
+# only stored in a in-memory hashtable inside pmxcfs, local data is gone after
+# a restart (of pmxcfs or the node), peer data is still available then
+# best used for status data, like running (ceph) services, package versions, ...
 sub broadcast_node_kv {
     my ($key, $data) = @_;
 
@@ -559,9 +561,7 @@ sub broadcast_node_kv {
     } else {
 	die "cannot send a reference\n" if ref($data);
 	my $size = length($data);
-	# pmxcfs has an upper bound of 32k for each entry
-	die "data for '$key' too big\n"
-	    if $size >= (32*1024);
+	die "data for '$key' too big\n" if $size >= (32 * 1024); # limit from pmxfs
 
 	eval {
 	    $ipcc_update_status->("kv/$key", $data);
@@ -571,6 +571,7 @@ sub broadcast_node_kv {
     warn $@ if $@;
 }
 
+# nodename is optional
 sub get_node_kv {
     my ($key, $nodename) = @_;
 
