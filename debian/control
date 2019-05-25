@@ -52,7 +52,6 @@ Depends: corosync (>= 2.3.4-1),
          ${misc:Depends},
          ${perl:Depends},
          ${shlibs:Depends},
-         @PERLAPI@,
 Breaks: pve-ha-manager (<<2.0-4),
 Description: Cluster Infrastructure for Proxmox Virtual Environment
  This package contains the Cluster Infrastructure for the Proxmox
