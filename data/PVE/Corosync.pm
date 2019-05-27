@@ -73,8 +73,17 @@ sub parse_conf {
 
     # make working with the config way easier
     my ($totem, $nodelist) = $conf->{main}->@{"totem", "nodelist"};
-    $nodelist->{node} = { map { $_->{name} // $_->{ring0_addr} => $_ } @{$nodelist->{node}} };
-    $totem->{interface} = { map { $_->{ringnumber} => $_ } @{$totem->{interface}} };
+
+    $nodelist->{node} = {
+	map {
+	    $_->{name} // $_->{ring0_addr} => $_
+	} @{$nodelist->{node}}
+    };
+    $totem->{interface} = {
+	map {
+	    $_->{linknumber} // $_->{ringnumber} => $_
+	} @{$totem->{interface}}
+    };
 
     $conf->{digest} = $digest;
 
