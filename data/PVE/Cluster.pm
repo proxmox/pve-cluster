@@ -579,7 +579,7 @@ sub get_node_kv {
     my $get_node_data = sub {
 	my ($node) = @_;
 	my $raw = $ipcc_get_status->("kv/$key", $node);
-	$res->{$node} = $raw if $raw;
+	$res->{$node} = unpack("Z*", $raw) if $raw;
     };
 
     if ($nodename) {
