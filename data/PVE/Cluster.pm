@@ -1854,6 +1854,29 @@ sub ssh_info_to_command {
     return $cmd;
 }
 
+my $corosync_link_format = {
+    address => {
+	default_key => 1,
+	type => 'string', format => 'address',
+	format_description => 'IP',
+	description => "Hostname (or IP) of this corosync link address.",
+    },
+};
+my $corosync_link_desc = {
+    type => 'string', format => $corosync_link_format,
+    description => "Address and priority information of a single corosync link.",
+    optional => 1,
+};
+PVE::JSONSchema::register_standard_option("corosync-link", $corosync_link_desc);
+
+sub parse_corosync_link {
+    my ($value) = @_;
+
+    return undef if !defined($value);
+
+    return PVE::JSONSchema::parse_property_string($corosync_link_format, $value);
+}
+
 sub assert_joinable {
     my ($local_addr, $ring0_addr, $ring1_addr, $force) = @_;
 
