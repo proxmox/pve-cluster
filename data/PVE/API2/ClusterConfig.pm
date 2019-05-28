@@ -18,22 +18,6 @@ my $clusterconf = "/etc/pve/corosync.conf";
 my $authfile = "/etc/corosync/authkey";
 my $local_cluster_lock = "/var/lock/pvecm.lock";
 
-my $ring0_desc = {
-    type => 'string', format => 'address',
-    description => "Hostname (or IP) of the corosync ring0 address of this node.",
-    default => "Hostname of the node",
-    optional => 1,
-};
-PVE::JSONSchema::register_standard_option("corosync-ring0-addr", $ring0_desc);
-
-my $ring1_desc = {
-    type => 'string', format => 'address',
-    description => "Hostname (or IP) of the corosync ring1 address of this node.".
-	" Requires a valid configured ring 1 (bindnet1_addr) in the cluster.",
-    optional => 1,
-};
-PVE::JSONSchema::register_standard_option("corosync-ring1-addr", $ring1_desc);
-
 my $nodeid_desc = {
     type => 'integer',
     description => "Node id for this node.",
