@@ -101,6 +101,7 @@ $dump_section = sub {
 		$raw .=  $prefix . "}\n";
 	    }
 	} elsif (!ref($v)) {
+	    die "got undefined value for key '$k'!\n" if !defined($v);
 	    $raw .= $prefix . "$k: $v\n";
 	} else {
 	    die "unexpected reference in config hash: $k => ". ref($v) ."\n";
