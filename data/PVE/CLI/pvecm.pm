@@ -334,8 +334,8 @@ __PACKAGE__->register_method ({
 		description => "Do not throw error if node already exists.",
 		optional => 1,
 	    },
-	    ring0_addr => get_standard_option('corosync-ring0-addr'),
-	    ring1_addr => get_standard_option('corosync-ring1-addr'),
+	    link0 => get_standard_option('corosync-link'),
+	    link1 => get_standard_option('corosync-link'),
 	    fingerprint => get_standard_option('fingerprint-sha256', {
 		optional => 1,
 	    }),
@@ -356,7 +356,10 @@ __PACKAGE__->register_method ({
 	my $host = $param->{hostname};
 	my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
 
-	PVE::Cluster::assert_joinable($local_ip_address, $param->{ring0_addr}, $param->{ring1_addr}, $param->{force});
+	my $link0 = PVE::Cluster::parse_corosync_link($param->{link0});
+	my $link1 = PVE::Cluster::parse_corosync_link($param->{link1});
+
+	PVE::Cluster::assert_joinable($local_ip_address, $link0, $link1, $param->{force});
 
 	my $worker = sub {
 
@@ -398,8 +401,10 @@ __PACKAGE__->register_method ({
 
 	    push @$cmd, '--nodeid', $param->{nodeid} if $param->{nodeid};
 	    push @$cmd, '--votes', $param->{votes} if defined($param->{votes});
-	    push @$cmd, '--ring0_addr', $param->{ring0_addr} // $local_ip_address;
-	    push @$cmd, '--ring1_addr', $param->{ring1_addr} if defined($param->{ring1_addr});
+	    # just pass the un-parsed string through, or as we've address as
+	    # the default_key, we can just pass the fallback directly too
+	    push @$cmd, '--link0', $param->{link0} // $local_ip_address;
+	    push @$cmd, '--link1', $param->{link1} if defined($param->{link1});
 
 	    if (system (@$cmd) != 0) {
 		my $cmdtxt = join (' ', @$cmd);

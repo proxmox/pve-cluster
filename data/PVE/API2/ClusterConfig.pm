@@ -214,8 +214,8 @@ __PACKAGE__->register_method ({
 		description => "Do not throw error if node already exists.",
 		optional => 1,
 	    },
-	    ring0_addr => get_standard_option('corosync-ring0-addr'),
-	    ring1_addr => get_standard_option('corosync-ring1-addr'),
+	    link0 => get_standard_option('corosync-link'),
+	    link1 => get_standard_option('corosync-link'),
 	},
     },
     returns => {
@@ -243,27 +243,37 @@ __PACKAGE__->register_method ({
 
 	    # ensure we do not reuse an address, that can crash the whole cluster!
 	    my $check_duplicate_addr = sub {
-		my $addr = shift;
-		return if !defined($addr);
+		my $link = shift;
+		return if !defined($link) || !defined($link->{address});
+		my $addr = $link->{address};
 
 		while (my ($k, $v) = each %$nodelist) {
 		    next if $k eq $name; # allows re-adding a node if force is set
-		    if ($v->{ring0_addr} eq $addr || ($v->{ring1_addr} && $v->{ring1_addr} eq $addr)) {
-			die "corosync: address '$addr' already defined by node '$k'\n";
+
+		    for my $linknumber (0..1) {
+			my $id = "ring${linknumber}_addr";
+			next if !defined($v->{$id});
+
+			die "corosync: address '$addr' already used on link $id by node '$k'\n"
+			    if $v->{$id} eq $addr;
 		    }
 		}
 	    };
 
-	    &$check_duplicate_addr($param->{ring0_addr});
-	    &$check_duplicate_addr($param->{ring1_addr});
+	    my $link0 = PVE::Cluster::parse_corosync_link($param->{link0});
+	    my $link1 = PVE::Cluster::parse_corosync_link($param->{link1});
 
-	    $param->{ring0_addr} = $name if !$param->{ring0_addr};
+	    $check_duplicate_addr->($link0);
+	    $check_duplicate_addr->($link1);
 
-	    die "corosync: using 'ring1_addr' parameter needs a configured ring 1 interface!\n"
-		if $param->{ring1_addr} && !defined($totem_cfg->{interface}->{1});
+	    # FIXME: handle all links (0-7), they're all independent now
+	    $link0->{address} //= $name if exists($totem_cfg->{interface}->{0});
 
-	    die "corosync: ring 1 interface configured but 'ring1_addr' parameter not defined!\n"
-		if defined($totem_cfg->{interface}->{1}) && !defined($param->{ring1_addr});
+	    die "corosync: using 'link1' parameter needs a interface with linknumber '1' configured!\n"
+		if $link1 && !defined($totem_cfg->{interface}->{1});
+
+	    die "corosync: totem interface with linknumber 1 configured but 'link1' parameter not defined!\n"
+		if defined($totem_cfg->{interface}->{1}) && !defined($link1);
 
 	    if (defined(my $res = $nodelist->{$name})) {
 		$param->{nodeid} = $res->{nodeid} if !$param->{nodeid};
@@ -301,11 +311,11 @@ __PACKAGE__->register_method ({
 	    warn $@ if $@;
 
 	    $nodelist->{$name} = {
-		ring0_addr => $param->{ring0_addr},
+		ring0_addr => $link0->{address},
 		nodeid => $param->{nodeid},
 		name => $name,
 	    };
-	    $nodelist->{$name}->{ring1_addr} = $param->{ring1_addr} if $param->{ring1_addr};
+	    $nodelist->{$name}->{ring1_addr} = $link1->{address} if defined($link1);
 	    $nodelist->{$name}->{quorum_votes} = $param->{votes} if $param->{votes};
 
 	    PVE::Cluster::log_msg('notice', 'root@pam', "adding node $name to cluster");
@@ -414,7 +424,7 @@ __PACKAGE__->register_method ({
 		    properties => {
 			name => get_standard_option('pve-node'),
 			nodeid => get_standard_option('corosync-nodeid'),
-			ring0_addr => get_standard_option('corosync-ring0-addr'),
+			link0 => get_standard_option('corosync-link'),
 			quorum_votes => { type => 'integer', minimum => 0 },
 			pve_addr => { type => 'string', format => 'ip' },
 			pve_fp => get_standard_option('fingerprint-sha256'),
@@ -484,10 +494,10 @@ __PACKAGE__->register_method ({
 		description => "Do not throw error if node already exists.",
 		optional => 1,
 	    },
-	    ring0_addr => get_standard_option('corosync-ring0-addr', {
+	    link0 => get_standard_option('corosync-link', {
 		default => "IP resolved by node's hostname",
 	    }),
-	    ring1_addr => get_standard_option('corosync-ring1-addr'),
+	    link1 => get_standard_option('corosync-link'),
 	    fingerprint => get_standard_option('fingerprint-sha256'),
 	    password => {
 		description => "Superuser (root) password of peer node.",
