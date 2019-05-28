@@ -1861,6 +1861,14 @@ my $corosync_link_format = {
 	format_description => 'IP',
 	description => "Hostname (or IP) of this corosync link address.",
     },
+    priority => {
+	optional => 1,
+	type => 'integer',
+	minimum => 0,
+	maximum => 255,
+	default => 0,
+	description => "The priority for the link when knet is used in 'passive' mode. Lower value means higher priority.",
+    },
 };
 my $corosync_link_desc = {
     type => 'string', format => $corosync_link_format,

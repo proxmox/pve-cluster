@@ -237,14 +237,19 @@ sub create_conf {
 	    debug => 'off',
 	},
     };
+    my $totem = $conf->{totem};
+
+    $totem->{interface}->{0}->{knet_link_priority} = $link0->{priority}
+	if defined($link0->{priority});
 
     my $link1 = PVE::Cluster::parse_corosync_link($param{link1});
-
     if ($link1->{address}) {
 	$conf->{totem}->{interface}->{1} = {
 	    linknumber => 1,
 	};
-	$conf->{totem}->{link_mode} = 'passive';
+	$totem->{link_mode} = 'passive';
+	$totem->{interface}->{1}->{knet_link_priority} = $link1->{priority}
+	    if defined($link1->{priority});
 	$conf->{nodelist}->{node}->{$nodename}->{ring1_addr} = $link1->{address};
     }
 
