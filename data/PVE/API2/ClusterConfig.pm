@@ -95,20 +95,8 @@ __PACKAGE__->register_method ({
 		minimum => 1,
 		optional => 1,
 	    },
-	    bindnet0_addr => {
-		type => 'string', format => 'ip',
-		description => "This specifies the network address the corosync ring 0".
-		    " executive should bind to and defaults to the local IP address of the node.",
-		optional => 1,
-	    },
-	    ring0_addr => get_standard_option('corosync-ring0-addr'),
-	    bindnet1_addr => {
-		type => 'string', format => 'ip',
-		description => "This specifies the network address the corosync ring 1".
-		    " executive should bind to and is optional.",
-		optional => 1,
-	    },
-	    ring1_addr => get_standard_option('corosync-ring1-addr'),
+	    link0 => get_standard_option('corosync-link'),
+	    link1 => get_standard_option('corosync-link'),
 	},
     },
     returns => { type => 'string' },
