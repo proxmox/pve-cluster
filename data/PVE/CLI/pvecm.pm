@@ -547,91 +547,6 @@ __PACKAGE__->register_method ({
 	return undef;
     }});
 
-__PACKAGE__->register_method ({
-    name => 'mtunnel',
-    path => 'mtunnel',
-    method => 'POST',
-    description => "Used by VM/CT migration - do not use manually.",
-    parameters => {
-	additionalProperties => 0,
-	properties => {
-	    get_migration_ip => {
-		type => 'boolean',
-		default => 0,
-		description => 'return the migration IP, if configured',
-		optional => 1,
-	    },
-	    migration_network => {
-		type => 'string',
-		format => 'CIDR',
-		description => 'the migration network used to detect the local migration IP',
-		optional => 1,
-	    },
-	    'run-command' => {
-		type => 'boolean',
-		description => 'Run a command with a tcp socket as standard input.'
-		              .' The IP address and port are printed via this'
-			      ." command's stdandard output first, each on a separate line.",
-		optional => 1,
-	    },
-	    'extra-args' => PVE::JSONSchema::get_standard_option('extra-args'),
-	},
-    },
-    returns => { type => 'null'},
-    code => sub {
-	my ($param) = @_;
-
-	if (!PVE::Cluster::check_cfs_quorum(1)) {
-	    print "no quorum\n";
-	    return undef;
-	}
-
-	my $network = $param->{migration_network};
-	if ($param->{get_migration_ip}) {
-	    die "cannot use --run-command with --get_migration_ip\n"
-		if $param->{'run-command'};
-	    if (my $ip = PVE::Cluster::get_local_migration_ip($network)) {
-		print "ip: '$ip'\n";
-	    } else {
-		print "no ip\n";
-	    }
-	    # do not keep tunnel open when asked for migration ip
-	    return undef;
-	}
-
-	if ($param->{'run-command'}) {
-	    my $cmd = $param->{'extra-args'};
-	    die "missing command\n"
-		if !$cmd || !scalar(@$cmd);
-
-	    # Get an ip address to listen on, and find a free migration port
-	    my ($ip, $family);
-	    if (defined($network)) {
-		$ip = PVE::Cluster::get_local_migration_ip($network)
-		    or die "failed to get migration IP address to listen on\n";
-		$family = PVE::Tools::get_host_address_family($ip);
-	    } else {
-		my $nodename = PVE::INotify::nodename();
-		($ip, $family) = PVE::Network::get_ip_from_hostname($nodename, 0);
-	    }
-	    my $port = PVE::Tools::next_migrate_port($family, $ip);
-
-	    PVE::Tools::pipe_socket_to_command($cmd, $ip, $port);
-	    return undef;
-	}
-
-	print "tunnel online\n";
-	*STDOUT->flush();
-
-	while (my $line = <STDIN>) {
-	    chomp $line;
-	    last if $line =~ m/^quit$/;
-	}
-
-	return undef;
-    }});
-
-
 our $cmddef = {
     keygen => [ __PACKAGE__, 'keygen', ['filename']],
     create => [ 'PVE::API2::ClusterConfig', 'create', ['clustername']],
@@ -642,7 +557,6 @@ our $cmddef = {
     nodes => [ __PACKAGE__, 'nodes' ],
     expected => [ __PACKAGE__, 'expected', ['expected']],
     updatecerts => [ __PACKAGE__, 'updatecerts', []],
-    mtunnel => [ __PACKAGE__, 'mtunnel', ['extra-args']],
     qdevice => {
 	setup => [ __PACKAGE__, 'setup_qdevice', ['address']],
 	remove => [ __PACKAGE__, 'remove_qdevice', []],
