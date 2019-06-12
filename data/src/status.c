@@ -159,16 +159,17 @@ static void vminfo_free(vminfo_t *vminfo)
 	g_free(vminfo);
 }
 
-static const char *vminfo_type_to_string(vminfo_t *vminfo) {
-    if (vminfo->vmtype == VMTYPE_QEMU) {
-        return "qemu";
-    } else if (vminfo->vmtype == VMTYPE_OPENVZ) {
-        return "openvz";
-    } else if (vminfo->vmtype == VMTYPE_LXC) {
-        return "lxc";
-    } else {
-        return "unknown";
-    }
+static const char *vminfo_type_to_string(vminfo_t *vminfo)
+{
+	if (vminfo->vmtype == VMTYPE_QEMU) {
+		return "qemu";
+	} else if (vminfo->vmtype == VMTYPE_OPENVZ) {
+		return "openvz";
+	} else if (vminfo->vmtype == VMTYPE_LXC) {
+		return "lxc";
+	} else {
+		return "unknown";
+	}
 }
 
 void cfs_clnode_destroy(
