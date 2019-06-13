@@ -39,4 +39,6 @@
 
 #define CFS_IPC_GET_RRD_DUMP 10
 
+#define CFS_IPC_GET_GUEST_CONFIG_PROPERTY 11
+
 #endif

@@ -33,9 +33,11 @@
 #include <rrd.h>
 #include <rrd_client.h>
 #include <time.h>
+#include <ctype.h>
 
 #include "cfs-utils.h"
 #include "status.h"
+#include "memdb.h"
 #include "logger.h"
 
 #define KVSTORE_CPG_GROUP_NAME "pve_kvstore_v1"
@@ -170,6 +172,29 @@ static const char *vminfo_type_to_string(vminfo_t *vminfo)
 	} else {
 		return "unknown";
 	}
+}
+
+static const char *vminfo_type_to_path_type(vminfo_t *vminfo)
+{
+	if (vminfo->vmtype == VMTYPE_QEMU) {
+		return "qemu-server"; // special case..
+	} else {
+		return vminfo_type_to_string(vminfo);
+	}
+}
+
+int vminfo_to_path(vminfo_t *vminfo, GString *path)
+{
+	g_return_val_if_fail(vminfo != NULL, -1);
+	g_return_val_if_fail(path != NULL, -1);
+
+	if (!vminfo->nodename)
+		return 0;
+
+	const char *type = vminfo_type_to_path_type(vminfo);
+	g_string_printf(path, "/nodes/%s/%s/%u.conf", vminfo->nodename, type, vminfo->vmid);
+
+	return 1;
 }
 
 void cfs_clnode_destroy(
@@ -762,6 +787,129 @@ cfs_create_vmlist_msg(GString *str)
 	g_mutex_unlock (&mutex);
 
 	return 0;
+}
+
+// checks the conf for a line starting with '$prop:' and returns the value
+// afterwards, whitout initial whitespace(s), we only deal with the format
+// restricion imposed by our perl VM config parser, main reference is
+// PVE::QemuServer::parse_vm_config this allows to be very fast and still
+// relatively simple
+// main restrictions used for our advantage is the properties match reges:
+// ($line =~ m/^([a-z][a-z_]*\d*):\s*(.+?)\s*$/) from parse_vm_config
+// currently we only look at the current configuration in place, i.e., *no*
+// snapshort and *no* pending changes
+static char *
+_get_property_value(char *conf, const char *prop, int prop_len)
+{
+	char *line = NULL, *temp = NULL;
+
+	line = strtok_r(conf, "\n", &temp);
+	while (line != NULL) {
+		if (!line[0]) goto next;
+
+		// snapshot or pending section start and nothing found yet
+		if (line[0] == '[') return NULL;
+		// properties start with /^[a-z]/, so continue early if not
+		if (line[0] < 'a' || line[0] > 'z') goto next;
+
+		int line_len = strlen(line);
+		if (line_len <= prop_len + 1) goto next;
+
+		if (line[prop_len] == ':' && memcmp(line, prop, prop_len) == 0) { // found
+			char *v_start = &line[prop_len + 1];
+
+			// drop initial value whitespaces here already
+			while (*v_start && isspace(*v_start)) v_start++;
+
+			if (!*v_start) return NULL;
+
+			char *v_end = &line[line_len - 1];
+			while (v_end > v_start && isspace(*v_end)) v_end--;
+			v_end[1] = '\0';
+
+			return v_start;
+		}
+next:
+		line = strtok_r(NULL, "\n", &temp);
+	}
+
+	return NULL; // not found
+}
+
+int
+cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *prop, uint32_t vmid)
+{
+	g_return_val_if_fail(cfs_status.vmlist != NULL, -EINVAL);
+	g_return_val_if_fail(str != NULL, -EINVAL);
+
+	int prop_len = strlen(prop);
+	int res = 0;
+	GString *path = NULL;
+
+	g_mutex_lock (&mutex);
+
+	g_string_printf(str,"{\n");
+
+	GHashTable *ht = cfs_status.vmlist;
+	gpointer tmp = NULL;
+	if (!g_hash_table_size(ht)) {
+		goto ret;
+	}
+
+	path = g_string_new_len(NULL, 256);
+	if (vmid >= 100) {
+		vminfo_t *vminfo = (vminfo_t *) g_hash_table_lookup(cfs_status.vmlist, &vmid);
+		if (vminfo == NULL) goto enoent;
+
+		if (!vminfo_to_path(vminfo, path)) goto err;
+
+		int size = memdb_read(memdb, path->str, &tmp);
+		if (tmp == NULL) goto err;
+		if (size <= prop_len) goto ret;
+
+		char *val = _get_property_value(tmp, prop, prop_len);
+		if (val == NULL) goto ret;
+
+		g_string_append_printf(str, "\"%u\": { \"%s\": \"%s\"\n }", vmid, prop, val);
+
+	} else {
+		GHashTableIter iter;
+		g_hash_table_iter_init (&iter, ht);
+
+		gpointer key, value;
+		int first = 1;
+		while (g_hash_table_iter_next (&iter, &key, &value)) {
+			vminfo_t *vminfo = (vminfo_t *)value;
+
+			if (!vminfo_to_path(vminfo, path)) goto err;
+
+			g_free(tmp); // no-op if already null
+			tmp = NULL;
+			int size = memdb_read(memdb, path->str, &tmp);
+			if (tmp == NULL || size <= prop_len) continue;
+
+			char *val = _get_property_value(tmp, prop, prop_len);
+			if (val == NULL) continue;
+
+			if (!first) g_string_append_printf(str, ",\n");
+			else first = 0;
+
+			g_string_append_printf(str, "\"%u\": {\"%s\": \"%s\"}", vminfo->vmid, prop, val);
+		}
+	}
+ret:
+	g_free(tmp);
+	g_string_free(path, TRUE);
+	g_string_append_printf(str,"\n}\n");
+	g_mutex_unlock (&mutex);
+
+	return res;
+err:
+	res = -EIO;
+	goto ret;
+enoent:
+	res = -ENOENT;
+	goto ret;
 }
 
 void

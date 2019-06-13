@@ -83,6 +83,11 @@ typedef struct {
 	uint32_t res3;
 } cfs_log_get_request_header_t;
 
+typedef struct {
+	struct qb_ipc_request_header req_header;
+	uint32_t vmid;
+	char property[];
+} cfs_guest_config_propery_get_request_header_t;
 
 struct s1_context {
 	int32_t client_pid;
@@ -312,6 +317,29 @@ static int32_t s1_msg_process_fn(
 		} else {
 			cfs_rrd_dump(outbuf);
 			result = 0;
+		}
+	} else if (req_pt->id == CFS_IPC_GET_GUEST_CONFIG_PROPERTY) {
+
+		cfs_guest_config_propery_get_request_header_t *rh =
+			(cfs_guest_config_propery_get_request_header_t *) data;
+
+		int proplen = req_pt->size - G_STRUCT_OFFSET(cfs_guest_config_propery_get_request_header_t, property);
+
+		result = 0;
+		if (rh->vmid < 100 && rh->vmid != 0) {
+			cfs_debug("vmid out of range %u", rh->vmid);
+			result = -EINVAL;
+		} else if (rh->vmid >= 100 && !vmlist_vm_exists(rh->vmid)) {
+			result = -ENOENT;
+		} else if (proplen <= 0) {
+			cfs_debug("proplen <= 0, %d", proplen);
+			result = -EINVAL;
+		} else {
+			((char *)data)[req_pt->size] = 0; // ensure property is 0 terminated
+
+			cfs_debug("cfs_get_guest_config_property: basic valid checked, do request");
+
+			result = cfs_create_guest_conf_property_msg(outbuf, memdb, rh->property, rh->vmid);
 		}
 	}
 

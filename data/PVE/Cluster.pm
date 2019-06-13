@@ -595,6 +595,21 @@ sub get_node_kv {
     return $res;
 }
 
+# property: a config property you want to get, e.g., this is perfect to get
+# the 'lock' entry of a guest _fast_ (>100 faster than manual parsing here)
+# vmid: optipnal, if a valid is passed we only check that one, else return all
+# NOTE: does *not* searches snapshot and PENDING entries sections!
+sub get_guest_config_property {
+    my ($property, $vmid) = @_;
+
+    die "property is required" if !defined($property);
+
+    my $bindata = pack "VZ*", $vmid // 0, $property;
+    my $res = $ipcc_send_rec_json->(CFS_IPC_GET_GUEST_CONFIG_PROPERTY, $bindata);
+
+    return $res;
+}
+
 # $data must be a chronological descending ordered array of tasks
 sub broadcast_tasklist {
     my ($data) = @_;

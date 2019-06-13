@@ -25,6 +25,7 @@
 
 #include "dfsm.h"
 #include "logger.h"
+#include "memdb.h"
 
 #define VMTYPE_QEMU 1
 #define VMTYPE_OPENVZ 2
@@ -158,5 +159,7 @@ int
 cfs_create_memberlist_msg(
 	GString *str);
 
+int
+cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *prop, uint32_t vmid);
 
 #endif /* _PVE_STATUS_H_ */
