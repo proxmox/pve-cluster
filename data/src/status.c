@@ -836,6 +836,21 @@ next:
 	return NULL; // not found
 }
 
+static void
+_g_str_append_kv_jsonescaped(GString *str, const char *k, const char *v)
+{
+	g_string_append_printf(str, "\"%s\": \"", k);
+
+	for (; *v; v++) {
+		if (*v == '\\' || *v == '"') {
+			g_string_append_c(str, '\\');
+		}
+		g_string_append_c(str, *v);
+	}
+
+	g_string_append_c(str, '"');
+}
+
 int
 cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *prop, uint32_t vmid)
 {
@@ -870,7 +885,9 @@ cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *pro
 		char *val = _get_property_value(tmp, prop, prop_len);
 		if (val == NULL) goto ret;
 
-		g_string_append_printf(str, "\"%u\": { \"%s\": \"%s\"\n }", vmid, prop, val);
+		g_string_append_printf(str, "\"%u\":{", vmid);
+		_g_str_append_kv_jsonescaped(str, prop, val);
+		g_string_append_c(str, '}');
 
 	} else {
 		GHashTableIter iter;
@@ -894,7 +911,9 @@ cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *pro
 			if (!first) g_string_append_printf(str, ",\n");
 			else first = 0;
 
-			g_string_append_printf(str, "\"%u\": {\"%s\": \"%s\"}", vminfo->vmid, prop, val);
+			g_string_append_printf(str, "\"%u\":{", vminfo->vmid);
+			_g_str_append_kv_jsonescaped(str, prop, val);
+			g_string_append_c(str, '}');
 		}
 	}
 ret:
