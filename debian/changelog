@@ -1,3 +1,19 @@
+pve-cluster (6.0-1) pve; urgency=medium
+
+  * add generic data broadcast interface
+
+  * add get_guest_config_property IPCC method
+
+  * pvecm: remove mtunnel
+
+  * corosync config: add initial corosync 3 + kronosnet support
+
+  * add new corosync-link format and use for create and join
+
+  * corosync: allow one to set link priorities
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 14 Jun 2019 20:13:11 +0200
+
 pve-cluster (6.0-0+1) pve; urgency=medium
 
   * update version for Debian Buster
