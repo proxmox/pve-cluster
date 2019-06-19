@@ -95,6 +95,8 @@ my $observed = {
     'ha/fence.cfg' => 1,
     'status.cfg' => 1,
     'ceph.conf' => 1,
+    'sdn.cfg' => 1,
+    'sdn.cfg.new' => 1,
 };
 
 # only write output if something fails

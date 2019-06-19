@@ -94,6 +94,8 @@ static memdb_change_t memdb_change_array[] = {
 	{ .path = "status.cfg" },
 	{ .path = "replication.cfg" },
 	{ .path = "ceph.conf" },
+	{ .path = "sdn.cfg" },
+	{ .path = "sdn.cfg.new" },
 };
 
 static GMutex mutex;
