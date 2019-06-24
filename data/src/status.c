@@ -920,7 +920,9 @@ cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *pro
 	}
 ret:
 	g_free(tmp);
-	g_string_free(path, TRUE);
+	if (path != NULL) {
+		g_string_free(path, TRUE);
+	}
 	g_string_append_printf(str,"\n}\n");
 	g_mutex_unlock (&mutex);
 
