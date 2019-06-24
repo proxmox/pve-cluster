@@ -873,7 +873,7 @@ cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *pro
 		goto ret;
 	}
 
-	path = g_string_new_len(NULL, 256);
+	path = g_string_sized_new(256);
 	if (vmid >= 100) {
 		vminfo_t *vminfo = (vminfo_t *) g_hash_table_lookup(cfs_status.vmlist, &vmid);
 		if (vminfo == NULL) goto enoent;
