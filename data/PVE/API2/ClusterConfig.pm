@@ -408,7 +408,7 @@ __PACKAGE__->register_method ({
 		    properties => {
 			name => get_standard_option('pve-node'),
 			nodeid => get_standard_option('corosync-nodeid'),
-			link0 => get_standard_option('corosync-link'),
+			ring0_addr => get_standard_option('corosync-link'),
 			quorum_votes => { type => 'integer', minimum => 0 },
 			pve_addr => { type => 'string', format => 'ip' },
 			pve_fp => get_standard_option('fingerprint-sha256'),
