@@ -1,3 +1,12 @@
+pve-cluster (6.0-2) pve; urgency=medium
+
+  * pmxcfs: workaround strange g_string_free behaviour in get guest cfg
+    properties:
+
+  * api: join info: we still get ring0_addr in nodelist
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 25 Jun 2019 12:29:56 +0200
+
 pve-cluster (6.0-1) pve; urgency=medium
 
   * add generic data broadcast interface
