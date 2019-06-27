@@ -1,3 +1,9 @@
+pve-cluster (6.0-3) pve; urgency=medium
+
+  * restore pvecm mtunnel for now
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 27 Jun 2019 11:17:05 +0200
+
 pve-cluster (6.0-2) pve; urgency=medium
 
   * pmxcfs: workaround strange g_string_free behaviour in get guest cfg
