@@ -12,6 +12,8 @@ use PVE::Cluster;
 use PVE::APIClient::LWP;
 use PVE::Corosync;
 
+use IO::Socket::UNIX;
+
 use base qw(PVE::RESTHandler);
 
 my $clusterconf = "/etc/pve/corosync.conf";
@@ -53,6 +55,7 @@ __PACKAGE__->register_method({
 	    { name => 'nodes' },
 	    { name => 'totem' },
 	    { name => 'join' },
+	    { name => 'qdevice' },
 	];
 
 	return $result;
@@ -533,5 +536,55 @@ __PACKAGE__->register_method({
 
 	return $totem_cfg;
     }});
+
+__PACKAGE__->register_method ({
+    name => 'status',
+    path => 'qdevice',
+    method => 'GET',
+    description => 'Get QDevice status',
+    permissions => {
+	check => ['perm', '/', [ 'Sys.Audit' ]],
+    },
+    parameters => {
+	additionalProperties => 0,
+	properties => {},
+    },
+    returns => {
+	type => "object",
+    },
+    code => sub {
+	my ($param) = @_;
+
+	my $result = {};
+	my $socket_path = "/var/run/corosync-qdevice/corosync-qdevice.sock";
+	return $result if !-S $socket_path;
+
+	my $qdevice_socket = IO::Socket::UNIX->new(
+	    Type => SOCK_STREAM,
+	    Peer => $socket_path,
+	);
+
+	print $qdevice_socket "status verbose\n";
+	my $qdevice_keys = {
+	    "Algorithm" => 1,
+	    "Echo reply" => 1,
+	    "Last poll call" => 1,
+	    "Model" => 1,
+	    "QNetd host" => 1,
+	    "State" => 1,
+	    "Tie-breaker" => 1,
+	};
+	while (my $line = <$qdevice_socket>) {
+	    chomp $line;
+	    next if $line =~ /^\s/;
+	    if ($line =~ /^(.*?)\s*:\s*(.*)$/) {
+		$result->{$1} = $2 if $qdevice_keys->{$1};
+	    }
+	}
+
+	return $result;
+    }});
+#TODO: possibly add setup and remove methods
+
 
 1;
