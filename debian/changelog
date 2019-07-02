@@ -1,3 +1,11 @@
+pve-cluster (6.0-4) pve; urgency=medium
+
+  * Add functions to resolve hostnames and iterate corosync nodes
+
+  * Add qdevice status API endpoint
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 2 Jul 2019 11:18:49 +0200
+
 pve-cluster (6.0-3) pve; urgency=medium
 
   * restore pvecm mtunnel for now
