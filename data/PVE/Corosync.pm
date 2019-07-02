@@ -273,10 +273,10 @@ sub for_all_corosync_addresses {
 		my $node_address = $node_config->{$node_key};
 
 		my($ip, $version) = resolve_hostname_like_corosync($node_address, $corosync_conf);
+		next if !defined($ip);
 		next if defined($version) && defined($ip_version) && $version != $ip_version;
 
-		$func->($node_name, $ip, $version, $node_key)
-		    if defined($ip);
+		$func->($node_name, $ip, $version, $node_key);
 	    }
 	}
     }
@@ -288,11 +288,7 @@ sub resolve_hostname_like_corosync {
     my ($hostname, $corosync_conf) = @_;
 
     my $corosync_strategy = $corosync_conf->{main}->{totem}->{ip_version};
-    if (defined($corosync_strategy)) {
-	$corosync_strategy = lc $corosync_strategy;
-    } else {
-	$corosync_strategy = "ipv6-4"; # corosync default
-    }
+    $corosync_strategy = lc ($corosync_strategy // "ipv6-4");
 
     my $resolved_ip4;
     my $resolved_ip6;
