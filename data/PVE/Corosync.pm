@@ -290,22 +290,31 @@ sub resolve_hostname_like_corosync {
     my $corosync_strategy = $corosync_conf->{main}->{totem}->{ip_version};
     $corosync_strategy = lc ($corosync_strategy // "ipv6-4");
 
+    my $match_ip_and_version = sub {
+	my ($addr) = @_;
+
+	return undef if !defined($addr);
+
+	if ($addr =~ m/^$IPV4RE$/) {
+	    return ($addr, 4);
+	} elsif ($addr =~ m/^$IPV6RE$/) {
+	    return ($addr, 6);
+	}
+
+	return undef;
+    };
+
+    my ($resolved_ip, $ip_version) = $match_ip_and_version->($hostname);
+
+    return ($resolved_ip, $ip_version) if defined($resolved_ip);
+
     my $resolved_ip4;
     my $resolved_ip6;
 
     my @resolved_raw;
     eval { @resolved_raw = PVE::Tools::getaddrinfo_all($hostname); };
 
-    # ignore resolving error, check if an IP was passed instead
-    if ($@ || !@resolved_raw) {
-	if ($hostname =~ m/^(?:$IPV4RE)$/) {
-	    return ($hostname, 4);
-	} elsif ($hostname =~ m/^(?:$IPV6RE)$/) {
-	    return ($hostname, 6);
-	}
-
-	return (undef, undef);
-    }
+    return undef if ($@ || !@resolved_raw);
 
     foreach my $socket_info (@resolved_raw) {
 	next if !$socket_info->{addr};
@@ -324,7 +333,6 @@ sub resolve_hostname_like_corosync {
     # corosync_strategy specifies the order in which IP addresses are resolved
     # by corosync. We need to match that order, to ensure we create firewall
     # rules for the correct address family.
-    my $resolved_ip;
     if ($corosync_strategy eq "ipv4") {
 	$resolved_ip = $resolved_ip4;
     } elsif ($corosync_strategy eq "ipv6") {
@@ -335,10 +343,7 @@ sub resolve_hostname_like_corosync {
 	$resolved_ip = $resolved_ip4 // $resolved_ip6;
     }
 
-    return (undef, undef) if !defined($resolved_ip);
-
-    my $ip_version = defined($resolved_ip4) && $resolved_ip eq $resolved_ip4 ? 4 : 6;
-    return ($resolved_ip, $ip_version);
+    return $match_ip_and_version->($resolved_ip);
 }
 
 1;
