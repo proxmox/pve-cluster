@@ -33,7 +33,7 @@ ${DEB}:
 
 .PHONY: upload
 upload: ${DEB} ${DBG_DEB}
-	tar cf - ${DEB} ${DBG_DEB}| ssh -X repoman@repo.proxmox.com -- upload --product pve --dist buster --arch ${DEB_BUILD_ARCH}
+	tar cf - ${DEB} ${DBGDEB}| ssh -X repoman@repo.proxmox.com -- upload --product pve --dist buster --arch ${DEB_BUILD_ARCH}
 
 .PHONY: clean
 clean:
