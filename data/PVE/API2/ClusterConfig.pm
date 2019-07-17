@@ -198,9 +198,10 @@ my $config_change_lock = sub {
 	my $members = PVE::Cluster::get_members();
 	if (scalar(keys %$members) > 1) {
 	    my $res = PVE::Cluster::cfs_lock_file('corosync.conf', 10, $code);
-	    # cfs_lock_file only sets $@
-	    # lock_file does not propagate $@ unless we die here
+
+	    # cfs_lock_file only sets $@ but lock_file doesn't propagates $@ unless we die here
 	    die $@ if defined($@);
+
 	    return $res;
 	} else {
 	    return $code->();
