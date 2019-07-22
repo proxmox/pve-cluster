@@ -5,9 +5,12 @@ use warnings;
 
 use Digest::SHA;
 use Clone 'clone';
+use Socket qw(AF_INET AF_INET6 inet_ntop);
 use Net::IP qw(ip_is_ipv6);
 
 use PVE::Cluster;
+use PVE::Tools;
+use PVE::Tools qw($IPV4RE $IPV6RE);
 
 my $basedir = "/etc/pve";
 
@@ -262,6 +265,98 @@ sub create_conf {
     }
 
     return { main => $conf };
+}
+
+sub for_all_corosync_addresses {
+    my ($corosync_conf, $ip_version, $func) = @_;
+
+    my $nodelist = nodelist($corosync_conf);
+    return if !defined($nodelist);
+
+    # iterate sorted to make rules deterministic (for change detection)
+    foreach my $node_name (sort keys %$nodelist) {
+	my $node_config = $nodelist->{$node_name};
+	foreach my $node_key (sort keys %$node_config) {
+	    if ($node_key =~ /^(ring|link)\d+_addr$/) {
+		my $node_address = $node_config->{$node_key};
+
+		my($ip, $version) = resolve_hostname_like_corosync($node_address, $corosync_conf);
+		next if !defined($ip);
+		next if defined($version) && defined($ip_version) && $version != $ip_version;
+
+		$func->($node_name, $ip, $version, $node_key);
+	    }
+	}
+    }
+}
+
+# NOTE: Corosync actually only resolves on startup or config change, but we
+# currently do not have an easy way to synchronize our behaviour to that.
+sub resolve_hostname_like_corosync {
+    my ($hostname, $corosync_conf) = @_;
+
+    my $corosync_strategy = $corosync_conf->{main}->{totem}->{ip_version};
+    $corosync_strategy = lc ($corosync_strategy // "any");
+
+    my $match_ip_and_version = sub {
+	my ($addr) = @_;
+
+	return undef if !defined($addr);
+
+	if ($addr =~ m/^$IPV4RE$/) {
+	    return ($addr, 4);
+	} elsif ($addr =~ m/^$IPV6RE$/) {
+	    return ($addr, 6);
+	}
+
+	return undef;
+    };
+
+    my ($resolved_ip, $ip_version) = $match_ip_and_version->($hostname);
+
+    return ($resolved_ip, $ip_version) if defined($resolved_ip);
+
+    my $resolved_ip4;
+    my $resolved_ip6;
+
+    my @resolved_raw;
+    eval { @resolved_raw = PVE::Tools::getaddrinfo_all($hostname); };
+
+    return undef if ($@ || !@resolved_raw);
+
+    foreach my $socket_info (@resolved_raw) {
+	next if !$socket_info->{addr};
+
+	my ($family, undef, $host) = PVE::Tools::unpack_sockaddr_in46($socket_info->{addr});
+
+	if ($family == AF_INET && !defined($resolved_ip4)) {
+	    $resolved_ip4 = inet_ntop(AF_INET, $host);
+	} elsif ($family == AF_INET6 && !defined($resolved_ip6)) {
+	    $resolved_ip6 = inet_ntop(AF_INET6, $host);
+	}
+
+	if ($corosync_strategy eq "any"
+	    && ($family == AF_INET || $family == AF_INET6)) {
+	    # "any" means return first one found by getaddrinfo
+	    return $match_ip_and_version->($resolved_ip4 // $resolved_ip6);
+	}
+
+	last if defined($resolved_ip4) && defined($resolved_ip6);
+    }
+
+    # corosync_strategy specifies the which IP address family is resolved by
+    # corosync. We need to match that, to ensure we create firewall rules for
+    # the correct one.
+    if ($corosync_strategy eq "ipv4") {
+	$resolved_ip = $resolved_ip4;
+    } elsif ($corosync_strategy eq "ipv6") {
+	$resolved_ip = $resolved_ip6;
+    } elsif ($corosync_strategy eq "any") {
+	# shouldn't get here, but just in case
+	$resolved_ip = $resolved_ip4 // $resolved_ip6;
+    }
+
+    return $match_ip_and_version->($resolved_ip);
 }
 
 1;
