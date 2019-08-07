@@ -1,3 +1,9 @@
+pve-cluster (6.0-5) pve; urgency=medium
+
+  * join: better error handling
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 7 Aug 2019 10:47:52 +0200
+
 pve-cluster (6.0-4) pve; urgency=medium
 
   * Add functions to resolve hostnames and iterate corosync nodes
