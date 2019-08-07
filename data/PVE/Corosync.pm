@@ -296,7 +296,8 @@ sub resolve_hostname_like_corosync {
     my ($hostname, $corosync_conf) = @_;
 
     my $corosync_strategy = $corosync_conf->{main}->{totem}->{ip_version};
-    $corosync_strategy = lc ($corosync_strategy // "any");
+    # Corosync 2.x default
+    $corosync_strategy = lc ($corosync_strategy // "ipv4");
 
     my $match_ip_and_version = sub {
 	my ($addr) = @_;
