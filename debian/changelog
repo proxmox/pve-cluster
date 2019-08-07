@@ -1,3 +1,13 @@
+pve-cluster (5.0-38) unstable; urgency=medium
+
+  * corosync config: support 'linknumber' property
+
+  * join: better error handling
+
+  * add functions to resolve hostnames and iterate corosync nodes
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 7 Aug 2019 10:44:47 +0200
+
 pve-cluster (5.0-37) unstable; urgency=medium
 
   * ipcc: increase restart grace period
