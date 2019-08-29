@@ -167,9 +167,9 @@ cluster_config_version(
 	GRegex *regex;
 	GMatchInfo *match_info;
 	guint64 version = 0;
-	
+
 	regex = g_regex_new ("config_version\\s*:\\s*(\\d+)", 0, 0, NULL);
-	g_regex_match (regex, config_data, 0, &match_info);
+	g_regex_match_full(regex, config_data, config_length, 0, 0, &match_info, NULL);
 	if (g_match_info_matches (match_info)) {
 		gchar *word = g_match_info_fetch (match_info, 1);
 		if (strlen(word)) {
