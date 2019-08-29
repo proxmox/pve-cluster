@@ -25,7 +25,7 @@ libpmxcfs.a:
 	$(AR) $(ARFLAGS) $@ $^
 
 pmxcfs: pmxcfs.o libpmxcfs.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+	$(CC) $(LDFLAGS) -o $@ $^
 
 
 create_pmxcfs_db: create_pmxcfs_db.o libpmxcfs.a
