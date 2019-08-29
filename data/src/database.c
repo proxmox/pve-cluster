@@ -373,7 +373,7 @@ static gboolean bdb_backend_load_index(
 			te->name, te->inode, te->parent);
 
 		if (te->inode == 0) {
-			if (te->name && !strcmp(te->name, VERSIONFILENAME)) {
+			if (!strcmp(te->name, VERSIONFILENAME)) {
 				root->version = te->version;
 				root->writer = te->writer;
 				root->mtime = te->mtime;
