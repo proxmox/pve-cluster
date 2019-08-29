@@ -156,7 +156,7 @@ static int32_t s1_connection_closed_fn(
 
 static int32_t s1_msg_process_fn(
 	qb_ipcs_connection_t *c,
-	void *data, 
+	void *data,
 	size_t size)
 {
 	struct qb_ipc_request_header *req_pt = 
@@ -217,7 +217,7 @@ static int32_t s1_msg_process_fn(
 			/* make sure name is 0 terminated */
 			rh->name[sizeof(rh->name) - 1] = 0;
 
-			char *dataptr = data + sizeof(cfs_status_update_request_header_t);
+			char *dataptr = (char*) data + sizeof(cfs_status_update_request_header_t);
 
 			result = cfs_status_set(rh->name, dataptr, datasize);
 		}
@@ -246,7 +246,7 @@ static int32_t s1_msg_process_fn(
 		} else {
 			/* make sure path is 0 terminated */
 			((char *)data)[request_size] = 0;
-			char *path = data + sizeof(struct qb_ipc_request_header);
+			char *path = (char*) data + sizeof(struct qb_ipc_request_header);
 
 			if (ctx->read_only &&  path_is_private(path)) {
 				result = -EPERM;
@@ -306,7 +306,7 @@ static int32_t s1_msg_process_fn(
 		} else {
 			/* make sure user string is 0 terminated */
 			((char *)data)[request_size] = 0;
-			char *user = data + sizeof(cfs_log_get_request_header_t);
+			char *user = (char*) data + sizeof(cfs_log_get_request_header_t);
 
 			uint32_t max = rh->max_entries ?  rh->max_entries : 50;
 			cfs_cluster_log_dump(outbuf, user, max);
