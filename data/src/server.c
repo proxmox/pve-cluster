@@ -170,42 +170,44 @@ static int32_t s1_msg_process_fn(
 		return 0;
 	}
 
-	cfs_debug("process msg:%d, size:%d", req_pt->id, req_pt->size);
+	int32_t request_id __attribute__ ((aligned(8))) = req_pt->id;
+	int32_t request_size __attribute__ ((aligned(8))) = req_pt->size;
+	cfs_debug("process msg:%d, size:%d", request_id, request_size);
 
 	char *resp = NULL;
 
 	g_string_truncate(outbuf, 0);
 
 	int32_t result = -ECHRNG;
-	if (req_pt->id == CFS_IPC_GET_FS_VERSION) {
+	if (request_id == CFS_IPC_GET_FS_VERSION) {
 
-		if (req_pt->size != sizeof(struct qb_ipc_request_header)) {
+		if (request_size != sizeof(struct qb_ipc_request_header)) {
 			result = -EINVAL;
 		} else {
 			result = cfs_create_version_msg(outbuf);
 		}
 
-	} else if (req_pt->id == CFS_IPC_GET_CLUSTER_INFO) {
+	} else if (request_id == CFS_IPC_GET_CLUSTER_INFO) {
 
-		if (req_pt->size != sizeof(struct qb_ipc_request_header)) {
+		if (request_size != sizeof(struct qb_ipc_request_header)) {
 			result = -EINVAL;
 		} else {
 			result = cfs_create_memberlist_msg(outbuf);
 		}
 
-	} else if (req_pt->id == CFS_IPC_GET_GUEST_LIST) {
+	} else if (request_id == CFS_IPC_GET_GUEST_LIST) {
 		
-		if (req_pt->size != sizeof(struct qb_ipc_request_header)) {
+		if (request_size != sizeof(struct qb_ipc_request_header)) {
 			result = -EINVAL;
 		} else {
 			result = cfs_create_vmlist_msg(outbuf);
 		}
-	} else if (req_pt->id == CFS_IPC_SET_STATUS) {
+	} else if (request_id == CFS_IPC_SET_STATUS) {
 
 		cfs_status_update_request_header_t *rh = 
 			(cfs_status_update_request_header_t *)data;
 
-		int datasize = req_pt->size - sizeof(cfs_status_update_request_header_t);
+		int datasize = request_size - sizeof(cfs_status_update_request_header_t);
 
 		if (ctx->read_only) {
 			result = -EPERM;
@@ -219,12 +221,12 @@ static int32_t s1_msg_process_fn(
 
 			result = cfs_status_set(rh->name, dataptr, datasize);
 		}
-	} else if (req_pt->id == CFS_IPC_GET_STATUS) {
+	} else if (request_id == CFS_IPC_GET_STATUS) {
 
 		cfs_status_get_request_header_t *rh =
 			(cfs_status_get_request_header_t *)data;
 
-		int datasize = req_pt->size - sizeof(cfs_status_get_request_header_t);
+		int datasize = request_size - sizeof(cfs_status_get_request_header_t);
 
 		if (datasize < 0) {
 			result = -EINVAL;
@@ -235,15 +237,15 @@ static int32_t s1_msg_process_fn(
 
 			result = cfs_create_status_msg(outbuf, rh->nodename, rh->name);
 		}
-	} else if (req_pt->id == CFS_IPC_GET_CONFIG) {
+	} else if (request_id == CFS_IPC_GET_CONFIG) {
 
-		int pathlen = req_pt->size - sizeof(struct qb_ipc_request_header);
+		int pathlen = request_size - sizeof(struct qb_ipc_request_header);
 
 		if (pathlen <= 0) {
 			result = -EINVAL;
 		} else {
 			/* make sure path is 0 terminated */
-			((char *)data)[req_pt->size] = 0;
+			((char *)data)[request_size] = 0;
 			char *path = data + sizeof(struct qb_ipc_request_header);
 
 			if (ctx->read_only &&  path_is_private(path)) {
@@ -257,12 +259,12 @@ static int32_t s1_msg_process_fn(
 				}
 			}
 		}			
-	} else if (req_pt->id == CFS_IPC_LOG_CLUSTER_MSG) {
+	} else if (request_id == CFS_IPC_LOG_CLUSTER_MSG) {
 
 		cfs_log_msg_request_header_t *rh = 
 			(cfs_log_msg_request_header_t *)data;
 
-		int datasize = req_pt->size - G_STRUCT_OFFSET(cfs_log_msg_request_header_t, data);
+		int datasize = request_size - G_STRUCT_OFFSET(cfs_log_msg_request_header_t, data);
 		int msg_len = datasize - rh->ident_len - rh->tag_len;
 
 		if (ctx->read_only) {
@@ -273,7 +275,7 @@ static int32_t s1_msg_process_fn(
 			char *msg = rh->data;
 			if ((msg[rh->ident_len - 1] == 0) &&
 			    (msg[rh->ident_len + rh->tag_len - 1] == 0) &&
-			    (((char *)data)[req_pt->size] == 0)) {
+			    (((char *)data)[request_size] == 0)) {
 
 				char *ident = msg;
 				char *tag = msg + rh->ident_len;
@@ -292,38 +294,38 @@ static int32_t s1_msg_process_fn(
 				result = -EINVAL;
 			}
 		}
-	} else if (req_pt->id == CFS_IPC_GET_CLUSTER_LOG) {
+	} else if (request_id == CFS_IPC_GET_CLUSTER_LOG) {
 
 		cfs_log_get_request_header_t *rh = 
 			(cfs_log_get_request_header_t *)data;
 
-		int userlen = req_pt->size - sizeof(cfs_log_get_request_header_t);
+		int userlen = request_size - sizeof(cfs_log_get_request_header_t);
 
 		if (userlen <= 0) {
 			result = -EINVAL;
 		} else {
 			/* make sure user string is 0 terminated */
-			((char *)data)[req_pt->size] = 0;
+			((char *)data)[request_size] = 0;
 			char *user = data + sizeof(cfs_log_get_request_header_t);
 
 			uint32_t max = rh->max_entries ?  rh->max_entries : 50;
 			cfs_cluster_log_dump(outbuf, user, max);
 			result = 0;
 		}
-	} else if (req_pt->id == CFS_IPC_GET_RRD_DUMP) {
+	} else if (request_id == CFS_IPC_GET_RRD_DUMP) {
 	
-		if (req_pt->size != sizeof(struct qb_ipc_request_header)) {
+		if (request_size != sizeof(struct qb_ipc_request_header)) {
 			result = -EINVAL;
 		} else {
 			cfs_rrd_dump(outbuf);
 			result = 0;
 		}
-	} else if (req_pt->id == CFS_IPC_GET_GUEST_CONFIG_PROPERTY) {
+	} else if (request_id == CFS_IPC_GET_GUEST_CONFIG_PROPERTY) {
 
 		cfs_guest_config_propery_get_request_header_t *rh =
 			(cfs_guest_config_propery_get_request_header_t *) data;
 
-		int proplen = req_pt->size - G_STRUCT_OFFSET(cfs_guest_config_propery_get_request_header_t, property);
+		int proplen = request_size - G_STRUCT_OFFSET(cfs_guest_config_propery_get_request_header_t, property);
 
 		result = 0;
 		if (rh->vmid < 100 && rh->vmid != 0) {
@@ -335,7 +337,7 @@ static int32_t s1_msg_process_fn(
 			cfs_debug("proplen <= 0, %d", proplen);
 			result = -EINVAL;
 		} else {
-			((char *)data)[req_pt->size] = 0; // ensure property is 0 terminated
+			((char *)data)[request_size] = 0; // ensure property is 0 terminated
 
 			cfs_debug("cfs_get_guest_config_property: basic valid checked, do request");
 
@@ -356,7 +358,7 @@ static int32_t s1_msg_process_fn(
 
 	int resp_data_len = resp ? outbuf->len : 0;
 
-	res_header.id = req_pt->id;
+	res_header.id = request_id;
 	res_header.size = sizeof(res_header) + resp_data_len;
 	res_header.error = result;
 
