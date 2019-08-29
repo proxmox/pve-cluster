@@ -1403,27 +1403,27 @@ kvstore_parse_log_message(
 		return NULL;
 	}
 
-	msg = entry->data;
+	char *msgptr = entry->data;
 
-	if (*((char *)msg + entry->node_len - 1)) {
+	if (*((char *)msgptr + entry->node_len - 1)) {
 		cfs_critical("unterminated string in log message");
 		return NULL;
 	}
-	msg += entry->node_len;
+	msgptr += entry->node_len;
 
-	if (*((char *)msg + entry->ident_len - 1)) {
+	if (*((char *)msgptr + entry->ident_len - 1)) {
 		cfs_critical("unterminated string in log message");
 		return NULL;
 	}
-	msg += entry->ident_len;
+	msgptr += entry->ident_len;
 
-	if (*((char *)msg + entry->tag_len - 1)) {
+	if (*((char *)msgptr + entry->tag_len - 1)) {
 		cfs_critical("unterminated string in log message");
 		return NULL;
 	}
-	msg += entry->tag_len;
+	msgptr += entry->tag_len;
 
-	if (*((char *)msg + entry->msg_len - 1)) {
+	if (*((char *)msgptr + entry->msg_len - 1)) {
 		cfs_critical("unterminated string in log message");
 		return NULL;
 	}
@@ -1461,7 +1461,7 @@ kvstore_parse_update_message(
 
 	*len = msg_len - 256;
 	*key = msg;
-	*data = msg + 256;
+	*data = (char *) msg + 256;
 
 	return TRUE;
 }
