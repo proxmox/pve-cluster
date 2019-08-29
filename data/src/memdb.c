@@ -811,13 +811,13 @@ memdb_pwrite(
 		}
 
 		if (count && data)
-			memcpy(newdata + offset, data, count);
+			memcpy((uint8_t *) newdata + offset, data, count);
 
 	} else {
 
 		if (count && data) {
 			newdata = g_malloc0(newsize);
-			memcpy(newdata + offset, data, count);
+			memcpy((uint8_t *) newdata + offset, data, count);
 		}
 	}
 

@@ -706,7 +706,7 @@ dfsm_cpg_deliver_callback(
 			int msg_res = -1;
 			int res = dfsm->dfsm_callbacks->dfsm_deliver_fn(
 				dfsm, dfsm->data, &msg_res, nodeid, pid, base_header->subtype, 
-				base_header->time, msg + sizeof(dfsm_message_normal_header_t), 
+				base_header->time, (uint8_t *)msg + sizeof(dfsm_message_normal_header_t),
 				msg_len - sizeof(dfsm_message_normal_header_t));
 
 			if (nodeid == dfsm->nodeid && pid == dfsm->pid)
@@ -739,7 +739,7 @@ dfsm_cpg_deliver_callback(
 		return;
 	}
 
-	msg += sizeof(dfsm_message_state_header_t);
+	msg = (uint8_t *) msg + sizeof(dfsm_message_state_header_t);
 	msg_len -= sizeof(dfsm_message_state_header_t);
 
 	if (mode == DFSM_MODE_SYNCED) {
@@ -761,7 +761,7 @@ dfsm_cpg_deliver_callback(
 			}
 
 			uint64_t csum_id = *((uint64_t *)msg);
-			msg += 8; msg_len -= 8;
+			msg = (uint8_t *) msg + 8; msg_len -= 8;
 
 			cfs_dom_debug(dfsm->log_domain, "got verify request from node %d %016" PRIX64, nodeid, csum_id);
 
@@ -795,7 +795,7 @@ dfsm_cpg_deliver_callback(
 				}
 
 				uint64_t csum_id = *((uint64_t *)msg);
-				msg += 8; msg_len -= 8;
+				msg = (uint8_t *) msg + 8; msg_len -= 8;
 				
 				if (dfsm->csum_id == csum_id &&
 				    (memcmp(&dfsm->csum_epoch, &header->epoch, sizeof(dfsm_sync_epoch_t)) == 0)) {

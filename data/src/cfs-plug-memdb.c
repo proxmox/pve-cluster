@@ -226,7 +226,7 @@ static int cfs_plug_memdb_read(
 	if (offset < len) {
 		if (offset + size > len)
 			size = len - offset;
-		memcpy(buf, data + offset, size);
+		memcpy(buf, (uint8_t *) data + offset, size);
 	} else {
 		size = 0;
 	}
