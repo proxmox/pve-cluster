@@ -801,15 +801,21 @@ cfs_create_vmlist_msg(GString *str)
 // currently we only look at the current configuration in place, i.e., *no*
 // snapshort and *no* pending changes
 static char *
-_get_property_value(char *conf, const char *prop, int prop_len)
+_get_property_value(char *conf, int conf_size, const char *prop, int prop_len)
 {
-	char *line = NULL, *temp = NULL;
+	char *line = conf;
+	int remaining_size;
 
-	line = strtok_r(conf, "\n", &temp);
+	char *next_newline = memchr(conf, '\n', conf_size);
+	if (next_newline == NULL) {
+		return NULL; // valid property lines end with \n, but none in the config
+	}
+	*next_newline = '\0';
+
 	while (line != NULL) {
 		if (!line[0]) goto next;
 
-		// snapshot or pending section start and nothing found yet
+		// snapshot or pending section start, but nothing found yet -> not found
 		if (line[0] == '[') return NULL;
 		// properties start with /^[a-z]/, so continue early if not
 		if (line[0] < 'a' || line[0] > 'z') goto next;
@@ -832,7 +838,16 @@ _get_property_value(char *conf, const char *prop, int prop_len)
 			return v_start;
 		}
 next:
-		line = strtok_r(NULL, "\n", &temp);
+		remaining_size = conf_size - (int) (next_newline - conf);
+		if (remaining_size <= 1 || remaining_size <= prop_len) {
+			return NULL;
+		}
+		line = next_newline + 1;
+		next_newline = memchr(line, '\n', remaining_size);
+		if (next_newline == NULL) {
+			return NULL; // valid property lines end with \n, but none in the config
+		}
+		*next_newline = '\0';
 	}
 
 	return NULL; // not found
@@ -884,7 +899,7 @@ cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *pro
 		if (tmp == NULL) goto err;
 		if (size <= prop_len) goto ret;
 
-		char *val = _get_property_value(tmp, prop, prop_len);
+		char *val = _get_property_value(tmp, size, prop, prop_len);
 		if (val == NULL) goto ret;
 
 		g_string_append_printf(str, "\"%u\":{", vmid);
@@ -907,7 +922,7 @@ cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *pro
 			int size = memdb_read(memdb, path->str, &tmp);
 			if (tmp == NULL || size <= prop_len) continue;
 
-			char *val = _get_property_value(tmp, prop, prop_len);
+			char *val = _get_property_value(tmp, size, prop, prop_len);
 			if (val == NULL) continue;
 
 			if (!first) g_string_append_printf(str, ",\n");
