@@ -97,6 +97,8 @@ START_TEST(test_indextest1)
 	g_checksum_update(sha256, (unsigned char *)idx, idx->bytes);
 	const char *csum = g_checksum_get_string(sha256);
 	fail_unless(strcmp(csum, "913fd95015af9d93f10dd51ba2a7bb11351bcfe040be21e95fcba834adc3ec10") == 0, "wrong idx checksum %s", csum);
+	g_free(idx);
+	g_free(testdata);
 
 }
 END_TEST
@@ -160,6 +162,7 @@ START_TEST (test_filetest1)
 	fail_unless(memdb_read(memdb, fn, &data) == 10);
 
 	fail_unless(strncmp(data, "012X45X789", 10) == 0);
+	g_free(data);
 
 	fail_unless(memdb_delete(memdb, fn, 0, ctime) == 0);
 
