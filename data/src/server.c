@@ -245,7 +245,7 @@ static int32_t s1_msg_process_fn(
 			result = -EINVAL;
 		} else {
 			/* make sure path is 0 terminated */
-			((char *)data)[request_size] = 0;
+			((char *)data)[request_size - 1] = 0;
 			char *path = (char*) data + sizeof(struct qb_ipc_request_header);
 
 			if (ctx->read_only &&  path_is_private(path)) {
@@ -305,7 +305,7 @@ static int32_t s1_msg_process_fn(
 			result = -EINVAL;
 		} else {
 			/* make sure user string is 0 terminated */
-			((char *)data)[request_size] = 0;
+			((char *)data)[request_size - 1] = 0;
 			char *user = (char*) data + sizeof(cfs_log_get_request_header_t);
 
 			uint32_t max = rh->max_entries ?  rh->max_entries : 50;
@@ -337,7 +337,7 @@ static int32_t s1_msg_process_fn(
 			cfs_debug("proplen <= 0, %d", proplen);
 			result = -EINVAL;
 		} else {
-			((char *)data)[request_size] = 0; // ensure property is 0 terminated
+			((char *)data)[request_size - 1] = 0; // ensure property is 0 terminated
 
 			cfs_debug("cfs_get_guest_config_property: basic valid checked, do request");
 
