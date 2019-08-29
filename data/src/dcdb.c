@@ -94,7 +94,7 @@ dcdb_parse_unlock_request(
 	}
 
 	*csum = msg;
-	msg += 32; msg_len -= 32;
+	msg = (char *)msg + 32; msg_len -= 32;
 
 	*path = msg;
 	if ((*path)[msg_len - 1] != 0) {
@@ -183,28 +183,30 @@ dcdb_parse_fuse_message(
 		return FALSE;
 	}
 
-	*size = *((guint32 *)msg);
-	msg += 4; msg_len -= 4;
+	uint8_t *msg_ptr = (uint8_t *) msg;
 
-	*offset = *((guint32 *)msg);
-	msg += 4; msg_len -= 4;
+	*size = *((guint32 *)msg_ptr);
+	msg_ptr += 4; msg_len -= 4;
 
-	guint32 pathlen = *((guint32 *)msg);
-	msg += 4; msg_len -= 4;
+	*offset = *((guint32 *)msg_ptr);
+	msg_ptr += 4; msg_len -= 4;
 
-	guint32 tolen = *((guint32 *)msg);
-	msg += 4; msg_len -= 4;
+	guint32 pathlen = *((guint32 *)msg_ptr);
+	msg_ptr += 4; msg_len -= 4;
 
-	*flags = *((guint32 *)msg);
-	msg += 4; msg_len -= 4;
+	guint32 tolen = *((guint32 *)msg_ptr);
+	msg_ptr += 4; msg_len -= 4;
+
+	*flags = *((guint32 *)msg_ptr);
+	msg_ptr += 4; msg_len -= 4;
 
 	if (msg_len != ((*size) + pathlen + tolen)) {
 		cfs_critical("received mailformed fuse message");
 		return FALSE;
 	}
 
-	*path = (char *)msg;
-	msg += pathlen; msg_len -= pathlen;
+	*path = (char *)msg_ptr;
+	msg_ptr += pathlen; msg_len -= pathlen;
 
 	if (pathlen) {
 		if ((*path)[pathlen - 1] != 0) {
@@ -216,8 +218,8 @@ dcdb_parse_fuse_message(
 		*path = NULL;
 	}
 
-	*to = (char *)msg;
-	msg += tolen; msg_len -= tolen;
+	*to = (char *)msg_ptr;
+	msg_ptr += tolen; msg_len -= tolen;
 
 	if (tolen) {
 		if ((*to)[tolen - 1] != 0) {
@@ -289,24 +291,26 @@ dcdb_parse_update_inode(
 		return NULL;
 	}
 
-	guint64 parent = *((guint64 *)msg);
-	msg += 8; msg_len -= 8;
-	guint64 inode = *((guint64 *)msg);
-	msg += 8; msg_len -= 8;
-	guint64 version = *((guint64 *)msg);
-	msg += 8; msg_len -= 8;
+	uint8_t *msg_ptr = (uint8_t *) msg;
 
-	guint32 writer = *((guint32 *)msg);
-	msg += 4; msg_len -= 4;
-	guint32 mtime = *((guint32 *)msg);
-	msg += 4; msg_len -= 4;
-	guint32 size = *((guint32 *)msg);
-	msg += 4; msg_len -= 4;
-	guint32 namelen = *((guint32 *)msg);
-	msg += 4; msg_len -= 4;
+	guint64 parent = *((guint64 *)msg_ptr);
+	msg_ptr += 8; msg_len -= 8;
+	guint64 inode = *((guint64 *)msg_ptr);
+	msg_ptr += 8; msg_len -= 8;
+	guint64 version = *((guint64 *)msg_ptr);
+	msg_ptr += 8; msg_len -= 8;
 
-	char type = *((char *)msg);
-	msg += 1; msg_len -= 1;
+	guint32 writer = *((guint32 *)msg_ptr);
+	msg_ptr += 4; msg_len -= 4;
+	guint32 mtime = *((guint32 *)msg_ptr);
+	msg_ptr += 4; msg_len -= 4;
+	guint32 size = *((guint32 *)msg_ptr);
+	msg_ptr += 4; msg_len -= 4;
+	guint32 namelen = *((guint32 *)msg_ptr);
+	msg_ptr += 4; msg_len -= 4;
+
+	char type = *((char *)msg_ptr);
+	msg_ptr += 1; msg_len -= 1;
 
 	if (!(type == DT_REG || type == DT_DIR)) {
 		cfs_critical("received mailformed message (unknown inode type %d)", type);
@@ -319,7 +323,7 @@ dcdb_parse_update_inode(
 	}
 
 	char *name = (char *)msg;
-	msg += namelen; msg_len -= namelen;
+	msg = (char *) msg + namelen; msg_len -= namelen;
 
 	const void *data = msg;
 	
