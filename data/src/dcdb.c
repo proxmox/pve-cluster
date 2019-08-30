@@ -93,10 +93,12 @@ dcdb_parse_unlock_request(
 		return FALSE;
 	}
 
-	*csum = msg;
-	msg = (char *)msg + 32; msg_len -= 32;
+	char *msg_str = (char *) msg;
 
-	*path = msg;
+	*csum = (guchar *) msg_str;
+	msg_str += 32; msg_len -= 32;
+
+	*path = msg_str;
 	if ((*path)[msg_len - 1] != 0) {
 		cfs_critical("received mailformed unlock message - 'path' not terminated");
 		*path = NULL;
@@ -291,7 +293,7 @@ dcdb_parse_update_inode(
 		return NULL;
 	}
 
-	uint8_t *msg_ptr = (uint8_t *) msg;
+	char *msg_ptr = (char *) msg;
 
 	guint64 parent = *((guint64 *)msg_ptr);
 	msg_ptr += 8; msg_len -= 8;
@@ -322,10 +324,10 @@ dcdb_parse_update_inode(
 		return NULL;
 	}
 
-	char *name = (char *)msg;
-	msg = (char *) msg + namelen; msg_len -= namelen;
+	char *name = msg_ptr;
+	msg_ptr += namelen; msg_len -= namelen;
 
-	const void *data = msg;
+	const void *data = msg_ptr;
 	
 	if (name[namelen - 1] != 0) {
 		cfs_critical("received mailformed message (name[namelen-1] != 0)");
