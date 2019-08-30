@@ -803,8 +803,9 @@ cfs_create_vmlist_msg(GString *str)
 static char *
 _get_property_value(char *conf, int conf_size, const char *prop, int prop_len)
 {
+	const char *const conf_end = conf + conf_size;
 	char *line = conf;
-	int remaining_size;
+	size_t remaining_size;
 
 	char *next_newline = memchr(conf, '\n', conf_size);
 	if (next_newline == NULL) {
@@ -838,11 +839,11 @@ _get_property_value(char *conf, int conf_size, const char *prop, int prop_len)
 			return v_start;
 		}
 next:
-		remaining_size = conf_size - (int) (next_newline - conf);
-		if (remaining_size <= 1 || remaining_size <= prop_len) {
+		line = next_newline + 1;
+		remaining_size = conf_end - line;
+		if (remaining_size <= prop_len) {
 			return NULL;
 		}
-		line = next_newline + 1;
 		next_newline = memchr(line, '\n', remaining_size);
 		if (next_newline == NULL) {
 			return NULL; // valid property lines end with \n, but none in the config
