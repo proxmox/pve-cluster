@@ -1,3 +1,19 @@
+pve-cluster (6.0-6) pve; urgency=medium
+
+  * pmxcfs: code cleanup to allow enabling additional, stricter, compiler
+    checks
+
+  * cfs-utils cluster_config_version: actually enforce config_length
+    when doing the regex match
+
+  * pmxcfs: get config properties: ensure we do not read beyond the in-memory
+    config
+
+  * pmxcfs server: fix off-by-one error when ensuring string NULL
+    termination
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 30 Aug 2019 14:45:19 +0200
+
 pve-cluster (6.0-5) pve; urgency=medium
 
   * join: better error handling
