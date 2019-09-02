@@ -1,3 +1,10 @@
+pve-cluster (6.0-7) pve; urgency=medium
+
+  * pmxcfs: ensure dcdb returns correct buffer again on parsing the FUSE
+    message. Fixes a regression from 6.0-6.
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 02 Sep 2019 11:07:59 +0200
+
 pve-cluster (6.0-6) pve; urgency=medium
 
   * pmxcfs: code cleanup to allow enabling additional, stricter, compiler
