@@ -185,7 +185,7 @@ dcdb_parse_fuse_message(
 		return FALSE;
 	}
 
-	uint8_t *msg_ptr = (uint8_t *) msg;
+	const uint8_t *msg_ptr = msg;
 
 	*size = *((guint32 *)msg_ptr);
 	msg_ptr += 4; msg_len -= 4;
@@ -233,7 +233,7 @@ dcdb_parse_fuse_message(
 		*to = NULL;
 	}
 
-	*buf = (*size) ? msg : NULL;
+	*buf = (*size) ? (const char*)msg_ptr : NULL;
 
 	return TRUE;
 }
