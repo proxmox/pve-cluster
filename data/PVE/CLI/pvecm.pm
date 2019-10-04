@@ -457,6 +457,25 @@ __PACKAGE__->register_method ({
 	my ($param) = @_;
 
 	PVE::Corosync::check_conf_exists();
+	my $conf = eval { PVE::Cluster::cfs_read_file("corosync.conf") } // {};
+	warn "$@" if $@;
+	my $totem = PVE::Corosync::totem_config($conf);
+
+	if (scalar(%$totem)) {
+	    my $print_info = sub {
+		my ($label, $key, $default) = @_;
+		my $val = $totem->{$key} // $default;
+		printf "%-17s %s\n", "$label:", "$val";
+	    };
+
+	    printf "Cluster information\n";
+	    printf "-------------------\n";
+	    $print_info->('Name', 'cluster_name', 'UNKOWN?');
+	    $print_info->('Config Version', 'config_version', -1);
+	    $print_info->('Transport', 'transport', 'knet');
+	    $print_info->('Secure auth', 'secauth', 'off');
+	    printf "\n";
+	}
 
 	my $cmd = ['corosync-quorumtool', '-siH'];
 
