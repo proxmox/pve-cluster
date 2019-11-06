@@ -17,6 +17,7 @@ use Socket;
 use Storable qw(dclone);
 use UUID;
 
+use PVE::Certificate;
 use PVE::INotify;
 use PVE::IPCC;
 use PVE::JSONSchema;
@@ -1681,26 +1682,6 @@ sub initialize_cert_cache {
 	if defined($node) && !defined($cert_cache_nodes->{$node});
 }
 
-sub read_ssl_cert_fingerprint {
-    my ($cert_path) = @_;
-
-    my $bio = Net::SSLeay::BIO_new_file($cert_path, 'r')
-	or die "unable to read '$cert_path' - $!\n";
-
-    my $cert = Net::SSLeay::PEM_read_bio_X509($bio);
-    Net::SSLeay::BIO_free($bio);
-
-    die "unable to read certificate from '$cert_path'\n" if !$cert;
-
-    my $fp = Net::SSLeay::X509_get_fingerprint($cert, 'sha256');
-    Net::SSLeay::X509_free($cert);
-
-    die "unable to get fingerprint for '$cert_path' - got empty value\n"
-	if !defined($fp) || $fp eq '';
-
-    return $fp;
-}
-
 sub get_node_fingerprint {
     my ($node) = @_;
 
@@ -1709,7 +1690,7 @@ sub get_node_fingerprint {
 
     $cert_path = $custom_cert_path if -f $custom_cert_path;
 
-    return read_ssl_cert_fingerprint($cert_path);
+    return PVE::Certificate::get_certificate_fingerprint($cert_path);
 }
 
 
