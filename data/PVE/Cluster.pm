@@ -34,8 +34,6 @@ cfs_write_file
 cfs_register_file
 cfs_lock_file);
 
-use Data::Dumper; # fixme: remove
-
 # x509 certificate utils
 
 my $basedir = "/etc/pve";
@@ -476,7 +474,6 @@ sub cfs_update {
     my ($fail) = @_;
     eval {
 	my $res = &$ipcc_send_rec_json(CFS_IPC_GET_FS_VERSION);
-	#warn "GOT1: " . Dumper($res);
 	die "no starttime\n" if !$res->{starttime};
 
 	if (!$res->{starttime} || !$versions->{starttime} ||
