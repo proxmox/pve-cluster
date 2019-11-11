@@ -11,6 +11,7 @@ use PVE::JSONSchema qw(get_standard_option);
 use PVE::Cluster;
 use PVE::APIClient::LWP;
 use PVE::Corosync;
+use PVE::Cluster::Setup;
 
 use IO::Socket::UNIX;
 
@@ -97,9 +98,9 @@ __PACKAGE__->register_method ({
 
 	my $code = sub {
 	    STDOUT->autoflush();
-	    PVE::Cluster::setup_sshd_config(1);
-	    PVE::Cluster::setup_rootsshconfig();
-	    PVE::Cluster::setup_ssh_keys();
+	    PVE::Cluster::Setup::setup_sshd_config(1);
+	    PVE::Cluster::Setup::setup_rootsshconfig();
+	    PVE::Cluster::Setup::setup_ssh_keys();
 
 	    PVE::Tools::run_command(['/usr/sbin/corosync-keygen', '-lk', $authfile])
 		if !-f $authfile;
@@ -114,9 +115,9 @@ __PACKAGE__->register_method ({
 	    PVE::Corosync::atomic_write_conf($config);
 
 	    my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
-	    PVE::Cluster::ssh_merge_keys();
-	    PVE::Cluster::gen_pve_node_files($nodename, $local_ip_address);
-	    PVE::Cluster::ssh_merge_known_hosts($nodename, $local_ip_address, 1);
+	    PVE::Cluster::Setup::ssh_merge_keys();
+	    PVE::Cluster::Setup::gen_pve_node_files($nodename, $local_ip_address);
+	    PVE::Cluster::Setup::ssh_merge_known_hosts($nodename, $local_ip_address, 1);
 
 	    print "Restart corosync and cluster filesystem\n";
 	    PVE::Tools::run_command('systemctl restart corosync pve-cluster');
@@ -297,9 +298,9 @@ __PACKAGE__->register_method ({
 
 	    $param->{votes} = 1 if !defined($param->{votes});
 
-	    PVE::Cluster::gen_local_dirs($name);
+	    PVE::Cluster::Setup::gen_local_dirs($name);
 
-	    eval { PVE::Cluster::ssh_merge_keys(); };
+	    eval { PVE::Cluster::Setup::ssh_merge_keys(); };
 	    warn $@ if $@;
 
 	    $nodelist->{$name} = {
@@ -507,7 +508,7 @@ __PACKAGE__->register_method ({
 
 	my $worker = sub {
 	    STDOUT->autoflush();
-	    PVE::Tools::lock_file($local_cluster_lock, 10, \&PVE::Cluster::join, $param);
+	    PVE::Tools::lock_file($local_cluster_lock, 10, \&PVE::Cluster::Setup::join, $param);
 	    die $@ if $@;
 	};
 

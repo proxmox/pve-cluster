@@ -14,6 +14,7 @@ use PVE::CLIHandler;
 use PVE::PTY;
 use PVE::API2::ClusterConfig;
 use PVE::Corosync;
+use PVE::Cluster::Setup;
 
 use base qw(PVE::CLIHandler);
 
@@ -359,7 +360,7 @@ __PACKAGE__->register_method ({
 	my $link0 = PVE::Cluster::parse_corosync_link($param->{link0});
 	my $link1 = PVE::Cluster::parse_corosync_link($param->{link1});
 
-	PVE::Cluster::assert_joinable($local_ip_address, $link0, $link1, $param->{force});
+	PVE::Cluster::Setup::assert_joinable($local_ip_address, $link0, $link1, $param->{force});
 
 	my $worker = sub {
 
@@ -371,7 +372,7 @@ __PACKAGE__->register_method ({
 		$param->{password} = $password;
 
 		my $local_cluster_lock = "/var/lock/pvecm.lock";
-		PVE::Tools::lock_file($local_cluster_lock, 10, \&PVE::Cluster::join, $param);
+		PVE::Tools::lock_file($local_cluster_lock, 10, \&PVE::Cluster::Setup::join, $param);
 
 		if (my $err = $@) {
 		    if (ref($err) eq 'PVE::APIClient::Exception' && defined($err->{code}) && $err->{code} == 501) {
@@ -385,12 +386,12 @@ __PACKAGE__->register_method ({
 
 	    # allow fallback to old ssh only join if wished or needed
 
-	    PVE::Cluster::setup_sshd_config();
-	    PVE::Cluster::setup_rootsshconfig();
-	    PVE::Cluster::setup_ssh_keys();
+	    PVE::Cluster::Setup::setup_sshd_config();
+	    PVE::Cluster::Setup::setup_rootsshconfig();
+	    PVE::Cluster::Setup::setup_ssh_keys();
 
 	    # make sure known_hosts is on local filesystem
-	    PVE::Cluster::ssh_unmerge_known_hosts();
+	    PVE::Cluster::Setup::ssh_unmerge_known_hosts();
 
 	    my $cmd = ['ssh-copy-id', '-i', '/root/.ssh/id_rsa', "root\@$host"];
 	    run_command($cmd, 'outfunc' => sub {}, 'errfunc' => sub {},
@@ -424,7 +425,7 @@ __PACKAGE__->register_method ({
 		my $corosync_conf = PVE::Tools::file_get_contents("$tmpdir/corosync.conf");
 		my $corosync_authkey = PVE::Tools::file_get_contents("$tmpdir/authkey");
 
-		PVE::Cluster::finish_join($host, $corosync_conf, $corosync_authkey);
+		PVE::Cluster::Setup::finish_join($host, $corosync_conf, $corosync_authkey);
 	    };
 	    my $err = $@;
 
@@ -565,7 +566,7 @@ __PACKAGE__->register_method ({
 	# IO (on /etc/pve) which can hang (uninterruptedly D state). That'd be
 	# no-good for ExecStartPost as it fails the whole service in this case
 	PVE::Tools::run_fork_with_timeout(30, sub {
-	    PVE::Cluster::updatecerts_and_ssh($param->@{qw(force silent)});
+	    PVE::Cluster::Setup::updatecerts_and_ssh($param->@{qw(force silent)});
 	});
 
 	return undef;
