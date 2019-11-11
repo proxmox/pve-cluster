@@ -13,6 +13,7 @@ use POSIX qw(EEXIST);
 
 use PVE::APIClient::LWP;
 use PVE::Cluster;
+use PVE::Corosync;
 use PVE::INotify;
 use PVE::JSONSchema;
 use PVE::Network;
@@ -618,8 +619,8 @@ sub join {
     my $nodename = PVE::INotify::nodename();
     my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
 
-    my $link0 = PVE::Cluster::parse_corosync_link($param->{link0});
-    my $link1 = PVE::Cluster::parse_corosync_link($param->{link1});
+    my $link0 = PVE::Corosync::parse_corosync_link($param->{link0});
+    my $link1 = PVE::Corosync::parse_corosync_link($param->{link1});
 
     # check if we can join with the given parameters and current node state
     assert_joinable($local_ip_address, $link0, $link1, $param->{force});

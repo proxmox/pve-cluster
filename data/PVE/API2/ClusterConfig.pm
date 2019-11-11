@@ -253,8 +253,8 @@ __PACKAGE__->register_method ({
 		}
 	    };
 
-	    my $link0 = PVE::Cluster::parse_corosync_link($param->{link0});
-	    my $link1 = PVE::Cluster::parse_corosync_link($param->{link1});
+	    my $link0 = PVE::Corosync::parse_corosync_link($param->{link0});
+	    my $link1 = PVE::Corosync::parse_corosync_link($param->{link1});
 
 	    $check_duplicate_addr->($link0);
 	    $check_duplicate_addr->($link1);

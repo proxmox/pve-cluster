@@ -357,8 +357,8 @@ __PACKAGE__->register_method ({
 	my $host = $param->{hostname};
 	my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
 
-	my $link0 = PVE::Cluster::parse_corosync_link($param->{link0});
-	my $link1 = PVE::Cluster::parse_corosync_link($param->{link1});
+	my $link0 = PVE::Corosync::parse_corosync_link($param->{link0});
+	my $link1 = PVE::Corosync::parse_corosync_link($param->{link1});
 
 	PVE::Cluster::Setup::assert_joinable($local_ip_address, $link0, $link1, $param->{force});
 

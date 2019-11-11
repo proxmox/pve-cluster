@@ -9,6 +9,7 @@ use Socket qw(AF_INET AF_INET6 inet_ntop);
 use Net::IP qw(ip_is_ipv6);
 
 use PVE::Cluster;
+use PVE::JSONSchema;
 use PVE::Tools;
 use PVE::Tools qw($IPV4RE $IPV6RE);
 
@@ -18,6 +19,37 @@ my $conf_array_sections = {
     node => 1,
     interface => 1,
 };
+
+my $corosync_link_format = {
+    address => {
+	default_key => 1,
+	type => 'string', format => 'address',
+	format_description => 'IP',
+	description => "Hostname (or IP) of this corosync link address.",
+    },
+    priority => {
+	optional => 1,
+	type => 'integer',
+	minimum => 0,
+	maximum => 255,
+	default => 0,
+	description => "The priority for the link when knet is used in 'passive' mode. Lower value means higher priority.",
+    },
+};
+my $corosync_link_desc = {
+    type => 'string', format => $corosync_link_format,
+    description => "Address and priority information of a single corosync link.",
+    optional => 1,
+};
+PVE::JSONSchema::register_standard_option("corosync-link", $corosync_link_desc);
+
+sub parse_corosync_link {
+    my ($value) = @_;
+
+    return undef if !defined($value);
+
+    return PVE::JSONSchema::parse_property_string($corosync_link_format, $value);
+}
 
 # a very simply parser ...
 sub parse_conf {
