@@ -19,7 +19,7 @@ Build-Depends: check,
                librrds-perl,
                libsqlite3-dev,
                libuuid-perl,
-               pve-doc-generator (>= 5.3-3),
+               pve-doc-generator (>= 6.0-9~),
                rrdcached,
                sqlite3,
 Standards-Version: 4.3.0

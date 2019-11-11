@@ -611,11 +611,36 @@ __PACKAGE__->register_method ({
 	    return undef;
 	}
 
+	my $get_local_migration_ip = sub {
+	    my ($cidr) = @_;
+
+	    if (!defined($cidr)) {
+		my $dc_conf = cfs_read_file('datacenter.cfg');
+		$cidr = $dc_conf->{migration}->{network}
+		if defined($dc_conf->{migration}->{network});
+	    }
+
+	    if (defined($cidr)) {
+		my $ips = PVE::Network::get_local_ip_from_cidr($cidr);
+
+		die "could not get migration ip: no IP address configured on local " .
+		    "node for network '$cidr'\n" if scalar(@$ips) == 0;
+
+		die "could not get migration ip: multiple IP address configured for " .
+		    "network '$cidr'\n" if scalar(@$ips) > 1;
+
+		return @$ips[0];
+	    }
+
+	    return undef;
+	};
+
 	my $network = $param->{migration_network};
 	if ($param->{get_migration_ip}) {
 	    die "cannot use --run-command with --get_migration_ip\n"
 		if $param->{'run-command'};
-	    if (my $ip = PVE::Cluster::get_local_migration_ip($network)) {
+
+	    if (my $ip = $get_local_migration_ip->($network)) {
 		print "ip: '$ip'\n";
 	    } else {
 		print "no ip\n";
@@ -632,7 +657,7 @@ __PACKAGE__->register_method ({
 	    # Get an ip address to listen on, and find a free migration port
 	    my ($ip, $family);
 	    if (defined($network)) {
-		$ip = PVE::Cluster::get_local_migration_ip($network)
+		$ip = $get_local_migration_ip->($network)
 		    or die "failed to get migration IP address to listen on\n";
 		$family = PVE::Tools::get_host_address_family($ip);
 	    } else {
