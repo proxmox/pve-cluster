@@ -1,3 +1,23 @@
+pve-cluster (6.0-8) pve; urgency=medium
+
+  * fix #1380: pvecm status: add general cluster information
+
+  * dc.conf: sort languages for easier finding one
+
+  * dc.conf: add missing entries to default language property (he, da)
+
+  * use PVE::Certificate to read fingerprint
+
+  * move CertCache to pve-manager
+
+  * datacenter.cfg: parse/print u2f property string
+
+  * split package into a pve-cluster/pmxcfs one and a perl modules library one
+
+  * pve-cluster.service: move pvecm call to pveproxy.service
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 18 Nov 2019 11:27:27 +0100
+
 pve-cluster (6.0-7) pve; urgency=medium
 
   * pmxcfs: ensure dcdb returns correct buffer again on parsing the FUSE
