@@ -16,7 +16,6 @@ Conflicts=shutdown.target
 
 [Service]
 ExecStart=/usr/bin/pmxcfs
-ExecStartPost=-/usr/bin/pvecm updatecerts --silent
 KillMode=mixed
 Restart=on-failure
 TimeoutStopSec=10
