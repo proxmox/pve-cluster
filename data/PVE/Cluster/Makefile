@@ -1,6 +1,6 @@
 PVEDIR=${DESTDIR}/usr/share/perl5/PVE
 
-SOURCES=IPCConst.pm Setup.pm
+SOURCES=IPCConst.pm Setup.pm CertCache.pm
 
 .PHONY: install
 install: ${SOURCES}
