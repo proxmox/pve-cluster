@@ -35,7 +35,7 @@ my $ha_format = {
     }
 };
 
-our $u2f_format = {
+my $u2f_format = {
     appid => {
 	type => 'string',
 	description => "U2F AppId URL override. Defaults to the origin.",
@@ -184,6 +184,10 @@ sub parse_datacenter_config {
 	$res->{ha} = PVE::JSONSchema::parse_property_string($ha_format, $ha);
     }
 
+    if (my $u2f = $res->{u2f}) {
+	$res->{u2f} = PVE::JSONSchema::parse_property_string($u2f_format, $u2f);
+    }
+
     # for backwards compatibility only, new migration property has precedence
     if (defined($res->{migration_unsecure})) {
 	if (defined($res->{migration}->{type})) {
@@ -224,6 +228,11 @@ sub write_datacenter_config {
     if (ref($cfg->{ha})) {
 	my $ha = $cfg->{ha};
 	$cfg->{ha} = PVE::JSONSchema::print_property_string($ha, $ha_format);
+    }
+
+    if (ref($cfg->{u2f})) {
+	my $u2f = $cfg->{u2f};
+	$cfg->{u2f} = PVE::JSONSchema::print_property_string($u2f, $u2f_format);
     }
 
     return PVE::JSONSchema::dump_config($datacenter_schema, $filename, $cfg);
