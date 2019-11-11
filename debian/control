@@ -3,15 +3,15 @@ Section: admin
 Priority: optional
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Build-Depends: check,
-               libcorosync-common-dev,
                debhelper (>= 10),
                libcmap-dev (>= 0.17.1-1),
+               libcorosync-common-dev,
                libcpg-dev (>= 2.3.4-1),
                libdigest-hmac-perl,
                libfuse-dev (>= 2.9.2-4),
                libglib2.0-dev (>= 2.42.1-1),
-               libpve-apiclient-perl,
                libpve-access-control,
+               libpve-apiclient-perl,
                libpve-common-perl (>= 5.0-28),
                libqb-dev (>= 0.17.1-1),
                libquorum-dev (>= 2.3.4-1),
@@ -28,21 +28,12 @@ Package: pve-cluster
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends},
 Depends: corosync (>= 2.3.4-1),
-         faketime,
          fuse,
-         libcrypt-ssleay-perl,
-         libdigest-hmac-perl,
          libfuse2 (>= 2.9.2-4),
          libglib2.0-0 (>= 2.42.1-1),
-         libpve-apiclient-perl,
          libpve-common-perl (>= 6.0-7~),
          libqb0 (>= 0.17.1-1),
-         librrds-perl,
          libsqlite3-0,
-         libuuid-perl,
-         openssl,
-         rrdcached,
-         rsync,
          sqlite3,
          systemd,
          ${misc:Depends},
@@ -55,7 +46,43 @@ Breaks: libpve-access-control (<= 6.0-3),
         pve-ha-manager (<= 3.0-2),
         pve-manager (<= 6.0-11),
         qemu-server (<= 6.0-13),
-Description: Cluster Infrastructure for Proxmox Virtual Environment
- This package contains the Cluster Infrastructure for the Proxmox
- Virtual Environment, namely a distributed filesystem to store
- configuration data on all nodes.
+Description: The "pmxcfs" distributed cluster filesystem for Proxmox Virtual Environment.
+  This FUSE filesystem is using corosync and sqlite3 to provide a cluster-wide,
+  consistent view of config and other files.
+
+Package: libpve-cluster-perl
+Architecture: all
+Pre-Depends: ${misc:Pre-Depends},
+Depends: libcrypt-ssleay-perl,
+         libpve-apiclient-perl,
+         libpve-common-perl (>= 6.0-7~),
+         librrds-perl,
+         rrdcached,
+         ${misc:Depends},
+         ${perl:Depends},
+         ${shlibs:Depends},
+Breaks: pve-cluster (<= 6.0-7),
+Replaces: pve-cluster (<= 6.0-7),
+Description: The Proxmox Virtual Environment cluster Perl modules.
+  This package contains various cluster-related perl modules.
+
+Package: libpve-cluster-api-perl
+Architecture: all
+Pre-Depends: ${misc:Pre-Depends},
+Depends: faketime,
+         libcrypt-ssleay-perl,
+         libdigest-hmac-perl,
+         libpve-access-control,
+         libpve-apiclient-perl,
+         libpve-cluster-perl,
+         libpve-common-perl (>= 5.0-28),
+         libuuid-perl,
+         openssl,
+         rsync,
+         ${misc:Depends},
+         ${perl:Depends},
+         ${shlibs:Depends},
+Breaks: pve-cluster (<= 6.0-7),
+Replaces: pve-cluster (<= 6.0-7),
+Description: The Proxmox Virtual Environment cluster Perl modules.
+  This package contains the API2 endpoints and CLI binary 'pvecm'.

@@ -14,3 +14,6 @@ override_dh_systemd_start:
 	dh_systemd_start --restart-after-upgrade
 
 override_dh_installinit:
+
+override_dh_missing:
+	dh_missing --fail-missing

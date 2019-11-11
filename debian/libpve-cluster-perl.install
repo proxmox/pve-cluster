@@ -1,0 +1,5 @@
+usr/share/man/man5/datacenter.cfg.5
+usr/share/perl5/PVE/Corosync.pm
+usr/share/perl5/PVE/DataCenterConfig.pm
+usr/share/perl5/PVE/RRD.pm
+usr/share/perl5/PVE/SSHInfo.pm

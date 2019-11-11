@@ -1,0 +1,7 @@
+usr/bin/pvecm
+usr/share/bash-completion/completions/pvecm
+usr/share/man/man1/pvecm.1
+usr/share/perl5/PVE/API2
+usr/share/perl5/PVE/CLI
+usr/share/perl5/PVE/Cluster/Setup.pm
+usr/share/zsh/vendor-completions/_pvecm
