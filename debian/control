@@ -48,7 +48,13 @@ Depends: corosync (>= 2.3.4-1),
          ${misc:Depends},
          ${perl:Depends},
          ${shlibs:Depends},
-Breaks: pve-ha-manager (<<2.0-4),
+Breaks: libpve-access-control (<= 6.0-3),
+        libpve-guest-common-perl (<= 3.0-2),
+        libpve-storage-perl (<= 6.0-9),
+        pve-container (<= 3.0-10),
+        pve-ha-manager (<= 3.0-2),
+        pve-manager (<= 6.0-11),
+        qemu-server (<= 6.0-13),
 Description: Cluster Infrastructure for Proxmox Virtual Environment
  This package contains the Cluster Infrastructure for the Proxmox
  Virtual Environment, namely a distributed filesystem to store
