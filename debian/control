@@ -46,9 +46,9 @@ Breaks: libpve-access-control (<= 6.0-3),
         pve-ha-manager (<= 3.0-2),
         pve-manager (<= 6.0-11),
         qemu-server (<= 6.0-13),
-Description: The "pmxcfs" distributed cluster filesystem for Proxmox Virtual Environment.
-  This FUSE filesystem is using corosync and sqlite3 to provide a cluster-wide,
-  consistent view of config and other files.
+Description: "pmxcfs" distributed cluster filesystem for Proxmox Virtual Environment.
+ This FUSE filesystem is using corosync and sqlite3 to provide a cluster-wide,
+ consistent view of config and other files.
 
 Package: libpve-cluster-perl
 Architecture: all
@@ -63,8 +63,8 @@ Depends: libcrypt-ssleay-perl,
          ${shlibs:Depends},
 Breaks: pve-cluster (<= 6.0-7),
 Replaces: pve-cluster (<= 6.0-7),
-Description: The Proxmox Virtual Environment cluster Perl modules.
-  This package contains various cluster-related perl modules.
+Description: Proxmox Virtual Environment cluster Perl modules.
+ This package contains various cluster-related perl modules.
 
 Package: libpve-cluster-api-perl
 Architecture: all
@@ -84,5 +84,5 @@ Depends: faketime,
          ${shlibs:Depends},
 Breaks: pve-cluster (<= 6.0-7),
 Replaces: pve-cluster (<= 6.0-7),
-Description: The Proxmox Virtual Environment cluster Perl modules.
-  This package contains the API2 endpoints and CLI binary 'pvecm'.
+Description: Proxmox Virtual Environment cluster Perl API modules.
+ This package contains the API2 endpoints and CLI binary 'pvecm'.
