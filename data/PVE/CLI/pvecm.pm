@@ -353,14 +353,7 @@ __PACKAGE__->register_method ({
 	my ($param) = @_;
 
 	my $nodename = PVE::INotify::nodename();
-
 	my $host = $param->{hostname};
-	my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
-
-	my $link0 = PVE::Corosync::parse_corosync_link($param->{link0});
-	my $link1 = PVE::Corosync::parse_corosync_link($param->{link1});
-
-	PVE::Cluster::Setup::assert_joinable($local_ip_address, $link0, $link1, $param->{force});
 
 	my $worker = sub {
 
@@ -384,6 +377,13 @@ __PACKAGE__->register_method ({
 	    }
 
 	    # allow fallback to old ssh only join if wished or needed
+
+	    my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
+
+	    my $link0 = PVE::Corosync::parse_corosync_link($param->{link0});
+	    my $link1 = PVE::Corosync::parse_corosync_link($param->{link1});
+
+	    PVE::Cluster::Setup::assert_joinable($local_ip_address, $link0, $link1, $param->{force});
 
 	    PVE::Cluster::Setup::setup_sshd_config();
 	    PVE::Cluster::Setup::setup_rootsshconfig();
