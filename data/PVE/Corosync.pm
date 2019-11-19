@@ -3,10 +3,11 @@ package PVE::Corosync;
 use strict;
 use warnings;
 
-use Digest::SHA;
 use Clone 'clone';
-use Socket qw(AF_INET AF_INET6 inet_ntop);
+use Digest::SHA;
 use Net::IP qw(ip_is_ipv6);
+use Scalar::Util qw(weaken);
+use Socket qw(AF_INET AF_INET6 inet_ntop);
 
 use PVE::Cluster;
 use PVE::JSONSchema;
@@ -125,36 +126,6 @@ sub parse_conf {
     return $conf;
 }
 
-my $dump_section;
-$dump_section = sub {
-    my ($section, $prefix) = @_;
-
-    my $raw = '';
-
-    foreach my $k (sort keys %$section) {
-	my $v = $section->{$k};
-	if (ref($v) eq 'HASH') {
-	    $raw .= $prefix . "$k {\n";
-	    $raw .= &$dump_section($v, "$prefix  ");
-	    $raw .=  $prefix . "}\n";
-	    $raw .= "\n" if !$prefix; # add extra newline at 1st level only
-	} elsif (ref($v) eq 'ARRAY') {
-	    foreach my $child (@$v) {
-		$raw .= $prefix . "$k {\n";
-		$raw .= &$dump_section($child, "$prefix  ");
-		$raw .=  $prefix . "}\n";
-	    }
-	} elsif (!ref($v)) {
-	    die "got undefined value for key '$k'!\n" if !defined($v);
-	    $raw .= $prefix . "$k: $v\n";
-	} else {
-	    die "unexpected reference in config hash: $k => ". ref($v) ."\n";
-	}
-    }
-
-    return $raw;
-};
-
 sub write_conf {
     my ($filename, $conf) = @_;
 
@@ -169,7 +140,39 @@ sub write_conf {
     $c->{nodelist}->{node} = &$hash_to_array($c->{nodelist}->{node});
     $c->{totem}->{interface} = &$hash_to_array($c->{totem}->{interface});
 
-    my $raw = &$dump_section($c, '');
+    my $dump_section_weak;
+    $dump_section_weak = sub {
+	my ($section, $prefix) = @_;
+
+	my $raw = '';
+
+	foreach my $k (sort keys %$section) {
+	    my $v = $section->{$k};
+	    if (ref($v) eq 'HASH') {
+		$raw .= $prefix . "$k {\n";
+		$raw .= $dump_section_weak->($v, "$prefix  ");
+		$raw .=  $prefix . "}\n";
+		$raw .= "\n" if !$prefix; # add extra newline at 1st level only
+	    } elsif (ref($v) eq 'ARRAY') {
+		foreach my $child (@$v) {
+		    $raw .= $prefix . "$k {\n";
+		    $raw .= $dump_section_weak->($child, "$prefix  ");
+		    $raw .=  $prefix . "}\n";
+		}
+	    } elsif (!ref($v)) {
+		die "got undefined value for key '$k'!\n" if !defined($v);
+		$raw .= $prefix . "$k: $v\n";
+	    } else {
+		die "unexpected reference in config hash: $k => ". ref($v) ."\n";
+	    }
+	}
+
+	return $raw;
+    };
+    my $dump_section = $dump_section_weak;
+    weaken($dump_section_weak);
+
+    my $raw = $dump_section->($c, '');
 
     return $raw;
 }
