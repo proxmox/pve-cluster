@@ -365,8 +365,7 @@ __PACKAGE__->register_method ({
 	my $worker = sub {
 
 	    if (!$param->{use_ssh}) {
-		print "Please enter superuser (root) password for '$host':\n";
-		my $password = PVE::PTY::read_password("Password for root\@$host: ");
+		my $password = PVE::PTY::read_password("Please enter superuser (root) password for '$host': ");
 
 		delete $param->{use_ssh};
 		$param->{password} = $password;
