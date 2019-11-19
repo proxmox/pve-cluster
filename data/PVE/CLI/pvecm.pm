@@ -109,8 +109,7 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	die "Node not in a cluster. Aborting.\n"
-	    if !PVE::Corosync::check_conf_exists(1);
+	PVE::Corosync::check_conf_exists();
 
 	my $members = PVE::Cluster::get_members();
 	foreach my $node (sort keys %$members) {
@@ -266,8 +265,7 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	die "Node not in a cluster. Aborting.\n"
-	    if !PVE::Corosync::check_conf_exists(1);
+	PVE::Corosync::check_conf_exists();
 
 	my $members = PVE::Cluster::get_members();
 	foreach my $node (sort keys %$members) {

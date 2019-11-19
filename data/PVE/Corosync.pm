@@ -184,14 +184,12 @@ PVE::Cluster::cfs_register_file('corosync.conf.new', \&parse_conf,
 				\&write_conf);
 
 sub check_conf_exists {
-    my ($silent) = @_;
-
-    $silent = $silent // 0;
+    my ($noerr) = @_;
 
     my $exists = -f "$basedir/corosync.conf";
 
-    warn "Corosync config '$basedir/corosync.conf' does not exist - is this node part of a cluster?\n"
-	if !$silent && !$exists;
+    die "Error: Corosync config '$basedir/corosync.conf' does not exist - is this node part of a cluster?\n"
+	if !$noerr && !$exists;
 
     return $exists;
 }
