@@ -239,7 +239,7 @@ sub create_conf {
 
     my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
 
-    my $link0 = PVE::Cluster::parse_corosync_link($param{link0});
+    my $link0 = parse_corosync_link($param{link0});
     $link0->{address} //= $local_ip_address;
 
     my $conf = {
@@ -278,7 +278,7 @@ sub create_conf {
     $totem->{interface}->{0}->{knet_link_priority} = $link0->{priority}
 	if defined($link0->{priority});
 
-    my $link1 = PVE::Cluster::parse_corosync_link($param{link1});
+    my $link1 = parse_corosync_link($param{link1});
     if ($link1->{address}) {
 	$conf->{totem}->{interface}->{1} = {
 	    linknumber => 1,
