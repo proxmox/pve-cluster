@@ -1,3 +1,11 @@
+pve-cluster (6.0-9) pve; urgency=medium
+
+  * pvecm: fix weirdly spaced double-prompt for password on join
+
+  * fix #2479: use correct sub in create_conf
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 22 Nov 2019 16:30:21 +0100
+
 pve-cluster (6.0-8) pve; urgency=medium
 
   * fix #1380: pvecm status: add general cluster information
