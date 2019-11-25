@@ -28,9 +28,20 @@ my $migration_format = {
 my $ha_format = {
     shutdown_policy => {
 	type => 'string',
-	enum => ['freeze', 'failover', 'conditional'],
-	description => "The policy for HA services on node shutdown. 'freeze' disables auto-recovery, 'failover' ensures recovery, 'conditional' recovers on poweroff and freezes on reboot. Running HA Services will always get stopped first on shutdown.",
-	verbose_description => "Describes the policy for handling HA services on poweroff or reboot of a node. Freeze will always freeze services which are still located on the node on shutdown, those services won't be recovered by the HA manager. Failover will not mark the services as frozen and thus the services will get recovered to other nodes, if the shutdown node does not come up again quickly (< 1min). 'conditional' chooses automatically depending on the type of shutdown, i.e., on a reboot the service will be frozen but on a poweroff the service will stay as is, and thus get recovered after about 2 minutes.",
+	enum => ['freeze', 'failover', 'conditional', 'migrate'],
+	description => "The policy for HA services on node shutdown. 'freeze' disables ".
+	    "auto-recovery, 'failover' ensures recovery, 'conditional' recovers on ".
+	    "poweroff and freezes on reboot. 'migrate' will migrate running services ".
+	    "to other nodes, if possible. With 'freeze' or 'failover', HA Services will ".
+	    "always get stopped first on shutdown.",
+	verbose_description => "Describes the policy for handling HA services on poweroff ".
+	    "or reboot of a node. Freeze will always freeze services which are still located ".
+	    "on the node on shutdown, those services won't be recovered by the HA manager. ".
+	    "Failover will not mark the services as frozen and thus the services will get ".
+	    "recovered to other nodes, if the shutdown node does not come up again quickly ".
+	    "(< 1min). 'conditional' chooses automatically depending on the type of shutdown, ".
+	    "i.e., on a reboot the service will be frozen but on a poweroff the service will ".
+	    "stay as is, and thus get recovered after about 2 minutes.",
 	default => 'conditional',
     }
 };
