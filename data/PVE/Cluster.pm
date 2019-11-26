@@ -63,8 +63,13 @@ my $observed = {
     'ha/fence.cfg' => 1,
     'status.cfg' => 1,
     'ceph.conf' => 1,
-    'sdn.cfg' => 1,
-    'sdn.cfg.new' => 1,
+    'sdn/vnets.cfg' => 1,
+    'sdn/vnets.cfg.new' => 1,
+    'sdn/zones.cfg' => 1,
+    'sdn/zones.cfg.new' => 1,
+    'sdn/controllers.cfg' => 1,
+    'sdn/controllers.cfg.new' => 1,
+
 };
 
 sub base_dir {

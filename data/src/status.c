@@ -94,8 +94,12 @@ static memdb_change_t memdb_change_array[] = {
 	{ .path = "status.cfg" },
 	{ .path = "replication.cfg" },
 	{ .path = "ceph.conf" },
-	{ .path = "sdn.cfg" },
-	{ .path = "sdn.cfg.new" },
+	{ .path = "sdn/vnets.cfg" },
+	{ .path = "sdn/vnets.cfg.new" },
+	{ .path = "sdn/zones.cfg" },
+	{ .path = "sdn/zones.cfg.new" },
+	{ .path = "sdn/controllers.cfg" },
+	{ .path = "sdn/controllers.cfg.new" },
 };
 
 static GMutex mutex;
