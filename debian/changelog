@@ -1,3 +1,15 @@
+pve-cluster (6.1-1) pve; urgency=medium
+
+  * allow one to set 'migrate' HA shutdown policy in datacenter.cfg
+
+  * change certificate lifetime to two years, some newer browsers complain on
+    longer lifetime
+
+  * mtunnel migration IP: allow the same IP to be configured multiple times,
+    fixes, among others, routed full-mesh setups
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 26 Nov 2019 15:09:58 +0100
+
 pve-cluster (6.0-9) pve; urgency=medium
 
   * pvecm: fix weirdly spaced double-prompt for password on join
