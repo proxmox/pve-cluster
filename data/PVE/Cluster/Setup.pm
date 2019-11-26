@@ -18,6 +18,7 @@ use PVE::INotify;
 use PVE::JSONSchema;
 use PVE::Network;
 use PVE::Tools;
+use PVE::Certificate;
 
 my $pmxcfs_base_dir = PVE::Cluster::base_dir();
 my $pmxcfs_auth_dir = PVE::Cluster::auth_dir();
@@ -488,10 +489,27 @@ __EOD
 
     update_serial("0000000000000000") if ! -f $pveca_srl_fn;
 
+    # get ca expiry
+    my $cainfo = PVE::Certificate::get_certificate_info($pveca_cert_fn);
+    my $daysleft = int(($cainfo->{notafter} - time())/(24*60*60));
+
+    if ($daysleft < 14) {
+	die "CA expires in less than 2 weeks, unable to generate certificate.\n";
+    }
+
+    # let the certificate expire a little sooner that the ca, so subtract 2 days
+    $daysleft -= 2;
+
+    # we want the certificates to only last 2 years, since some browsers
+    # do not accept certificates with very long expiry time
+    if ($daysleft >= 2*365) {
+	$daysleft = 2*365;
+    }
+
     eval {
 	# wrap openssl with faketime to prevent bug #904
 	run_silent_cmd(['faketime', 'yesterday', 'openssl', 'x509', '-req',
-			'-in', $reqfn, '-days', '3650', '-out', $pvessl_cert_fn,
+			'-in', $reqfn, '-days', $daysleft, '-out', $pvessl_cert_fn,
 			'-CAkey', $pveca_key_fn, '-CA', $pveca_cert_fn,
 			'-CAserial', $pveca_srl_fn, '-extfile', $cfgfn]);
     };
