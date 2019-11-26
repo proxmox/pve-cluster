@@ -623,8 +623,8 @@ __PACKAGE__->register_method ({
 		die "could not get migration ip: no IP address configured on local " .
 		    "node for network '$cidr'\n" if scalar(@$ips) == 0;
 
-		die "could not get migration ip: multiple IP address configured for " .
-		    "network '$cidr'\n" if scalar(@$ips) > 1;
+		die "could not get migration ip: multiple, different, IP address configured for " .
+		    "network '$cidr'\n" if scalar(@$ips) > 1 && grep { @$ips[0] ne $_ } @$ips;
 
 		return @$ips[0];
 	    }
