@@ -617,8 +617,8 @@ sub assert_joinable {
 	my $cidr = (Net::IP::ip_is_ipv6($ip)) ? "$ip/128" : "$ip/32";
 	my $configured_ips = PVE::Network::get_local_ip_from_cidr($cidr);
 
-	$error->("$logid: cannot use IP '$ip', it must be configured exactly once on local node!\n")
-	    if (scalar(@$configured_ips) != 1);
+	$error->("$logid: cannot use IP '$ip', not found on local node!\n")
+	    if scalar(@$configured_ips) < 1;
     };
 
     $check_ip->($local_addr, 'local node address');
