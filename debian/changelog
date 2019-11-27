@@ -1,3 +1,11 @@
+pve-cluster (6.1-2) pve; urgency=medium
+
+  * allow full-mesh routed setup for cluster join
+
+  * describe 'migrate' HA shutdown policy in datacenter.cfg man-page
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 27 Nov 2019 17:19:45 +0100
+
 pve-cluster (6.1-1) pve; urgency=medium
 
   * allow one to set 'migrate' HA shutdown policy in datacenter.cfg
