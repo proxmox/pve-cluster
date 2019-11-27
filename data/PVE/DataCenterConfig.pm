@@ -41,7 +41,12 @@ my $ha_format = {
 	    "recovered to other nodes, if the shutdown node does not come up again quickly ".
 	    "(< 1min). 'conditional' chooses automatically depending on the type of shutdown, ".
 	    "i.e., on a reboot the service will be frozen but on a poweroff the service will ".
-	    "stay as is, and thus get recovered after about 2 minutes.",
+	    "stay as is, and thus get recovered after about 2 minutes. ".
+	    "Migrate will try to move all running services to another node on both, reboot".
+	    "and shutdown. The poweroff process will only continue once no running services ".
+	    "are located on the node anymore. If the node comes up again, the service will ".
+	    "be moved back to the previously powered-off node, at least if no other migration, ".
+	    "reloaction or recovery took place.",
 	default => 'conditional',
     }
 };
