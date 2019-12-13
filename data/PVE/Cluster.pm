@@ -470,7 +470,7 @@ my $ccache_read = sub {
     my $ci = $ccache->{$filename};
 
     if (!$ci->{version} || !$version || $ci->{version} != $version) {
-	# we always call the parser, even when the file does not exists
+	# we always call the parser, even when the file does not exist
 	# (in that case $data is undef)
 	my $data = get_config($filename);
 	$ci->{data} = &$parser("/etc/pve/$filename", $data);
