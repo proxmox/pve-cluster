@@ -579,7 +579,7 @@ sub gen_pve_vzdump_files {
 # join helpers
 
 sub assert_joinable {
-    my ($local_addr, $link0, $link1, $force) = @_;
+    my ($local_addr, $links, $force) = @_;
 
     my $errors = '';
     my $error = sub { $errors .= "* $_[0]\n"; };
@@ -622,8 +622,10 @@ sub assert_joinable {
     };
 
     $check_ip->($local_addr, 'local node address');
-    $check_ip->($link0->{address}, 'ring0') if defined($link0);
-    $check_ip->($link1->{address}, 'ring1') if defined($link1);
+
+    foreach my $link (keys %$links) {
+	$check_ip->($links->{$link}->{address}, "link$link");
+    }
 
     if ($errors) {
 	warn "detected the following error(s):\n$errors";
@@ -637,11 +639,10 @@ sub join {
     my $nodename = PVE::INotify::nodename();
     my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
 
-    my $link0 = PVE::Corosync::parse_corosync_link($param->{link0});
-    my $link1 = PVE::Corosync::parse_corosync_link($param->{link1});
+    my $links = PVE::Corosync::extract_corosync_link_args($param);
 
     # check if we can join with the given parameters and current node state
-    assert_joinable($local_ip_address, $link0, $link1, $param->{force});
+    assert_joinable($local_ip_address, $links, $param->{force});
 
     setup_sshd_config();
     setup_rootsshconfig();
@@ -679,10 +680,9 @@ sub join {
     $args->{force} = $param->{force} if defined($param->{force});
     $args->{nodeid} = $param->{nodeid} if $param->{nodeid};
     $args->{votes} = $param->{votes} if defined($param->{votes});
-    # just pass the un-parsed string through, or as we've address as the
-    # default_key, we can just pass the fallback directly too
-    $args->{link0} = $param->{link0} // $local_ip_address;
-    $args->{link1} = $param->{link1} if defined($param->{link1});
+    foreach my $link (keys %$links) {
+	$args->{"link$link"} = PVE::Corosync::print_corosync_link($links->{$link});
+    }
 
     print "Request addition of this node\n";
     my $res = eval { $conn->post("/cluster/config/nodes/$nodename", $args); };

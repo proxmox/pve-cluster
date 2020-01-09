@@ -68,10 +68,11 @@ __PACKAGE__->register_method ({
     path => '',
     method => 'POST',
     protected => 1,
-    description => "Generate new cluster configuration.",
+    description => "Generate new cluster configuration. If no links given,"
+		 . " default to local IP address as link0.",
     parameters => {
 	additionalProperties => 0,
-	properties => {
+	properties => PVE::Corosync::add_corosync_link_properties({
 	    clustername => {
 		description => "The name of the cluster.",
 		type => 'string', format => 'pve-node',
@@ -84,9 +85,7 @@ __PACKAGE__->register_method ({
 		minimum => 1,
 		optional => 1,
 	    },
-	    link0 => get_standard_option('corosync-link'),
-	    link1 => get_standard_option('corosync-link'),
-	},
+	}),
     },
     returns => { type => 'string' },
     code => sub {
@@ -110,7 +109,7 @@ __PACKAGE__->register_method ({
 	    my $nodename = PVE::INotify::nodename();
 
 	    # get the corosync basis config for the new cluster
-	    my $config = PVE::Corosync::create_conf($nodename, %$param);
+	    my $config = PVE::Corosync::create_conf($nodename, $param);
 
 	    print "Writing corosync config to /etc/pve/corosync.conf\n";
 	    PVE::Corosync::atomic_write_conf($config);
@@ -194,7 +193,7 @@ __PACKAGE__->register_method ({
     description => "Adds a node to the cluster configuration. This call is for internal use.",
     parameters => {
 	additionalProperties => 0,
-	properties => {
+	properties => PVE::Corosync::add_corosync_link_properties({
 	    node => get_standard_option('pve-node'),
 	    nodeid => get_standard_option('corosync-nodeid'),
 	    votes => {
@@ -208,9 +207,7 @@ __PACKAGE__->register_method ({
 		description => "Do not throw error if node already exists.",
 		optional => 1,
 	    },
-	    link0 => get_standard_option('corosync-link'),
-	    link1 => get_standard_option('corosync-link'),
-	},
+	}),
     },
     returns => {
 	type => "object",
@@ -256,7 +253,7 @@ __PACKAGE__->register_method ({
 		while (my ($k, $v) = each %$nodelist) {
 		    next if $k eq $name; # allows re-adding a node if force is set
 
-		    for my $linknumber (0..1) {
+		    for my $linknumber (0..PVE::Corosync::MAX_LINK_INDEX) {
 			my $id = "ring${linknumber}_addr";
 			next if !defined($v->{$id});
 
@@ -266,20 +263,10 @@ __PACKAGE__->register_method ({
 		}
 	    };
 
-	    my $link0 = PVE::Corosync::parse_corosync_link($param->{link0});
-	    my $link1 = PVE::Corosync::parse_corosync_link($param->{link1});
-
-	    $check_duplicate_addr->($link0);
-	    $check_duplicate_addr->($link1);
-
-	    # FIXME: handle all links (0-7), they're all independent now
-	    $link0->{address} //= $name if exists($totem_cfg->{interface}->{0});
-
-	    die "corosync: using 'link1' parameter needs a interface with linknumber '1' configured!\n"
-		if $link1 && !defined($totem_cfg->{interface}->{1});
-
-	    die "corosync: totem interface with linknumber 1 configured but 'link1' parameter not defined!\n"
-		if defined($totem_cfg->{interface}->{1}) && !defined($link1);
+	    my $links = PVE::Corosync::extract_corosync_link_args($param);
+	    foreach my $link (values %$links) {
+		$check_duplicate_addr->($link);
+	    }
 
 	    if (defined(my $res = $nodelist->{$name})) {
 		$param->{nodeid} = $res->{nodeid} if !$param->{nodeid};
@@ -317,12 +304,14 @@ __PACKAGE__->register_method ({
 	    warn $@ if $@;
 
 	    $nodelist->{$name} = {
-		ring0_addr => $link0->{address},
 		nodeid => $param->{nodeid},
 		name => $name,
 	    };
-	    $nodelist->{$name}->{ring1_addr} = $link1->{address} if defined($link1);
 	    $nodelist->{$name}->{quorum_votes} = $param->{votes} if $param->{votes};
+
+	    foreach my $link (keys %$links) {
+		$nodelist->{$name}->{"ring${link}_addr"} = $links->{$link}->{address};
+	    }
 
 	    PVE::Cluster::log_msg('notice', 'root@pam', "adding node $name to cluster");
 
@@ -508,7 +497,7 @@ __PACKAGE__->register_method ({
     description => "Joins this node into an existing cluster.",
     parameters => {
 	additionalProperties => 0,
-	properties => {
+	properties => PVE::Corosync::add_corosync_link_properties({
 	    hostname => {
 		type => 'string',
 		description => "Hostname (or IP) of an existing cluster member."
@@ -525,17 +514,13 @@ __PACKAGE__->register_method ({
 		description => "Do not throw error if node already exists.",
 		optional => 1,
 	    },
-	    link0 => get_standard_option('corosync-link', {
-		default => "IP resolved by node's hostname",
-	    }),
-	    link1 => get_standard_option('corosync-link'),
 	    fingerprint => get_standard_option('fingerprint-sha256'),
 	    password => {
 		description => "Superuser (root) password of peer node.",
 		type => 'string',
 		maxLength => 128,
 	    },
-	},
+	}),
     },
     returns => { type => 'string' },
     code => sub {

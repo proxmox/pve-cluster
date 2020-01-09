@@ -316,7 +316,7 @@ __PACKAGE__->register_method ({
     description => "Adds the current node to an existing cluster.",
     parameters => {
     	additionalProperties => 0,
-	properties => {
+	properties => PVE::Corosync::add_corosync_link_properties({
 	    hostname => {
 		type => 'string',
 		description => "Hostname (or IP) of an existing cluster member."
@@ -333,8 +333,6 @@ __PACKAGE__->register_method ({
 		description => "Do not throw error if node already exists.",
 		optional => 1,
 	    },
-	    link0 => get_standard_option('corosync-link'),
-	    link1 => get_standard_option('corosync-link'),
 	    fingerprint => get_standard_option('fingerprint-sha256', {
 		optional => 1,
 	    }),
@@ -343,7 +341,7 @@ __PACKAGE__->register_method ({
 		description => "Always use SSH to join, even if peer may do it over API.",
 		optional => 1,
 	    },
-	},
+	}),
     },
     returns => { type => 'null' },
 
@@ -377,11 +375,9 @@ __PACKAGE__->register_method ({
 	    # allow fallback to old ssh only join if wished or needed
 
 	    my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
+	    my $links = PVE::Corosync::extract_corosync_link_args($param);
 
-	    my $link0 = PVE::Corosync::parse_corosync_link($param->{link0});
-	    my $link1 = PVE::Corosync::parse_corosync_link($param->{link1});
-
-	    PVE::Cluster::Setup::assert_joinable($local_ip_address, $link0, $link1, $param->{force});
+	    PVE::Cluster::Setup::assert_joinable($local_ip_address, $links, $param->{force});
 
 	    PVE::Cluster::Setup::setup_sshd_config();
 	    PVE::Cluster::Setup::setup_rootsshconfig();
@@ -399,10 +395,11 @@ __PACKAGE__->register_method ({
 
 	    push @$cmd, '--nodeid', $param->{nodeid} if $param->{nodeid};
 	    push @$cmd, '--votes', $param->{votes} if defined($param->{votes});
-	    # just pass the un-parsed string through, or as we've address as
-	    # the default_key, we can just pass the fallback directly too
-	    push @$cmd, '--link0', $param->{link0} // $local_ip_address;
-	    push @$cmd, '--link1', $param->{link1} if defined($param->{link1});
+
+	    foreach my $link (keys %$links) {
+		push @$cmd, "--link$link", PVE::JSONSchema::print_property_string(
+		    $links->{$link}, get_standard_option('corosync-link'));
+	    }
 
 	    if (system (@$cmd) != 0) {
 		my $cmdtxt = join (' ', @$cmd);

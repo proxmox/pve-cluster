@@ -35,12 +35,15 @@ my $corosync_link_format = {
 	minimum => 0,
 	maximum => 255,
 	default => 0,
-	description => "The priority for the link when knet is used in 'passive' mode. Lower value means higher priority.",
+	description => "The priority for the link when knet is used in 'passive'"
+		     . " mode (default). Lower value means higher priority. Only"
+		     . " valid for cluster create, ignored on node add.",
     },
 };
 my $corosync_link_desc = {
     type => 'string', format => $corosync_link_format,
-    description => "Address and priority information of a single corosync link.",
+    description => "Address and priority information of a single corosync link."
+		 . " (up to 8 links supported; link0..link7)",
     optional => 1,
 };
 PVE::JSONSchema::register_standard_option("corosync-link", $corosync_link_desc);
@@ -51,6 +54,38 @@ sub parse_corosync_link {
     return undef if !defined($value);
 
     return PVE::JSONSchema::parse_property_string($corosync_link_format, $value);
+}
+
+sub print_corosync_link {
+    my ($link) = @_;
+
+    return undef if !defined($link);
+
+    return PVE::JSONSchema::print_property_string($link, $corosync_link_format);
+}
+
+use constant MAX_LINK_INDEX => 7;
+
+sub add_corosync_link_properties {
+    my ($prop) = @_;
+
+    for my $lnum (0..MAX_LINK_INDEX) {
+	$prop->{"link$lnum"} = PVE::JSONSchema::get_standard_option("corosync-link");
+    }
+
+    return $prop;
+}
+
+sub extract_corosync_link_args {
+    my ($args) = @_;
+
+    my $links = {};
+    for my $lnum (0..MAX_LINK_INDEX) {
+	$links->{$lnum} = parse_corosync_link($args->{"link$lnum"})
+	    if $args->{"link$lnum"};
+    }
+
+    return $links;
 }
 
 # a very simply parser ...
@@ -232,16 +267,19 @@ sub atomic_write_conf {
 # for creating a new cluster with the current node
 # params are those from the API/CLI cluster create call
 sub create_conf {
-    my ($nodename, %param) = @_;
+    my ($nodename, $param) = @_;
 
-    my $clustername = $param{clustername};
-    my $nodeid = $param{nodeid} || 1;
-    my $votes = $param{votes} || 1;
+    my $clustername = $param->{clustername};
+    my $nodeid = $param->{nodeid} || 1;
+    my $votes = $param->{votes} || 1;
 
     my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
 
-    my $link0 = parse_corosync_link($param{link0});
-    $link0->{address} //= $local_ip_address;
+    my $links = extract_corosync_link_args($param);
+
+    # if no links given, fall back to local IP as link0
+    $links->{0} = { address => $local_ip_address }
+	if !%$links;
 
     my $conf = {
 	totem => {
@@ -250,11 +288,8 @@ sub create_conf {
 	    cluster_name => $clustername,
 	    config_version => 0,
 	    ip_version => 'ipv4-6',
-	    interface => {
-		0 => {
-		    linknumber => 0,
-		},
-	    },
+	    link_mode => 'passive',
+	    interface => {},
 	},
 	nodelist => {
 	    node => {
@@ -262,7 +297,6 @@ sub create_conf {
 		    name => $nodename,
 		    nodeid => $nodeid,
 		    quorum_votes => $votes,
-		    ring0_addr => $link0->{address},
 		},
 	    },
 	},
@@ -275,19 +309,17 @@ sub create_conf {
 	},
     };
     my $totem = $conf->{totem};
+    my $node = $conf->{nodelist}->{node}->{$nodename};
 
-    $totem->{interface}->{0}->{knet_link_priority} = $link0->{priority}
-	if defined($link0->{priority});
+    foreach my $lnum (keys %$links) {
+	my $link = $links->{$lnum};
 
-    my $link1 = parse_corosync_link($param{link1});
-    if ($link1->{address}) {
-	$conf->{totem}->{interface}->{1} = {
-	    linknumber => 1,
-	};
-	$totem->{link_mode} = 'passive';
-	$totem->{interface}->{1}->{knet_link_priority} = $link1->{priority}
-	    if defined($link1->{priority});
-	$conf->{nodelist}->{node}->{$nodename}->{ring1_addr} = $link1->{address};
+	$totem->{interface}->{$lnum} = { linknumber => $lnum };
+
+	my $prio = $link->{priority};
+	$totem->{interface}->{$lnum}->{knet_link_priority} = $prio if $prio;
+
+	$node->{"ring${lnum}_addr"} = $link->{address};
     }
 
     return { main => $conf };
@@ -354,7 +386,7 @@ sub verify_conf {
     if (%$interfaces) {
 	# if interfaces are defined, *all* links must have a matching interface
 	# definition, and vice versa
-	for my $link (0..1) {
+	for my $link (0..MAX_LINK_INDEX) {
 	    my $have_interface = defined($interfaces->{$link});
 	    foreach my $node (@node_names) {
 		my $linkdef = $node_links->{$node}->{$link};
@@ -374,7 +406,7 @@ sub verify_conf {
 	}
     } else {
 	# without interfaces, only check that links are consistent among nodes
-	for my $link (0..1) {
+	for my $link (0..MAX_LINK_INDEX) {
 	    my $nodes_with_link = {};
 	    foreach my $node (@node_names) {
 		my $linkdef = $node_links->{$node}->{$link};
