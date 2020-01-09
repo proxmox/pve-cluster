@@ -684,6 +684,13 @@ sub join {
 	$args->{"link$link"} = PVE::Corosync::print_corosync_link($links->{$link});
     }
 
+    # this will be used as fallback if no links are specified
+    if (!%$links) {
+	$args->{link0} = $local_ip_address;
+	print "No cluster network links passed explicitly, fallback to local node"
+	    . " IP '$local_ip_address'\n";
+    }
+
     print "Request addition of this node\n";
     my $res = eval { $conn->post("/cluster/config/nodes/$nodename", $args); };
     if (my $err = $@) {

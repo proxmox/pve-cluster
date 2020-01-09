@@ -207,6 +207,12 @@ __PACKAGE__->register_method ({
 		description => "Do not throw error if node already exists.",
 		optional => 1,
 	    },
+	    new_node_ip => {
+		type => 'string',
+		description => "IP Address of node to add. Used as fallback if no links are given.",
+		format => 'ip',
+		optional => 1,
+	    },
 	}),
     },
     returns => {
@@ -266,6 +272,59 @@ __PACKAGE__->register_method ({
 	    my $links = PVE::Corosync::extract_corosync_link_args($param);
 	    foreach my $link (values %$links) {
 		$check_duplicate_addr->($link);
+	    }
+
+	    # Make sure that the newly added node has links compatible with the
+	    # rest of the cluster. To start, extract all links that currently
+	    # exist. Check any node, all have the same links here (because of
+	    # verify_conf above).
+	    my $node_options = (values %$nodelist)[0];
+	    my $cluster_links = {};
+	    foreach my $opt (keys %$node_options) {
+		my ($linktype, $linkid) = PVE::Corosync::parse_link_entry($opt);
+		next if !defined($linktype);
+		$cluster_links->{$linkid} = $node_options->{$opt};
+	    }
+
+	    # in case no fallback IP was passed, but instead only a single link,
+	    # treat it as fallback to allow link-IDs to be matched automatically
+	    # FIXME: remove in 8.0 or when joining an old node not supporting
+	    # new_node_ip becomes infeasible otherwise
+	    my $legacy_fallback = 0;
+	    if (!$param->{new_node_ip} && scalar(%$links) == 1) {
+		my $passed_link_id = (keys %$links)[0];
+		my $passed_link = delete $links->{$passed_link_id};
+		$param->{new_node_ip} = $passed_link->{address};
+		$legacy_fallback = 1;
+	    }
+
+	    if (scalar(%$links)) {
+		# verify specified links exist and none are missing
+		for my $linknum (0..PVE::Corosync::MAX_LINK_INDEX) {
+		    my $have_cluster_link = defined($cluster_links->{$linknum});
+		    my $have_new_link = defined($links->{$linknum});
+
+		    die "corosync: link $linknum exists in cluster config but wasn't specified for new node\n"
+			if $have_cluster_link && !$have_new_link;
+		    die "corosync: link $linknum specified for new node doesn't exist in cluster config\n"
+			if !$have_cluster_link && $have_new_link;
+		}
+	    } else {
+		# when called without any link parameters, fall back to
+		# new_node_ip, if all existing nodes only have a single link too
+		die "no links and no fallback ip (new_node_ip) given, cannot join cluster\n"
+		    if !$param->{new_node_ip};
+
+		my $cluster_link_count = scalar(%$cluster_links);
+		if ($cluster_link_count == 1) {
+		    my $linknum = (keys %$cluster_links)[0];
+		    $links->{$linknum} = { address => $param->{new_node_ip} };
+		} else {
+		    die "cluster has $cluster_link_count links, but only 1 given"
+			if $legacy_fallback;
+		    die "no links given but multiple links found on other nodes,"
+		      . " fallback only supported on single-link clusters\n";
+		}
 	    }
 
 	    if (defined(my $res = $nodelist->{$name})) {
@@ -494,7 +553,9 @@ __PACKAGE__->register_method ({
     path => 'join',
     method => 'POST',
     protected => 1,
-    description => "Joins this node into an existing cluster.",
+    description => "Joins this node into an existing cluster. If no links are"
+		 . " given, default to IP resolved by node's hostname on single"
+		 . " link (fallback fails for clusters with multiple links).",
     parameters => {
 	additionalProperties => 0,
 	properties => PVE::Corosync::add_corosync_link_properties({

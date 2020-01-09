@@ -401,6 +401,13 @@ __PACKAGE__->register_method ({
 		    $links->{$link}, get_standard_option('corosync-link'));
 	    }
 
+	    # this will be used as fallback if no links are specified
+	    if (!%$links) {
+		push @$cmd, '--link0', $local_ip_address;
+		print "No cluster network links passed explicitly, fallback to local node"
+		    . " IP '$local_ip_address'\n";
+	    }
+
 	    if (system (@$cmd) != 0) {
 		my $cmdtxt = join (' ', @$cmd);
 		die "unable to add node: command failed ($cmdtxt)\n";
