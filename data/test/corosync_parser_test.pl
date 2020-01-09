@@ -5,9 +5,34 @@ use lib '..';
 use strict;
 use warnings;
 
+use Test::MockModule;
 use Test::More;
 
 use PVE::Corosync;
+
+my $known_hosts = {
+    "prox1" => "127.0.1.1",
+    "prox1-ring1" => "127.0.2.1",
+    "prox2" => "127.0.1.2",
+    "prox2-ring1" => "127.0.2.2",
+    "prox3" => "127.0.1.3",
+    "prox3-ring1" => "127.0.2.3",
+    "prox4" => "127.0.1.4",
+    "prox4-ring1" => "127.0.2.4",
+};
+
+sub mocked_resolve {
+    my ($hostname) = @_;
+
+    foreach my $host (keys %$known_hosts) {
+	return $known_hosts->{$host} if $hostname eq $host;
+    }
+
+    die "got unknown hostname '$hostname' during mocked resolve_hostname_like_corosync";
+}
+
+my $mocked_corosync_module = new Test::MockModule('PVE::Corosync');
+$mocked_corosync_module->mock('resolve_hostname_like_corosync', \&mocked_resolve);
 
 sub parser_self_check {
     my $cfg_fn = shift;
@@ -29,6 +54,10 @@ sub parser_self_check {
 	# reparse written config (must be the same as config1)
 	$config2 = PVE::Corosync::parse_conf(undef, $raw2);
     }; warn $@ if $@;
+
+    # test verify_config
+    my ($err, $warn) = PVE::Corosync::verify_conf($config1);
+    die "verify_conf failed: " . join(" ++ ", @$err) if scalar(@$err);
 
     # do not care for whitespace differences
     delete $config1->{digest};

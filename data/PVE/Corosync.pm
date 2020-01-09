@@ -15,6 +15,7 @@ use PVE::Tools;
 use PVE::Tools qw($IPV4RE $IPV6RE);
 
 my $basedir = "/etc/pve";
+our $link_addr_re = qw/^(ring|link)(\d+)_addr$/;
 
 my $conf_array_sections = {
     node => 1,
@@ -292,6 +293,119 @@ sub create_conf {
     return { main => $conf };
 }
 
+# returns (\@errors, \@warnings) to the caller, does *not* 'die' or 'warn'
+# verification was successful if \@errors is empty
+sub verify_conf {
+    my ($conf) = @_;
+
+    my @errors = ();
+    my @warnings = ();
+
+    my $nodelist = nodelist($conf);
+    if (!$nodelist) {
+	push @errors, "no nodes found";
+	return (\@errors, \@warnings);
+    }
+
+    my $totem = $conf->{main}->{totem};
+    if (!$totem) {
+	push @errors, "no totem found";
+	return (\@errors, \@warnings);
+    }
+
+    if ((!defined($totem->{secauth}) || $totem->{secauth} ne 'on') &&
+	(!defined($totem->{crypto_cipher}) || $totem->{crypto_cipher} eq 'none')) {
+	push @warnings, "warning: authentication/encryption is not explicitly enabled"
+	    . " (secauth / crypto_cipher / crypto_hash)";
+    }
+
+    my $interfaces = $totem->{interface};
+
+    my $verify_link_ip = sub {
+	my ($key, $link, $node) = @_;
+	my ($resolved_ip, undef) = resolve_hostname_like_corosync($link, $conf);
+	if (!defined($resolved_ip)) {
+	    push @warnings, "warning: unable to resolve $key '$link' for node '$node'"
+		. " to an IP address according to Corosync's resolve strategy -"
+		. " cluster could fail on restart!";
+	} elsif ($resolved_ip ne $link) {
+	    push @warnings, "warning: $key '$link' for node '$node' resolves to"
+		. " '$resolved_ip' - consider replacing it with the currently"
+		. " resolved IP address for stability";
+	}
+    };
+
+    # sort for output order stability
+    my @node_names = sort keys %$nodelist;
+
+    my $node_links = {};
+    foreach my $node (@node_names) {
+	my $options = $nodelist->{$node};
+	foreach my $opt (keys %$options) {
+	    my ($linktype, $linkid) = parse_link_entry($opt);
+	    next if !defined($linktype);
+	    $node_links->{$node}->{$linkid} = {
+		name => "${linktype}${linkid}_addr",
+		addr => $options->{$opt},
+	    };
+	}
+    }
+
+    if (%$interfaces) {
+	# if interfaces are defined, *all* links must have a matching interface
+	# definition, and vice versa
+	for my $link (0..1) {
+	    my $have_interface = defined($interfaces->{$link});
+	    foreach my $node (@node_names) {
+		my $linkdef = $node_links->{$node}->{$link};
+		if (defined($linkdef)) {
+		    $verify_link_ip->($linkdef->{name}, $linkdef->{addr}, $node);
+		    if (!$have_interface) {
+			push @errors, "node '$node' has '$linkdef->{name}', but"
+			    . " there is no interface number $link configured";
+		    }
+		} else {
+		    if ($have_interface) {
+			push @errors, "node '$node' is missing address for"
+			    . "interface number $link";
+		    }
+		}
+	    }
+	}
+    } else {
+	# without interfaces, only check that links are consistent among nodes
+	for my $link (0..1) {
+	    my $nodes_with_link = {};
+	    foreach my $node (@node_names) {
+		my $linkdef = $node_links->{$node}->{$link};
+		if (defined($linkdef)) {
+		    $verify_link_ip->($linkdef->{name}, $linkdef->{addr}, $node);
+		    $nodes_with_link->{$node} = 1;
+		}
+	    }
+
+	    if (%$nodes_with_link) {
+		foreach my $node (@node_names) {
+		    if (!defined($nodes_with_link->{$node})) {
+			push @errors, "node '$node' is missing link $link,"
+			    . " which is configured on other nodes";
+		    }
+		}
+	    }
+	}
+    }
+
+    return (\@errors, \@warnings);
+}
+
+# returns ($linktype, $linkid) with $linktype being 'ring' for now, and possibly
+# 'link' with upcoming corosync versions
+sub parse_link_entry {
+    my ($opt) = @_;
+    return (undef, undef) if $opt !~ $link_addr_re;
+    return ($1, $2);
+}
+
 sub for_all_corosync_addresses {
     my ($corosync_conf, $ip_version, $func) = @_;
 
@@ -302,7 +416,7 @@ sub for_all_corosync_addresses {
     foreach my $node_name (sort keys %$nodelist) {
 	my $node_config = $nodelist->{$node_name};
 	foreach my $node_key (sort keys %$node_config) {
-	    if ($node_key =~ /^(ring|link)\d+_addr$/) {
+	    if ($node_key =~ $link_addr_re) {
 		my $node_address = $node_config->{$node_key};
 
 		my($ip, $version) = resolve_hostname_like_corosync($node_address, $corosync_conf);

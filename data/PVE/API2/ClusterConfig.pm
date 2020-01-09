@@ -3,6 +3,7 @@ package PVE::API2::ClusterConfig;
 use strict;
 use warnings;
 
+use PVE::Exception;
 use PVE::Tools;
 use PVE::SafeSyslog;
 use PVE::RESTHandler;
@@ -219,7 +220,13 @@ __PACKAGE__->register_method ({
 	    },
 	    corosync_conf => {
 		type => 'string',
-	    }
+	    },
+	    warnings => {
+		type => 'array',
+		items => {
+		    type => 'string',
+		},
+	    },
 	},
     },
     code => sub {
@@ -227,10 +234,16 @@ __PACKAGE__->register_method ({
 
 	PVE::Cluster::check_cfs_quorum();
 
+	my $vc_errors;
+	my $vc_warnings;
+
 	my $code = sub {
 	    my $conf = PVE::Cluster::cfs_read_file("corosync.conf");
 	    my $nodelist = PVE::Corosync::nodelist($conf);
 	    my $totem_cfg = PVE::Corosync::totem_config($conf);
+
+	    ($vc_errors, $vc_warnings) = PVE::Corosync::verify_conf($conf);
+	    die if scalar(@$vc_errors);
 
 	    my $name = $param->{node};
 
@@ -317,11 +330,36 @@ __PACKAGE__->register_method ({
 	};
 
 	$config_change_lock->($code);
+
+	# If vc_errors is set, we died because of verify_conf.
+	# Raise this error, since it contains more information than just a
+	# single-line string.
+	if (defined($vc_errors) && scalar(@$vc_errors)) {
+	    my $err_hash = {};
+	    my $add_errs = sub {
+		my $type = shift;
+		my @arr = @_;
+		return if !scalar(@arr);
+
+		my %newhash = map { $type . $_ => $arr[$_] } 0..$#arr;
+		$err_hash = {
+		    %$err_hash,
+		    %newhash,
+		};
+	    };
+
+	    $add_errs->("warning", @$vc_warnings);
+	    $add_errs->("error", @$vc_errors);
+
+	    PVE::Exception::raise("invalid corosync.conf\n", errors => $err_hash);
+	}
+
 	die $@ if $@;
 
 	my $res = {
 	    corosync_authkey => PVE::Tools::file_get_contents($authfile),
 	    corosync_conf => PVE::Tools::file_get_contents($clusterconf),
+	    warnings => $vc_warnings,
 	};
 
 	return $res;

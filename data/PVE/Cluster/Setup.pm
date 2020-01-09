@@ -685,7 +685,28 @@ sub join {
     $args->{link1} = $param->{link1} if defined($param->{link1});
 
     print "Request addition of this node\n";
-    my $res = $conn->post("/cluster/config/nodes/$nodename", $args);
+    my $res = eval { $conn->post("/cluster/config/nodes/$nodename", $args); };
+    if (my $err = $@) {
+	if (ref($err) && $err->isa('PVE::APIClient::Exception')) {
+	    # we received additional info about the error, show the user
+	    chomp $err->{msg};
+	    warn "An error occured on the cluster node: $err->{msg}\n";
+	    foreach my $key (sort keys %{$err->{errors}}) {
+		my $symbol = ($key =~ m/^warning/) ? '*' : '!';
+		warn "$symbol $err->{errors}->{$key}\n";
+	    }
+
+	    die "Cluster join aborted!\n";
+	}
+
+	die $@;
+    }
+
+    if (defined($res->{warnings})) {
+	foreach my $warn (@{$res->{warnings}}) {
+	    warn "cluster: $warn\n";
+	}
+    }
 
     print "Join request OK, finishing setup locally\n";
 
