@@ -390,6 +390,20 @@ __PACKAGE__->register_method ({
 	    run_command($cmd, 'outfunc' => sub {}, 'errfunc' => sub {},
 				    'errmsg' => "unable to copy ssh ID");
 
+	    $cmd = ['ssh', $host, '-o', 'BatchMode=yes', 'pvecm', 'apiver'];
+	    my $remote_apiver = 0;
+	    run_command($cmd, 'outfunc' => sub {
+		$remote_apiver = shift;
+		chomp $remote_apiver;
+	    }, 'noerr' => 1);
+
+	    if ($remote_apiver < (PVE::Cluster::Setup::JOIN_API_VERSION -
+		PVE::Cluster::Setup::JOIN_API_AGE_AS_JOINEE)) {
+		die "error: incompatible join API version on cluster ($remote_apiver,"
+		    . " local has " . PVE::Cluster::Setup::JOIN_API_VERSION . "). Make"
+		    . " sure all nodes are up-to-date.\n";
+	    }
+
 	    $cmd = ['ssh', $host, '-o', 'BatchMode=yes',
 		    'pvecm', 'addnode', $nodename, '--force', 1];
 
@@ -403,7 +417,9 @@ __PACKAGE__->register_method ({
 
 	    # this will be used as fallback if no links are specified
 	    if (!%$links) {
-		push @$cmd, '--link0', $local_ip_address;
+		push @$cmd, '--link0', $local_ip_address if $remote_apiver == 0;
+		push @$cmd, '--new_node_ip', $local_ip_address if $remote_apiver >= 1;
+
 		print "No cluster network links passed explicitly, fallback to local node"
 		    . " IP '$local_ip_address'\n";
 	    }
@@ -674,6 +690,10 @@ __PACKAGE__->register_method ({
 
 
 our $cmddef = {
+    apiver => [ 'PVE::API2::ClusterConfig', 'join_api_version', [], {}, sub {
+	my $apiver = shift;
+	print "$apiver\n";
+    }],
     keygen => [ __PACKAGE__, 'keygen', ['filename']],
     create => [ 'PVE::API2::ClusterConfig', 'create', ['clustername']],
     add => [ __PACKAGE__, 'add', ['hostname']],

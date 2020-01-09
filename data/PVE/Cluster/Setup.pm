@@ -20,6 +20,13 @@ use PVE::Network;
 use PVE::Tools;
 use PVE::Certificate;
 
+# Only relevant for pre-join checks, after join happened versions can differ
+use constant JOIN_API_VERSION => 1;
+# (APIVER-this) is oldest version a new node in addnode can have to be accepted
+use constant JOIN_API_AGE_AS_CLUSTER => 1;
+# (APIVER-this) is oldest version a cluster node can have to still try joining
+use constant JOIN_API_AGE_AS_JOINEE => 1;
+
 my $pmxcfs_base_dir = PVE::Cluster::base_dir();
 my $pmxcfs_auth_dir = PVE::Cluster::auth_dir();
 
@@ -677,6 +684,14 @@ sub join {
     # login raises an exception on failure, so if we get here we're good
     print "Login succeeded.\n";
 
+    # check cluster join API version
+    my $apiver = eval { $conn->get("/cluster/config/apiversion") } // 0;
+
+    if ($apiver < (JOIN_API_VERSION - JOIN_API_AGE_AS_JOINEE)) {
+	die "error: incompatible join API version on cluster ($apiver, local has "
+	    . JOIN_API_VERSION . "). Make sure all nodes are up-to-date.\n";
+    }
+
     my $args = {};
     $args->{force} = $param->{force} if defined($param->{force});
     $args->{nodeid} = $param->{nodeid} if $param->{nodeid};
@@ -687,9 +702,15 @@ sub join {
 
     # this will be used as fallback if no links are specified
     if (!%$links) {
-	$args->{link0} = $local_ip_address;
+	$args->{link0} = $local_ip_address if $apiver == 0;
+	$args->{new_node_ip} = $local_ip_address if $apiver >= 1;
+
 	print "No cluster network links passed explicitly, fallback to local node"
 	    . " IP '$local_ip_address'\n";
+    }
+
+    if ($apiver >= 1) {
+	$args->{apiversion} = JOIN_API_VERSION;
     }
 
     print "Request addition of this node\n";

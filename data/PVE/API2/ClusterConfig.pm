@@ -58,9 +58,31 @@ __PACKAGE__->register_method({
 	    { name => 'totem' },
 	    { name => 'join' },
 	    { name => 'qdevice' },
+	    { name => 'apiversion' },
 	];
 
 	return $result;
+    }});
+
+__PACKAGE__->register_method ({
+    name => 'join_api_version',
+    path => 'apiversion',
+    method => 'GET',
+    description => "Return the version of the cluster join API available on this node.",
+    permissions => {
+	check => ['perm', '/', [ 'Sys.Audit' ]],
+    },
+    parameters => {
+	additionalProperties => 0,
+	properties => {},
+    },
+    returns => {
+	type => 'integer',
+	minimum => 0,
+	description => "Cluster Join API version, currently " . PVE::Cluster::Setup::JOIN_API_VERSION,
+    },
+    code => sub {
+	return PVE::Cluster::Setup::JOIN_API_VERSION;
     }});
 
 __PACKAGE__->register_method ({
@@ -213,6 +235,11 @@ __PACKAGE__->register_method ({
 		format => 'ip',
 		optional => 1,
 	    },
+	    apiversion => {
+		type => 'integer',
+		description => 'The JOIN_API_VERSION of the new node.',
+		optional => 1,
+	    },
 	}),
     },
     returns => {
@@ -234,6 +261,14 @@ __PACKAGE__->register_method ({
     },
     code => sub {
 	my ($param) = @_;
+
+	$param->{apiversion} //= 0;
+	if ($param->{apiversion} < (PVE::Cluster::Setup::JOIN_API_VERSION -
+	    PVE::Cluster::Setup::JOIN_API_AGE_AS_CLUSTER)) {
+	    die "unsupported old API version on joining node ($param->{apiversion},"
+		. " cluster node has " . PVE::Cluster::Setup::JOIN_API_VERSION
+		. "), please upgrade before joining\n";
+	}
 
 	PVE::Cluster::check_cfs_quorum();
 
@@ -291,7 +326,7 @@ __PACKAGE__->register_method ({
 	    # FIXME: remove in 8.0 or when joining an old node not supporting
 	    # new_node_ip becomes infeasible otherwise
 	    my $legacy_fallback = 0;
-	    if (!$param->{new_node_ip} && scalar(%$links) == 1) {
+	    if (!$param->{new_node_ip} && scalar(%$links) == 1 && $param->{apiversion} == 0) {
 		my $passed_link_id = (keys %$links)[0];
 		my $passed_link = delete $links->{$passed_link_id};
 		$param->{new_node_ip} = $passed_link->{address};
