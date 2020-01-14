@@ -659,32 +659,44 @@ int memdb_mkdir(
 	return ret;
 }
 
-int 
-memdb_read(
-	memdb_t *memdb, 
-	const char *path, 
+// Original memdb_read without locking - Caller MUST handle the locking
+int
+memdb_read_nolock(
+	memdb_t *memdb,
+	const char *path,
 	gpointer *data_ret)
 {
 	g_return_val_if_fail(memdb != NULL, -EINVAL);
 	g_return_val_if_fail(path != NULL, -EINVAL);
 	g_return_val_if_fail(data_ret != NULL, -EINVAL);
 
-	memdb_tree_entry_t *te, *parent; 
-
-	g_mutex_lock (&memdb->mutex);
+	memdb_tree_entry_t *te, *parent;
 
 	if ((te = memdb_lookup_path(memdb, path, &parent))) {
 		if (te->type == DT_REG) {
 			*data_ret = g_memdup(te->data.value, te->size);
 			guint32 size = te->size;
-			g_mutex_unlock (&memdb->mutex);
 			return size;
 		}
 	}
 
+	return -ENOENT;
+}
+
+int
+memdb_read(
+	memdb_t *memdb,
+	const char *path,
+	gpointer *data_ret)
+{
+	int res;
+	g_mutex_lock (&memdb->mutex);
+
+	res = memdb_read_nolock(memdb, path, data_ret);
+
 	g_mutex_unlock (&memdb->mutex);
 
-	return -ENOENT;
+	return res;
 }
 
 static int 

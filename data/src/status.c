@@ -883,6 +883,9 @@ cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *pro
 	int res = 0;
 	GString *path = NULL;
 
+	// Prelock &memdb->mutex in order to enable the usage of memdb_read_nolock
+	// to prevent Deadlocks as in #2553
+	g_mutex_lock (&memdb->mutex);
 	g_mutex_lock (&mutex);
 
 	g_string_printf(str,"{\n");
@@ -900,7 +903,8 @@ cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *pro
 
 		if (!vminfo_to_path(vminfo, path)) goto err;
 
-		int size = memdb_read(memdb, path->str, &tmp);
+		// use memdb_read_nolock because lock is handled here
+		int size = memdb_read_nolock(memdb, path->str, &tmp);
 		if (tmp == NULL) goto err;
 		if (size <= prop_len) goto ret;
 
@@ -924,7 +928,8 @@ cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *pro
 
 			g_free(tmp); // no-op if already null
 			tmp = NULL;
-			int size = memdb_read(memdb, path->str, &tmp);
+			// use memdb_read_nolock because lock is handled here
+			int size = memdb_read_nolock(memdb, path->str, &tmp);
 			if (tmp == NULL || size <= prop_len) continue;
 
 			char *val = _get_property_value(tmp, size, prop, prop_len);
@@ -945,7 +950,7 @@ ret:
 	}
 	g_string_append_printf(str,"\n}\n");
 	g_mutex_unlock (&mutex);
-
+	g_mutex_unlock (&memdb->mutex);
 	return res;
 err:
 	res = -EIO;

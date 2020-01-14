@@ -163,6 +163,12 @@ memdb_read(
 	gpointer *data_ret);
 
 int
+memdb_read_nolock(
+        memdb_t *memdb,
+        const char *path,
+        gpointer *data_ret);
+
+int
 memdb_create(
 	memdb_t *memdb,
 	const char *path,
