@@ -100,6 +100,7 @@ static memdb_change_t memdb_change_array[] = {
 	{ .path = "sdn/zones.cfg.new" },
 	{ .path = "sdn/controllers.cfg" },
 	{ .path = "sdn/controllers.cfg.new" },
+	{ .path = "virtual-guest/cpu-models.conf" },
 };
 
 static GMutex mutex;

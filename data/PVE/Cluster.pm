@@ -69,7 +69,7 @@ my $observed = {
     'sdn/zones.cfg.new' => 1,
     'sdn/controllers.cfg' => 1,
     'sdn/controllers.cfg.new' => 1,
-
+    'virtual-guest/cpu-models.conf' => 1,
 };
 
 sub base_dir {
