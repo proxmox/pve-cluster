@@ -1,3 +1,13 @@
+pve-cluster (6.1-3) pve; urgency=medium
+
+  * fix #2553: ensure status and memdb mutex locking is always the same order
+    to avoid a possible deadlock when accessing the cluster resources status
+    API endpoing while doing snapshots or renames of VMID.conf files frequently
+
+  * add "cpu-models.conf" to observed files
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 17 Jan 2020 10:30:10 +0100
+
 pve-cluster (6.1-2) pve; urgency=medium
 
   * allow full-mesh routed setup for cluster join
