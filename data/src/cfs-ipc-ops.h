@@ -41,4 +41,6 @@
 
 #define CFS_IPC_GET_GUEST_CONFIG_PROPERTY 11
 
+#define CFS_IPC_VERIFY_TOKEN 12
+
 #endif

@@ -89,6 +89,11 @@ typedef struct {
 	char property[];
 } cfs_guest_config_propery_get_request_header_t;
 
+typedef struct {
+	struct qb_ipc_request_header req_header;
+	char token[];
+} cfs_verify_token_request_header_t;
+
 struct s1_context {
 	int32_t client_pid;
 	uid_t uid;
@@ -342,6 +347,56 @@ static int32_t s1_msg_process_fn(
 			cfs_debug("cfs_get_guest_config_property: basic valid checked, do request");
 
 			result = cfs_create_guest_conf_property_msg(outbuf, memdb, rh->property, rh->vmid);
+		}
+	} else if (request_id == CFS_IPC_VERIFY_TOKEN) {
+
+		cfs_verify_token_request_header_t *rh = (cfs_verify_token_request_header_t *) data;
+		int tokenlen = request_size - G_STRUCT_OFFSET(cfs_verify_token_request_header_t, token) - 1;
+
+		if (tokenlen <= 0) {
+			cfs_debug("tokenlen <= 0, %d", tokenlen);
+			result = -EINVAL;
+		} else if (memchr(rh->token, '\n', tokenlen) != NULL) {
+			cfs_debug("token contains newline");
+			result = -EINVAL;
+		} else if (rh->token[tokenlen] != '\0') {
+			cfs_debug("token not NULL-terminated");
+			result = -EINVAL;
+		} else if (strnlen(rh->token, tokenlen) != tokenlen) {
+			cfs_debug("token contains NULL-byte");
+			result = -EINVAL;
+		} else {
+			cfs_debug("cfs_verify_token: basic validity checked, reading token.cfg");
+			gpointer tmp = NULL;
+			int bytes_read = memdb_read(memdb, "priv/token.cfg", &tmp);
+			size_t remaining = bytes_read > 0 ? bytes_read : 0;
+			if (tmp != NULL && remaining >= tokenlen) {
+				char *line = (char *) tmp;
+				char *next_line;
+				const char *const end = line + remaining;
+				size_t linelen;
+
+				while (line != NULL) {
+					next_line = memchr(line, '\n', remaining);
+					linelen = next_line == NULL ? remaining : next_line - line;
+					if (linelen == tokenlen && strncmp(line, rh->token, linelen) == 0) {
+						result = 0;
+						break;
+					}
+					line = next_line;
+					if (line != NULL) {
+						line += 1;
+						remaining = end - line;
+					}
+				}
+				if (line == NULL) {
+					result = -ENOENT;
+				}
+				g_free(tmp);
+			} else {
+				cfs_debug("token: token.cfg does not exist - ENOENT");
+				result = -ENOENT;
+			}
 		}
 	}
 

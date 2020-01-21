@@ -53,6 +53,7 @@ my $observed = {
     'domains.cfg' => 1,
     'priv/shadow.cfg' => 1,
     'priv/tfa.cfg' => 1,
+    'priv/token.cfg' => 1,
     '/qemu-server/' => 1,
     '/openvz/' => 1,
     '/lxc/' => 1,
@@ -185,6 +186,18 @@ my $ipcc_get_cluster_log = sub {
 
     my $bindata = pack "VVVVZ*", $max, 0, 0, 0, ($user || "");
     return &$ipcc_send_rec(CFS_IPC_GET_CLUSTER_LOG, $bindata);
+};
+
+my $ipcc_verify_token = sub {
+    my ($full_token) = @_;
+
+    my $bindata = pack "Z*", $full_token;
+    my $res = PVE::IPCC::ipcc_send_rec(CFS_IPC_VERIFY_TOKEN, $bindata);
+
+    return 1 if $! == 0;
+    return 0 if $! == ENOENT;
+
+    die "$!\n";
 };
 
 my $ccache = {};
@@ -445,6 +458,12 @@ sub get_cluster_log {
     my ($user, $max) = @_;
 
     return &$ipcc_get_cluster_log($user, $max);
+}
+
+sub verify_token {
+    my ($userid, $token) = @_;
+
+    return &$ipcc_verify_token("$userid $token");
 }
 
 my $file_info = {};
