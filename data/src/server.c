@@ -371,8 +371,8 @@ static int32_t s1_msg_process_fn(
 			int bytes_read = memdb_read(memdb, "priv/token.cfg", &tmp);
 			size_t remaining = bytes_read > 0 ? bytes_read : 0;
 			if (tmp != NULL && remaining >= tokenlen) {
-				char *line = (char *) tmp;
-				char *next_line;
+				const char *line = (char *) tmp;
+				const char *next_line;
 				const char *const end = line + remaining;
 				size_t linelen;
 
