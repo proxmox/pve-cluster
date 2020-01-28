@@ -1,3 +1,9 @@
+pve-cluster (6.1-4) pve; urgency=medium
+
+  * pmxcfs: add verify_token IPC request
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 28 Jan 2020 15:24:42 +0100
+
 pve-cluster (6.1-3) pve; urgency=medium
 
   * fix #2553: ensure status and memdb mutex locking is always the same order
