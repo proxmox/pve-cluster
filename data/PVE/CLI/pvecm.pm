@@ -479,10 +479,7 @@ __PACKAGE__->register_method ({
 	    printf "\n";
 	}
 
-	my $cmd = ['corosync-quorumtool', '-siH'];
-
-	exec (@$cmd);
-
+	exec ('corosync-quorumtool', '-siH');
 	exit (-1); # should not be reached
     }});
 
@@ -502,10 +499,7 @@ __PACKAGE__->register_method ({
 
 	PVE::Corosync::check_conf_exists();
 
-	my $cmd = ['corosync-quorumtool', '-l'];
-
-	exec (@$cmd);
-
+	exec ('corosync-quorumtool', '-l');
 	exit (-1); # should not be reached
     }});
 
@@ -531,12 +525,8 @@ __PACKAGE__->register_method ({
 
 	PVE::Corosync::check_conf_exists();
 
-	my $cmd = ['corosync-quorumtool', '-e', $param->{expected}];
-
-	exec (@$cmd);
-
+	exec ('corosync-quorumtool', '-e', $param->{expected});
 	exit (-1); # should not be reached
-
     }});
 
 __PACKAGE__->register_method ({
