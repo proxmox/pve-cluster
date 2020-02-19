@@ -630,6 +630,7 @@ sub assert_joinable {
     if ($errors) {
 	warn "detected the following error(s):\n$errors";
 	die "Check if node may join a cluster failed!\n" if !$force;
+	warn "\nWARNING : detected error but forced to continue!\n\n";
     }
 }
 
