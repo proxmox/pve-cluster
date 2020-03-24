@@ -126,7 +126,7 @@ __PACKAGE__->register_method ({
 
 	my $model = "net";
 	my $algorithm = 'ffsplit';
-	if (scalar($members) & 1) {
+	if (scalar(%{$members}) & 1) {
 	    if ($param->{force}) {
 		$algorithm = 'lms';
 	    } else {
