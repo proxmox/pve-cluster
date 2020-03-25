@@ -20,12 +20,30 @@ use PVE::Network;
 use PVE::Tools;
 use PVE::Certificate;
 
-# Only relevant for pre-join checks, after join happened versions can differ
+# relevant for joining or getting joined checks, after that versions in cluster can differ
 use constant JOIN_API_VERSION => 1;
-# (APIVER-this) is oldest version a new node in addnode can have to be accepted
+# (APIVER-this) is oldest version a new node in addnode can have and still be accepted
 use constant JOIN_API_AGE_AS_CLUSTER => 1;
 # (APIVER-this) is oldest version a cluster node can have to still try joining
 use constant JOIN_API_AGE_AS_JOINEE => 1;
+
+sub assert_we_can_join_cluster_version {
+    my ($version) = @_;
+    my $min_version = JOIN_API_VERSION - JOIN_API_AGE_AS_JOINEE;
+    return if $version >= $min_version;
+    die "error: incompatible join API version on cluster ($version), local node"
+	." has ". JOIN_API_VERSION ." and supports >= $min_version. Make sure"
+	."all cluster nodes are up-to-date.\n";
+}
+
+sub assert_node_can_join_our_version {
+    my ($version) = @_;
+    my $min_version = JOIN_API_VERSION - JOIN_API_AGE_AS_CLUSTER;
+    return if $version >= $min_version;
+    die "error: unsupported old API version on joining node ($version), cluster"
+	." node has ". JOIN_API_VERSION ." and supports >= $min_version. Please"
+	." upgrade node before joining\n";
+}
 
 my $pmxcfs_base_dir = PVE::Cluster::base_dir();
 my $pmxcfs_auth_dir = PVE::Cluster::auth_dir();
@@ -684,13 +702,9 @@ sub join {
     # login raises an exception on failure, so if we get here we're good
     print "Login succeeded.\n";
 
-    # check cluster join API version
+    print "check cluster join API version\n";
     my $apiver = eval { $conn->get("/cluster/config/apiversion") } // 0;
-
-    if ($apiver < (JOIN_API_VERSION - JOIN_API_AGE_AS_JOINEE)) {
-	die "error: incompatible join API version on cluster ($apiver, local has "
-	    . JOIN_API_VERSION . "). Make sure all nodes are up-to-date.\n";
-    }
+    assert_we_can_join_cluster_version($apiver);
 
     my $args = {};
     $args->{force} = $param->{force} if defined($param->{force});

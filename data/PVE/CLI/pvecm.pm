@@ -397,12 +397,7 @@ __PACKAGE__->register_method ({
 		chomp $remote_apiver;
 	    }, 'noerr' => 1);
 
-	    if ($remote_apiver < (PVE::Cluster::Setup::JOIN_API_VERSION -
-		PVE::Cluster::Setup::JOIN_API_AGE_AS_JOINEE)) {
-		die "error: incompatible join API version on cluster ($remote_apiver,"
-		    . " local has " . PVE::Cluster::Setup::JOIN_API_VERSION . "). Make"
-		    . " sure all nodes are up-to-date.\n";
-	    }
+	    PVE::Cluster::Setup::assert_we_can_join_cluster_version($remote_apiver);
 
 	    $cmd = ['ssh', $host, '-o', 'BatchMode=yes',
 		    'pvecm', 'addnode', $nodename, '--force', 1];

@@ -263,12 +263,7 @@ __PACKAGE__->register_method ({
 	my ($param) = @_;
 
 	$param->{apiversion} //= 0;
-	if ($param->{apiversion} < (PVE::Cluster::Setup::JOIN_API_VERSION -
-	    PVE::Cluster::Setup::JOIN_API_AGE_AS_CLUSTER)) {
-	    die "unsupported old API version on joining node ($param->{apiversion},"
-		. " cluster node has " . PVE::Cluster::Setup::JOIN_API_VERSION
-		. "), please upgrade before joining\n";
-	}
+	PVE::Cluster::Setup::assert_node_can_join_our_version($param->{apiversion});
 
 	PVE::Cluster::check_cfs_quorum();
 
