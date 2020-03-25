@@ -1,3 +1,16 @@
+pve-cluster (6.1-5) pve; urgency=medium
+
+  * improve and add to corosync configuration sanity checking on join with more
+    tests.
+
+  * Enable support for up to 8 corosync links
+
+  * pvecm: qdevice setup: fix check for unsupported odd node count
+
+  * Add cluster join API version check
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 25 Mar 2020 17:38:46 +0100
+
 pve-cluster (6.1-4) pve; urgency=medium
 
   * pmxcfs: add verify_token IPC request
