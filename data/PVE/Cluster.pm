@@ -69,6 +69,7 @@ my $observed = {
     'sdn/vnets.cfg' => 1,
     'sdn/zones.cfg' => 1,
     'sdn/controllers.cfg' => 1,
+    'sdn/.version' => 1,
     'virtual-guest/cpu-models.conf' => 1,
 };
 
