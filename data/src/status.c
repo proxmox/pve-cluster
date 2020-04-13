@@ -97,11 +97,8 @@ static memdb_change_t memdb_change_array[] = {
 	{ .path = "replication.cfg" },
 	{ .path = "ceph.conf" },
 	{ .path = "sdn/vnets.cfg" },
-	{ .path = "sdn/vnets.cfg.new" },
 	{ .path = "sdn/zones.cfg" },
-	{ .path = "sdn/zones.cfg.new" },
 	{ .path = "sdn/controllers.cfg" },
-	{ .path = "sdn/controllers.cfg.new" },
 	{ .path = "virtual-guest/cpu-models.conf" },
 };
 
