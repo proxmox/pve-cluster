@@ -614,7 +614,7 @@ my $cfs_lock = sub {
 	    $@ = $err;
 	} else {
 	    # add lock info for plain errors
-	    $@ = "error with cfs lock '$lockid': $err";
+	    $@ = "error during cfs-locked '$lockid' operation: $err";
 	}
         return undef;
     }
