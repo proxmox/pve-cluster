@@ -659,6 +659,14 @@ sub cfs_lock_authkey {
     $cfs_lock->('authkey', $timeout, $code, @param);
 }
 
+sub cfs_lock_firewall {
+    my ($scope, $timeout, $code, @param) = @_;
+
+    my $lockid = "firewall-$scope";
+
+    $cfs_lock->($lockid, $timeout, $code, @param);
+}
+
 my $log_levels = {
     "emerg" => 0,
     "alert" => 1,
