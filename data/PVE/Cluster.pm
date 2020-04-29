@@ -613,7 +613,7 @@ my $cfs_lock = sub {
 	    # re-raise defined exceptions
 	    $@ = $err;
 	} else {
-	    # add lock info for plain errors 
+	    # add lock info for plain errors
 	    $@ = "error with cfs lock '$lockid': $err";
 	}
         return undef;
