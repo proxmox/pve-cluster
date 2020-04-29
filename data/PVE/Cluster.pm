@@ -609,7 +609,13 @@ my $cfs_lock = sub {
     alarm($prev_alarm);
 
     if ($err) {
-        $@ = "error with cfs lock '$lockid': $err";
+	if (ref($err) eq 'PVE::Exception') {
+	    # re-raise defined exceptions
+	    $@ = $err;
+	} else {
+	    # add lock info for plain errors 
+	    $@ = "error with cfs lock '$lockid': $err";
+	}
         return undef;
     }
 
