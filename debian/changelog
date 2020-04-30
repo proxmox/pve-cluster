@@ -1,10 +1,12 @@
-pve-cluster (6.1-6) pve; urgency=medium
+pve-cluster (6.1-7) pve; urgency=medium
 
   * add ACME plugin config file to cluster files
 
   * add firewall config locking helper
 
- -- Proxmox Support Team <support@proxmox.com>  Thu, 30 Apr 2020 14:31:28 +0200
+  * ensure base directories of observed files is created in a central way
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 30 Apr 2020 17:33:53 +0200
 
 pve-cluster (6.1-5) pve; urgency=medium
 
