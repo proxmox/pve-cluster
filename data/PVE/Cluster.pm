@@ -5,6 +5,7 @@ use warnings;
 
 use Encode;
 use File::stat qw();
+use File::Path qw(make_path);
 use JSON;
 use Net::SSLeay;
 use POSIX qw(ENOENT);
@@ -73,6 +74,22 @@ my $observed = {
     'sdn/controllers.cfg.new' => 1,
     'virtual-guest/cpu-models.conf' => 1,
 };
+
+sub prepare_observed_file_basedirs {
+
+    if (check_cfs_is_mounted(1)) {
+	warn "pmxcfs isn't mounted (/etc/pve), chickening out..\n";
+	return;
+    }
+
+    for my $f (sort keys %$observed) {
+	next if $f !~ m!^(.*)/[^/]+$!;
+	my $dir = "$basedir/$1";
+	next if -e $dir; # can also be a link, so just use -e xist check
+	print "creating directory '$dir' for observerd files\n";
+	make_path($dir);
+    }
+}
 
 sub base_dir {
     return $basedir;

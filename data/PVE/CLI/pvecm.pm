@@ -569,6 +569,7 @@ __PACKAGE__->register_method ({
 	# no-good for ExecStartPost as it fails the whole service in this case
 	PVE::Tools::run_fork_with_timeout(30, sub {
 	    PVE::Cluster::Setup::updatecerts_and_ssh($param->@{qw(force silent)});
+	    PVE::Cluster::prepare_observed_file_basedirs();
 	});
 
 	return undef;
