@@ -1,4 +1,4 @@
-pve-cluster (6.1-7) pve; urgency=medium
+pve-cluster (6.1-8) pve; urgency=medium
 
   * add ACME plugin config file to cluster files
 
@@ -6,7 +6,9 @@ pve-cluster (6.1-7) pve; urgency=medium
 
   * ensure base directories of observed files is created in a central way
 
- -- Proxmox Support Team <support@proxmox.com>  Thu, 30 Apr 2020 17:33:53 +0200
+  * drop SDN .new files and add .version mechanism
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 02 May 2020 19:14:18 +0200
 
 pve-cluster (6.1-5) pve; urgency=medium
 
