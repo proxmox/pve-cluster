@@ -75,7 +75,7 @@ my $observed = {
 
 sub prepare_observed_file_basedirs {
 
-    if (check_cfs_is_mounted(1)) {
+    if (!check_cfs_is_mounted(1)) {
 	warn "pmxcfs isn't mounted (/etc/pve), chickening out..\n";
 	return;
     }
