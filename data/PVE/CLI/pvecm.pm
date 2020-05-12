@@ -439,7 +439,7 @@ __PACKAGE__->register_method ({
 		my $corosync_conf = PVE::Tools::file_get_contents("$tmpdir/corosync.conf");
 		my $corosync_authkey = PVE::Tools::file_get_contents("$tmpdir/authkey");
 
-		PVE::Cluster::Setup::finish_join($host, $corosync_conf, $corosync_authkey);
+		PVE::Cluster::Setup::finish_join($nodename, $corosync_conf, $corosync_authkey);
 	    };
 	    my $err = $@;
 
