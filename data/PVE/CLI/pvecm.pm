@@ -405,9 +405,11 @@ __PACKAGE__->register_method ({
 	    push @$cmd, '--nodeid', $param->{nodeid} if $param->{nodeid};
 	    push @$cmd, '--votes', $param->{votes} if defined($param->{votes});
 
+	    my $link_desc = get_standard_option('corosync-link');
+
 	    foreach my $link (keys %$links) {
 		push @$cmd, "--link$link", PVE::JSONSchema::print_property_string(
-		    $links->{$link}, get_standard_option('corosync-link'));
+		    $links->{$link}, $link_desc->{format});
 	    }
 
 	    # this will be used as fallback if no links are specified
