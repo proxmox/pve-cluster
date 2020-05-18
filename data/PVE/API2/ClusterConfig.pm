@@ -113,7 +113,7 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	-f $clusterconf && die "cluster config '$clusterconf' already exists\n";
+	die "cluster config '$clusterconf' already exists\n" if -f $clusterconf;
 
 	my $rpcenv = PVE::RPCEnvironment::get();
 	my $authuser = $rpcenv->get_user();
