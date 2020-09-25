@@ -1190,7 +1190,7 @@ dfsm_cpg_confchg_callback(
 
 		dfsm_set_mode(dfsm, DFSM_MODE_START_SYNC);
 		if (lowest_nodeid == dfsm->nodeid) {
-			if (!dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_SYNC_START, NULL, 0)) {
+			if (dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_SYNC_START, NULL, 0) != CS_OK) {
 				cfs_dom_critical(dfsm->log_domain, "failed to send SYNC_START message");
 				goto leave;
 			}
