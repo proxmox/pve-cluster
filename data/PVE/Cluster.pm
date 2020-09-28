@@ -73,7 +73,7 @@ my $observed = {
     'sdn/subnets.cfg' => 1,
     'sdn/ipams.cfg' => 1,
     'sdn/dns.cfg' => 1,
-    'sdn/.version' => 1,
+    'sdn/.running-config' => 1,
     'virtual-guest/cpu-models.conf' => 1,
 };
 
