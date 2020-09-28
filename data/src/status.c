@@ -102,6 +102,7 @@ static memdb_change_t memdb_change_array[] = {
 	{ .path = "sdn/controllers.cfg" },
 	{ .path = "sdn/subnets.cfg" },
 	{ .path = "sdn/ipams.cfg" },
+	{ .path = "sdn/dns.cfg" },
 	{ .path = "sdn/.version" },
 	{ .path = "virtual-guest/cpu-models.conf" },
 };
