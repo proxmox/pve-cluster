@@ -86,6 +86,7 @@ static memdb_change_t memdb_change_array[] = {
 	{ .path = "priv/acme/plugins.cfg" },
 	{ .path = "priv/tfa.cfg" },
 	{ .path = "priv/token.cfg" },
+	{ .path = "priv/ipam.db" },
 	{ .path = "datacenter.cfg" },
 	{ .path = "vzdump.cron" },
 	{ .path = "ha/crm_commands" },
