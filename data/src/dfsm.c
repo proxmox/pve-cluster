@@ -107,6 +107,7 @@ struct dfsm {
 	cpg_callbacks_t *cpg_callbacks;
 	dfsm_callbacks_t *dfsm_callbacks;
 	cpg_handle_t cpg_handle;
+	GMutex cpg_mutex;
 	struct cpg_name cpg_group_name;
 	uint32_t nodeid;
 	uint32_t pid;
@@ -204,7 +205,9 @@ dfsm_send_message_full(
 	cs_error_t result;
 	int retries = 0;
 loop:
+	g_mutex_lock (&dfsm->cpg_mutex);
 	result = cpg_mcast_joined(dfsm->cpg_handle, CPG_TYPE_AGREED, iov, len);
+	g_mutex_unlock (&dfsm->cpg_mutex);
 	if (retry && result == CS_ERR_TRY_AGAIN) {
 		nanosleep(&tvreq, NULL);
 		++retries;
@@ -1250,7 +1253,9 @@ dfsm_new(
 
 	if (!(dfsm->msg_queue = g_sequence_new(NULL))) 
 		goto err;
-		
+
+	g_mutex_init(&dfsm->cpg_mutex);
+
 	dfsm->log_domain = log_domain;
 	dfsm->data = data;
 	dfsm->mode = DFSM_MODE_START;
@@ -1424,7 +1429,9 @@ dfsm_join(dfsm_t *dfsm)
 	struct timespec tvreq = { .tv_sec = 0, .tv_nsec = 100000000 };
 	int retries = 0;
 loop:
+	g_mutex_lock (&dfsm->cpg_mutex);
 	result = cpg_join(dfsm->cpg_handle, &dfsm->cpg_group_name); 
+	g_mutex_unlock (&dfsm->cpg_mutex);
 	if (result == CS_ERR_TRY_AGAIN) {
 		nanosleep(&tvreq, NULL);
 		++retries;
@@ -1453,7 +1460,9 @@ dfsm_leave (dfsm_t *dfsm)
 	struct timespec tvreq = { .tv_sec = 0, .tv_nsec = 100000000 };
 	int retries = 0;
 loop:
+	g_mutex_lock (&dfsm->cpg_mutex);
 	result = cpg_leave(dfsm->cpg_handle, &dfsm->cpg_group_name);
+	g_mutex_unlock (&dfsm->cpg_mutex);
 	if (result == CS_ERR_TRY_AGAIN) {
 		nanosleep(&tvreq, NULL);
 		++retries;
@@ -1509,6 +1518,8 @@ dfsm_destroy(dfsm_t *dfsm)
 	g_mutex_clear (&dfsm->sync_mutex);
 
 	g_cond_clear (&dfsm->sync_cond);
+
+	g_mutex_clear (&dfsm->cpg_mutex);
  
 	if (dfsm->results)
 		g_hash_table_destroy(dfsm->results);
