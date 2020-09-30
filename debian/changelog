@@ -1,3 +1,15 @@
+pve-cluster (6.2-1) pve; urgency=medium
+
+  * pvecm: print correct nodename when finishing join, to avoid confusion
+
+  * fix #2727: pass correct format for linkX
+
+  * pmxcfs sync: properly check for corosync error
+
+  * pmxcfs: protect CPG operations with mutex
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 30 Sep 2020 13:48:59 +0200
+
 pve-cluster (6.1-8) pve; urgency=medium
 
   * add ACME plugin config file to cluster files
