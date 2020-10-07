@@ -173,6 +173,7 @@ static const char *vminfo_type_to_string(vminfo_t *vminfo)
 	if (vminfo->vmtype == VMTYPE_QEMU) {
 		return "qemu";
 	} else if (vminfo->vmtype == VMTYPE_OPENVZ) {
+		// FIXME: remove openvz stuff for 7.x
 		return "openvz";
 	} else if (vminfo->vmtype == VMTYPE_LXC) {
 		return "lxc";
@@ -632,6 +633,7 @@ vmlist_hash_insert_vm(
 	g_return_val_if_fail(vmlist != NULL, FALSE);
 	g_return_val_if_fail(nodename != NULL, FALSE);
 	g_return_val_if_fail(vmid != 0, FALSE);
+	// FIXME: remove openvz stuff for 7.x
 	g_return_val_if_fail(vmtype == VMTYPE_QEMU || vmtype == VMTYPE_OPENVZ ||
 			     vmtype == VMTYPE_LXC, FALSE);
 
@@ -662,6 +664,7 @@ vmlist_register_vm(
 	g_return_if_fail(cfs_status.vmlist != NULL);
 	g_return_if_fail(nodename != NULL);
 	g_return_if_fail(vmid != 0);
+	// FIXME: remove openvz stuff for 7.x
 	g_return_if_fail(vmtype == VMTYPE_QEMU || vmtype == VMTYPE_OPENVZ ||
 			 vmtype == VMTYPE_LXC);
 

@@ -275,6 +275,7 @@ dir_contain_vm_config(
 			*vmtype_ret = VMTYPE_QEMU;
 			nodename = g_strdup(sa[0]);
 		} else if (strcmp(sa[1], "openvz") == 0) {
+			// FIXME: remove openvz stuff for 7.x
 			*vmtype_ret = VMTYPE_OPENVZ;
 			nodename = g_strdup(sa[0]);
 		} else if (strcmp(sa[1], "lxc") == 0) {
@@ -480,6 +481,7 @@ memdb_recreate_vmlist(
 			if (!vmlist_add_dir(memdb, vmlist, node_te->name, VMTYPE_QEMU, te))
 				ret = FALSE;
 		}
+		// FIXME: remove openvz stuff for 7.x
 		if ((te = g_hash_table_lookup(node_te->data.entries, "openvz"))) {
 			if (!vmlist_add_dir(memdb, vmlist, node_te->name, VMTYPE_OPENVZ, te))
 				ret = FALSE;

@@ -42,6 +42,7 @@
 
 static struct cfs_operations cfs_ops;
 
+// FIXME: remove openvz stuff for 7.x
 static gboolean 
 name_is_openvz_script(
 	const char *name, 
@@ -101,6 +102,7 @@ static void tree_entry_stat(memdb_tree_entry_t *te, struct stat *stbuf, gboolean
 	} else {
 		stbuf->st_mode = S_IFREG | (quorate ? 0666 : 0444);
 		stbuf->st_nlink = 1;
+		// FIXME: remove openvz stuff for 7.x
 		if (name_is_openvz_script(te->name, NULL)) {
 			stbuf->st_mode |= S_IXUSR;
 		}

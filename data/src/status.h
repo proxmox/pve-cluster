@@ -28,6 +28,7 @@
 #include "memdb.h"
 
 #define VMTYPE_QEMU 1
+// FIXME: remove openvz stuff for 7.x
 #define VMTYPE_OPENVZ 2
 #define VMTYPE_LXC 3
 
