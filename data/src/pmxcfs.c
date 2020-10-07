@@ -142,11 +142,7 @@ static int cfs_fuse_getattr(const char *path, struct stat *stbuf)
 			if (S_ISDIR(stbuf->st_mode) || S_ISLNK(stbuf->st_mode)) {
 				stbuf->st_mode &= 0777755; // access for other users
 			} else {
-				if (path_is_lxc_conf(path)) {
-					stbuf->st_mode &= 0777755; // access for other users
-				} else {
-					stbuf->st_mode &= 0777750; // no access for other users
-				}
+				stbuf->st_mode &= 0777750; // no access for other users
 			}
 		}
 	}
