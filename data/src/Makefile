@@ -26,14 +26,14 @@ libpmxcfs.a:
 	$(AR) $(ARFLAGS) $@ $^
 
 pmxcfs: pmxcfs.o libpmxcfs.a
-	$(CC) $(LDFLAGS) -o $@ $^
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 
 create_pmxcfs_db: create_pmxcfs_db.o libpmxcfs.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 logtest: logtest.o libpmxcfs.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 check_memdb: check_memdb.o libpmxcfs.a
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(shell pkg-config --libs check)
