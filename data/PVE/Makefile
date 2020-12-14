@@ -56,7 +56,6 @@ IPCC.c: IPCC.xs ppport.h
 IPCC.so: IPCC.o
 	$(CC) ${CFLAGS} ${LDFLAGS} -shared -o $@ $<
 
-export NOVIEW=1
 -include /usr/share/pve-doc-generator/pve-doc-generator.mk
 
 .PHONY: clean
