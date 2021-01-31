@@ -258,7 +258,7 @@ END_TEST
 static void
 add_test(
 	Suite *s,
-	TFun tf,
+	const TTest *tf,
 	const char *name)
 {
 	TCase *tc = tcase_create (name);
