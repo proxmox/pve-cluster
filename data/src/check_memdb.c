@@ -31,6 +31,12 @@
 #include "status.h"
 #include "memdb.h"
 
+#if CHECK_MAJOR_VERSION == 0 && CHECK_MINOR_VERSION <= 10
+#define _TEST_TYPE TFun
+#else
+#define _TEST_TYPE const TTest *
+#endif
+
 cfs_t cfs = {
 	.debug = 0,
 	.nodename = "testnode",
@@ -258,7 +264,7 @@ END_TEST
 static void
 add_test(
 	Suite *s,
-	const TTest *tf,
+	_TEST_TYPE tf,
 	const char *name)
 {
 	TCase *tc = tcase_create (name);
