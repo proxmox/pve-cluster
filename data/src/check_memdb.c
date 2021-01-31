@@ -45,19 +45,19 @@ setup(void)
 {
 	unlink(TESTDB);
 	memdb = memdb_open(TESTDB);	
-	fail_unless (memdb != NULL);
+	ck_assert (memdb != NULL);
 
 	struct statvfs stbuf;
-	fail_unless(memdb_statfs(memdb, &stbuf) == 0);
+	ck_assert(memdb_statfs(memdb, &stbuf) == 0);
 
 	int count = stbuf.f_files - stbuf.f_ffree;
-	fail_unless(count == 1);
+	ck_assert(count == 1);
 }
  	
 void
 teardown(void)
 {
-	fail_unless (memdb != NULL);	
+	ck_assert (memdb != NULL);	
 
 	memdb_close(memdb);
 }
@@ -73,30 +73,34 @@ START_TEST(test_indextest1)
 	for (int i = 0; i < 100; i++) {
 		sprintf(namebuf, "testfile%d", i);
 
-		fail_unless(memdb_create(memdb, namebuf, 0, ctime) == 0);
-		fail_unless(memdb_write(memdb, namebuf, 0, ctime, testdata, testsize, 0, 0) == testsize);
+		ck_assert(memdb_create(memdb, namebuf, 0, ctime) == 0);
+		ck_assert(memdb_write(memdb, namebuf, 0, ctime, testdata, testsize, 0, 0) == testsize);
 	}
 
 	struct statvfs stbuf;
-	fail_unless(memdb_statfs(memdb, &stbuf) == 0);
+	ck_assert(memdb_statfs(memdb, &stbuf) == 0);
 
 	int count = stbuf.f_files - stbuf.f_ffree;
-	fail_unless(count == 101);
+	ck_assert(count == 101);
 
 	memdb_index_t *idx = memdb_encode_index(memdb->index, memdb->root);
-	fail_unless(idx != NULL);
+	ck_assert(idx != NULL);
 	
-	fail_unless(idx->version == 201);
-	fail_unless(idx->last_inode == 200);
-	fail_unless(idx->writer == 0);
-	fail_unless(idx->size == 101);
-	fail_unless(idx->bytes == (101*40 + sizeof( memdb_index_t)));
+	ck_assert(idx->version == 201);
+	ck_assert(idx->last_inode == 200);
+	ck_assert(idx->writer == 0);
+	ck_assert(idx->size == 101);
+	ck_assert(idx->bytes == (101*40 + sizeof( memdb_index_t)));
 
 	GChecksum *sha256 = g_checksum_new(G_CHECKSUM_SHA256); 
-	fail_unless(sha256 != NULL);
+	ck_assert(sha256 != NULL);
 	g_checksum_update(sha256, (unsigned char *)idx, idx->bytes);
 	const char *csum = g_checksum_get_string(sha256);
-	fail_unless(strcmp(csum, "913fd95015af9d93f10dd51ba2a7bb11351bcfe040be21e95fcba834adc3ec10") == 0, "wrong idx checksum %s", csum);
+	ck_assert_msg(
+		strcmp(csum, "913fd95015af9d93f10dd51ba2a7bb11351bcfe040be21e95fcba834adc3ec10") == 0,
+		"wrong idx checksum %s",
+		csum
+	);
 	g_free(idx);
 	g_free(testdata);
 
@@ -109,16 +113,16 @@ START_TEST (test_dirtest1)
 	const char *sdn = "/dir1/sdir1";
 	time_t ctime = 1234;
 
-	fail_unless(memdb_mkdir(memdb, sdn, 0, ctime) == -ENOENT);
-	fail_unless(memdb_delete(memdb, dn, 0, ctime) == -ENOENT);
+	ck_assert(memdb_mkdir(memdb, sdn, 0, ctime) == -ENOENT);
+	ck_assert(memdb_delete(memdb, dn, 0, ctime) == -ENOENT);
 
-	fail_unless(memdb_mkdir(memdb, dn, 0, ctime) == 0);
-	fail_unless(memdb_mkdir(memdb, dn, 0, ctime) == -EEXIST);
-	fail_unless(memdb_mkdir(memdb, sdn, 0, ctime) == 0);
-	fail_unless(memdb_mkdir(memdb, sdn, 0, ctime) == -EEXIST);
-	fail_unless(memdb_delete(memdb, dn, 0, ctime) == -ENOTEMPTY);
-	fail_unless(memdb_delete(memdb, sdn, 0, ctime) == 0);
-	fail_unless(memdb_delete(memdb, dn, 0, ctime) == 0);
+	ck_assert(memdb_mkdir(memdb, dn, 0, ctime) == 0);
+	ck_assert(memdb_mkdir(memdb, dn, 0, ctime) == -EEXIST);
+	ck_assert(memdb_mkdir(memdb, sdn, 0, ctime) == 0);
+	ck_assert(memdb_mkdir(memdb, sdn, 0, ctime) == -EEXIST);
+	ck_assert(memdb_delete(memdb, dn, 0, ctime) == -ENOTEMPTY);
+	ck_assert(memdb_delete(memdb, sdn, 0, ctime) == 0);
+	ck_assert(memdb_delete(memdb, dn, 0, ctime) == 0);
 }
 END_TEST
 
@@ -132,43 +136,43 @@ START_TEST (test_filetest1)
 	char buf[1024];
 	memset(buf, 0, sizeof(buf));
 
-	fail_unless(memdb_read(memdb, fn, &data) == -ENOENT);
+	ck_assert(memdb_read(memdb, fn, &data) == -ENOENT);
 
-	fail_unless(memdb_mkdir(memdb, dn, 0, ctime) == 0);
+	ck_assert(memdb_mkdir(memdb, dn, 0, ctime) == 0);
 
-	fail_unless(memdb_read(memdb, fn, &data) == -ENOENT);
+	ck_assert(memdb_read(memdb, fn, &data) == -ENOENT);
 
-	fail_unless(memdb_write(memdb, fn, 0, ctime, buf, sizeof(buf), 0, 0) == -ENOENT);
+	ck_assert(memdb_write(memdb, fn, 0, ctime, buf, sizeof(buf), 0, 0) == -ENOENT);
 
-	fail_unless(memdb_create(memdb, fn, 0, ctime) == 0);
+	ck_assert(memdb_create(memdb, fn, 0, ctime) == 0);
 
-	fail_unless(memdb_write(memdb, fn, 0, ctime, buf, sizeof(buf), 0, 0) == sizeof(buf));
+	ck_assert(memdb_write(memdb, fn, 0, ctime, buf, sizeof(buf), 0, 0) == sizeof(buf));
 
-	fail_unless(memdb_read(memdb, fn, &data) == sizeof(buf));
+	ck_assert(memdb_read(memdb, fn, &data) == sizeof(buf));
 
-	fail_unless(memcmp(buf, data, sizeof(buf)) == 0);
+	ck_assert(memcmp(buf, data, sizeof(buf)) == 0);
 
 	g_free(data);
 
-	fail_unless(memdb_write(memdb, fn, 0, ctime, "0123456789", 10, 0, 1) == 10);
+	ck_assert(memdb_write(memdb, fn, 0, ctime, "0123456789", 10, 0, 1) == 10);
 	
-	fail_unless(memdb_read(memdb, fn, &data) == 10);
+	ck_assert(memdb_read(memdb, fn, &data) == 10);
 	g_free(data);
 
-	fail_unless(memdb_write(memdb, fn, 0, ctime, "X", 1, 3, 0) == 1);
+	ck_assert(memdb_write(memdb, fn, 0, ctime, "X", 1, 3, 0) == 1);
 
-	fail_unless(memdb_write(memdb, fn, 0, ctime, "X", 1, 6, 0) == 1);
+	ck_assert(memdb_write(memdb, fn, 0, ctime, "X", 1, 6, 0) == 1);
 
-	fail_unless(memdb_read(memdb, fn, &data) == 10);
+	ck_assert(memdb_read(memdb, fn, &data) == 10);
 
-	fail_unless(strncmp(data, "012X45X789", 10) == 0);
+	ck_assert(strncmp(data, "012X45X789", 10) == 0);
 	g_free(data);
 
-	fail_unless(memdb_delete(memdb, fn, 0, ctime) == 0);
+	ck_assert(memdb_delete(memdb, fn, 0, ctime) == 0);
 
-	fail_unless(memdb_delete(memdb, fn, 0, ctime) == -ENOENT);
+	ck_assert(memdb_delete(memdb, fn, 0, ctime) == -ENOENT);
 
-	fail_unless(memdb_delete(memdb, dn, 0, ctime) == 0);
+	ck_assert(memdb_delete(memdb, dn, 0, ctime) == 0);
 }
 END_TEST
 
@@ -181,32 +185,32 @@ START_TEST (test_loaddb1)
 {
 	time_t ctime = 1234;
 
-	fail_unless(memdb_mkdir(memdb, "dir1", 0, ctime) == 0);
+	ck_assert(memdb_mkdir(memdb, "dir1", 0, ctime) == 0);
 
-	fail_unless(memdb_create(memdb, "dir1/file1", 0, ctime) == 0);
+	ck_assert(memdb_create(memdb, "dir1/file1", 0, ctime) == 0);
 
-	fail_unless(memdb_create(memdb, "dir1/file2", 0, ctime) == 0);
+	ck_assert(memdb_create(memdb, "dir1/file2", 0, ctime) == 0);
 
-	fail_unless(memdb_mkdir(memdb, "dir2", 0, ctime) == 0);
+	ck_assert(memdb_mkdir(memdb, "dir2", 0, ctime) == 0);
 
-	fail_unless(memdb_rename(memdb, "dir1/file1", "dir2/file1", 0, ctime) == 0);
+	ck_assert(memdb_rename(memdb, "dir1/file1", "dir2/file1", 0, ctime) == 0);
 
-	fail_unless(memdb_rename(memdb, "dir1/file2", "dir2/file2", 0, ctime) == 0);
+	ck_assert(memdb_rename(memdb, "dir1/file2", "dir2/file2", 0, ctime) == 0);
 
-	fail_unless(memdb_create(memdb, "dir2/file1", 0, ctime) == -EEXIST);
+	ck_assert(memdb_create(memdb, "dir2/file1", 0, ctime) == -EEXIST);
 
-	fail_unless(memdb_create(memdb, "dir2/file2", 0, ctime) == -EEXIST);
+	ck_assert(memdb_create(memdb, "dir2/file2", 0, ctime) == -EEXIST);
 
 	//memdb_dump(memdb);
 
 	memdb_close(memdb);
 
 	memdb = memdb_open(TESTDB);	
-	fail_unless (memdb != NULL);
+	ck_assert (memdb != NULL);
 
-	fail_unless(memdb_create(memdb, "dir2/file1", 0, ctime) == -EEXIST);
+	ck_assert(memdb_create(memdb, "dir2/file1", 0, ctime) == -EEXIST);
 
-	fail_unless(memdb_create(memdb, "dir2/file2", 0, ctime) == -EEXIST);
+	ck_assert(memdb_create(memdb, "dir2/file2", 0, ctime) == -EEXIST);
 
 	//memdb_dump(memdb);
 
@@ -217,34 +221,34 @@ START_TEST (test_loaddb2)
 {
 	time_t ctime = 1234;
 
-	fail_unless(memdb_mkdir(memdb, "dir1", 0, ctime) == 0);
+	ck_assert(memdb_mkdir(memdb, "dir1", 0, ctime) == 0);
 
-	fail_unless(memdb_mkdir(memdb, "dir1/sd1", 0, ctime) == 0);
+	ck_assert(memdb_mkdir(memdb, "dir1/sd1", 0, ctime) == 0);
 
-	fail_unless(memdb_create(memdb, "dir1/file1", 0, ctime) == 0);
+	ck_assert(memdb_create(memdb, "dir1/file1", 0, ctime) == 0);
 
-	fail_unless(memdb_create(memdb, "dir1/file2", 0, ctime) == 0);
+	ck_assert(memdb_create(memdb, "dir1/file2", 0, ctime) == 0);
 
-	fail_unless(memdb_mkdir(memdb, "dir2", 0, ctime) == 0);
+	ck_assert(memdb_mkdir(memdb, "dir2", 0, ctime) == 0);
 
-	fail_unless(memdb_rename(memdb, "dir1/sd1", "dir2/sd1", 0, ctime) == 0);
+	ck_assert(memdb_rename(memdb, "dir1/sd1", "dir2/sd1", 0, ctime) == 0);
 
-	fail_unless(memdb_rename(memdb, "dir1/file1", "dir2/sd1/file1", 0, ctime) == 0);
+	ck_assert(memdb_rename(memdb, "dir1/file1", "dir2/sd1/file1", 0, ctime) == 0);
 
-	fail_unless(memdb_rename(memdb, "dir1/file2", "dir2/sd1/file2", 0, ctime) == 0);
+	ck_assert(memdb_rename(memdb, "dir1/file2", "dir2/sd1/file2", 0, ctime) == 0);
 
-	fail_unless(memdb_create(memdb, "dir2/file3", 0, ctime) == 0);
+	ck_assert(memdb_create(memdb, "dir2/file3", 0, ctime) == 0);
 
-	fail_unless(memdb_mkdir(memdb, "dir2/sd1", 0, ctime) == -EEXIST);
+	ck_assert(memdb_mkdir(memdb, "dir2/sd1", 0, ctime) == -EEXIST);
 
 	//memdb_dump(memdb);
 
 	memdb_close(memdb);
 
 	memdb = memdb_open(TESTDB);	
-	fail_unless (memdb != NULL);
+	ck_assert (memdb != NULL);
 
-	fail_unless(memdb_mkdir(memdb, "dir2/sd1", 0, ctime) == -EEXIST);
+	ck_assert(memdb_mkdir(memdb, "dir2/sd1", 0, ctime) == -EEXIST);
 
 	//memdb_dump(memdb);
 
