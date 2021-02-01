@@ -551,7 +551,7 @@ __PACKAGE__->register_method ({
     	additionalProperties => 0,
 	properties => {
 	    force => {
-		description => "Force generation of new SSL certifate.",
+		description => "Force generation of new SSL certificate.",
 		type => 'boolean',
 		optional => 1,
 	    },
