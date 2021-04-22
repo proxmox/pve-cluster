@@ -185,12 +185,11 @@ static int backend_write_inode(
 		cfs_critical("sqlite3_bind failed: %s\n", sqlite3_errmsg(db));
 		return rc;
 	}
-	/* question: can we use SQLITE_STATIC instead? */
-	if ((rc = sqlite3_bind_text(stmt, 7, name, -1, SQLITE_TRANSIENT)) !=  SQLITE_OK) {
+	if ((rc = sqlite3_bind_text(stmt, 7, name, -1, SQLITE_STATIC)) !=  SQLITE_OK) {
 		cfs_critical("sqlite3_bind failed: %s\n", sqlite3_errmsg(db));
 		return rc;
 	}
-	if ((rc = sqlite3_bind_blob(stmt, 8, value, size, SQLITE_TRANSIENT)) !=  SQLITE_OK) {
+	if ((rc = sqlite3_bind_blob(stmt, 8, value, size, SQLITE_STATIC)) !=  SQLITE_OK) {
 		cfs_critical("sqlite3_bind failed: %s\n", sqlite3_errmsg(db));
 		return rc;
 	}
