@@ -583,6 +583,7 @@ my $cfs_lock = sub {
 
     my $filename = "$lockdir/$lockid";
 
+    my $is_code_err = 0;
     eval {
 
 	mkdir $lockdir;
@@ -610,10 +611,12 @@ my $cfs_lock = sub {
 
 	# fixed command timeout: cfs locks have a timeout of 120
 	# using 60 gives us another 60 seconds to abort the task
-	local $SIG{ALRM} = sub { die "got lock timeout - aborting command\n"; };
+	local $SIG{ALRM} = sub { die "'$lockid'-locked command timed out - aborting\n"; };
 	alarm(60);
 
 	cfs_update(); # make sure we read latest versions inside code()
+
+	$is_code_err = 1; # allows to differ between locking and actual-work errors
 
 	$res = &$code(@param);
 
@@ -629,12 +632,12 @@ my $cfs_lock = sub {
     alarm($prev_alarm);
 
     if ($err) {
-	if (ref($err) eq 'PVE::Exception') {
+	if (ref($err) eq 'PVE::Exception' || $is_code_err) {
 	    # re-raise defined exceptions
 	    $@ = $err;
 	} else {
-	    # add lock info for plain errors
-	    $@ = "error during cfs-locked '$lockid' operation: $err";
+	    # add lock info for plain errors comming from the locking itself
+	    $@ = "cfs-lock '$lockid' error: $err";
 	}
         return undef;
     }
