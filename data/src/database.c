@@ -154,7 +154,12 @@ static int backend_write_inode(
 {
 	int rc;
 
-	cfs_debug("enter backend_write_inode %016" PRIX64, inode);
+	cfs_debug(
+	    "enter backend_write_inode %016" PRIX64 " '%s', size %"PRIu32"",
+	    inode,
+	    name,
+	    size
+	);
 
 	if ((rc = sqlite3_bind_int64(stmt, 1, inode)) !=  SQLITE_OK) {
 		cfs_critical("sqlite3_bind failed: %s\n", sqlite3_errmsg(db));
@@ -321,10 +326,9 @@ static gboolean bdb_backend_load_index(
 	g_return_val_if_fail(root->version == 0, FALSE);
 	g_return_val_if_fail(g_hash_table_size(index) == 1, FALSE);
 
-	int rc;
-
 	sqlite3_stmt *stmt = bdb->stmt_load_all;
 
+	int rc;
 	while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
 
 		memdb_tree_entry_t *te;
@@ -421,11 +425,18 @@ static gboolean bdb_backend_load_index(
 					te->data.entries = g_hash_table_new(g_str_hash, g_str_equal);
 				}
 			}
-				
-			if (g_hash_table_lookup(pte->data.entries, te->name)) {
-				cfs_critical("found entry with duplicate name "
-					     "(inode = %016" PRIX64 ", parent = %016" PRIX64 ", name = '%s')",
-					     te->inode, te->parent, te->name);
+
+			memdb_tree_entry_t *existing;
+			if ((existing = g_hash_table_lookup(pte->data.entries, te->name))) {
+				cfs_critical(
+				    "found entry with duplicate name '%s' - "
+				    "A:(inode = 0x%016"PRIX64", parent = 0x%016"PRIX64", v./mtime = 0x%"PRIX64"/0x%"PRIi32")"
+				    " vs. "
+				    "B:(inode = 0x%016"PRIX64", parent = 0x%016"PRIX64", v./mtime = 0x%"PRIX64"/0x%"PRIi32")",
+				     te->name,
+				     existing->inode, existing->parent, existing->version, existing->mtime,
+				     te->inode, te->parent, te->version, te->mtime
+				);
 				goto fail;
 			}
 
@@ -519,7 +530,7 @@ gboolean bdb_backend_commit_update(
 
 		if (bdb_backend_delete_inode(bdb, slave_inode) != SQLITE_OK)
 			goto abort;
-	       
+
 		cfs_debug("deleted inode %016" PRIX64, slave_inode);
 
 		j++;
@@ -734,9 +745,7 @@ db_backend_t *bdb_backend_open(
 	return bdb;
 
 fail:
-
 	bdb_backend_close(bdb);
-		
+
 	return NULL;
 }
-	
