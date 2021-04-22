@@ -679,49 +679,53 @@ db_backend_t *bdb_backend_open(
 	if (!(bdb->db = bdb_create(filename)))
 		goto fail;
 
-	rc = sqlite3_prepare_v2(bdb->db, sql_insert_entry, -1, &bdb->stmt_insert_entry, NULL);
+	// tell the query planner that the prepared statement will be retained for a long time and
+	// probably reused many times
+	const unsigned int flags = SQLITE_PREPARE_PERSISTENT;
+
+	rc = sqlite3_prepare_v3(bdb->db, sql_insert_entry, -1, flags, &bdb->stmt_insert_entry, NULL);
 	if (rc != SQLITE_OK) {
 		cfs_critical("sqlite3_prepare 'sql_insert_entry' failed: %s\n", 
 			     sqlite3_errmsg(bdb->db));
 		goto fail;
 	}
-	rc = sqlite3_prepare_v2(bdb->db, sql_update_entry, -1, &bdb->stmt_update_entry, NULL);
+	rc = sqlite3_prepare_v3(bdb->db, sql_update_entry, -1, flags, &bdb->stmt_update_entry, NULL);
 	if (rc != SQLITE_OK) {
 		cfs_critical("sqlite3_prepare 'sql_update_entry' failed: %s\n", 
 			     sqlite3_errmsg(bdb->db));
 		goto fail;
 	}
-	rc = sqlite3_prepare_v2(bdb->db, sql_replace_entry, -1, &bdb->stmt_replace_entry, NULL);
+	rc = sqlite3_prepare_v3(bdb->db, sql_replace_entry, -1, flags, &bdb->stmt_replace_entry, NULL);
 	if (rc != SQLITE_OK) {
 		cfs_critical("sqlite3_prepare 'sql_replace_entry' failed: %s\n", 
 			     sqlite3_errmsg(bdb->db));
 		goto fail;
 	}
-	rc = sqlite3_prepare_v2(bdb->db, sql_delete_entry, -1, &bdb->stmt_delete_entry, NULL);
+	rc = sqlite3_prepare_v3(bdb->db, sql_delete_entry, -1, flags, &bdb->stmt_delete_entry, NULL);
 	if (rc != SQLITE_OK) {
 		cfs_critical("sqlite3_prepare 'sql_delete_entry' failed: %s\n", 
 			     sqlite3_errmsg(bdb->db));
 		goto fail;
 	}
-	rc = sqlite3_prepare_v2(bdb->db, sql_begin, -1, &bdb->stmt_begin, NULL);
+	rc = sqlite3_prepare_v3(bdb->db, sql_begin, -1, flags, &bdb->stmt_begin, NULL);
 	if (rc != SQLITE_OK) {
 		cfs_critical("sqlite3_prepare 'sql_begin' failed: %s\n", 
 			     sqlite3_errmsg(bdb->db));
 		goto fail;
 	}
-	rc = sqlite3_prepare_v2(bdb->db, sql_commit, -1, &bdb->stmt_commit, NULL);
+	rc = sqlite3_prepare_v3(bdb->db, sql_commit, -1, flags, &bdb->stmt_commit, NULL);
 	if (rc != SQLITE_OK) {
 		cfs_critical("sqlite3_prepare 'sql_commit' failed: %s\n", 
 			     sqlite3_errmsg(bdb->db));
 		goto fail;
 	}
-	rc = sqlite3_prepare_v2(bdb->db, sql_rollback, -1, &bdb->stmt_rollback, NULL);
+	rc = sqlite3_prepare_v3(bdb->db, sql_rollback, -1, flags, &bdb->stmt_rollback, NULL);
 	if (rc != SQLITE_OK) {
 		cfs_critical("sqlite3_prepare 'sql_rollback' failed: %s\n", 
 			     sqlite3_errmsg(bdb->db));
 		goto fail;
 	}
-	rc = sqlite3_prepare_v2(bdb->db, sql_load_all, -1, &bdb->stmt_load_all, NULL);
+	rc = sqlite3_prepare_v3(bdb->db, sql_load_all, -1, flags, &bdb->stmt_load_all, NULL);
 	if (rc != SQLITE_OK) {
 		cfs_critical("sqlite3_prepare 'sql_load_all' failed: %s\n", 
 			     sqlite3_errmsg(bdb->db));
