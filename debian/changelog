@@ -1,3 +1,20 @@
+pve-cluster (6.4-1) pve; urgency=medium
+
+  * pmxcfs: do not grant LXC configs o+r permissions by default anymore
+
+  * add various tech-preview SDN configuration files
+
+  * rename sdn/.version to sdn/.running-config
+
+  * pmxcfs: db: use SQLITE_STATIC when writing FS updates to the DB to avoid
+    memory copies
+
+  * pmxcfs: db: tell query planner that our prepared statement are long living
+
+  * cfs lock: avoid confusing lock prefix on error from the executed code
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 26 Apr 2021 16:01:04 +0200
+
 pve-cluster (6.2-1) pve; urgency=medium
 
   * pvecm: print correct nodename when finishing join, to avoid confusion
