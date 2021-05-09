@@ -43,6 +43,7 @@ check: IPCC.so Cluster/IPCConst.pm
 
 CC=gcc
 CFLAGS += -fPIC -Wl,-z,relro -Wall -Werror -Wno-strict-aliasing -g -O2 -shared
+CFLAGS += $(shell pkg-config --cflags libqb)
 CFLAGS += $(shell perl -MExtUtils::Embed -e perl_inc)
 LDFLAGS = $(shell pkg-config --libs libqb)
 
@@ -54,7 +55,7 @@ IPCC.c: IPCC.xs ppport.h
 	mv IPCC.xsc IPCC.c
 
 IPCC.so: IPCC.o
-	$(CC) ${CFLAGS} ${LDFLAGS} -shared -o $@ $<
+	$(CC) ${CFLAGS} -shared -o $@ $<  ${LDFLAGS}
 
 -include /usr/share/pve-doc-generator/pve-doc-generator.mk
 
