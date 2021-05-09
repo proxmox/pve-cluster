@@ -1,3 +1,9 @@
+pve-cluster (7.0-1) bullseye; urgency=medium
+
+  * re-build for Debian 11 Bullseye based releases
+
+ -- Proxmox Support Team <support@proxmox.com>  Sun, 09 May 2021 17:55:48 +0200
+
 pve-cluster (6.4-1) pve; urgency=medium
 
   * pmxcfs: do not grant LXC configs o+r permissions by default anymore
