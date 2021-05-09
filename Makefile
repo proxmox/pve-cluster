@@ -10,6 +10,8 @@ LIBDEB  = libpve-cluster-perl_${DEB_VERSION_UPSTREAM_REVISION}_all.deb
 LIBDEB += libpve-cluster-api-perl_${DEB_VERSION_UPSTREAM_REVISION}_all.deb
 DBGDEB=${PACKAGE}-dbgsym_${DEB_VERSION_UPSTREAM_REVISION}_${DEB_BUILD_ARCH}.deb
 
+DEBS = ${DEB} ${DBG_DEB} ${LIBDEB}
+
 PERL_APIVER := `perl -MConfig -e 'print $$Config{debian_abi}//$$Config{version};'`
 
 all: ${DEB} ${DBG_DEB}
@@ -34,9 +36,9 @@ ${DEB}:
 
 
 .PHONY: upload
-upload: ${DEB} ${DBG_DEB} ${LIBDEB}
-	tar cf - ${DEB} ${DBGDEB} ${LIBDEB}| ssh -X repoman@repo.proxmox.com -- upload --product pve --dist buster --arch ${DEB_BUILD_ARCH}
+upload: ${DEBS}
+	tar cf - ${DEBS} | ssh -X repoman@repo.proxmox.com -- upload --product pve --dist bullseye --arch ${DEB_BUILD_ARCH}
 
 .PHONY: clean
 clean:
-	rm -rf *~ build *.deb *.changes *.dsc ${CSDIR} *.buildinfo
+	rm -rf *~ build *.deb *.changes *.dsc *.buildinfo
