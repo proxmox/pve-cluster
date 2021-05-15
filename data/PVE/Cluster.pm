@@ -394,18 +394,19 @@ sub get_tasklist {
 	next if $nodename && ($nodename ne $node);
 	eval {
 	    my $ver = $kvstore->{$node}->{tasklist} if $kvstore->{$node};
-	    my $cd = $tasklistcache->{$node};
-	    if (!$cd || !$ver || !$cd->{version} ||
-		($cd->{version} != $ver)) {
-		my $raw = &$ipcc_get_status("tasklist", $node) || '[]';
-		my $data = decode_json($raw);
-		push @$res, @$data;
-		$cd = $tasklistcache->{$node} = {
-		    data => $data,
+	    my $cache = $tasklistcache->{$node};
+	    if (!$cache || !$ver || !$cache->{version} || ($cache->{version} != $ver)) {
+		my $tasks = [];
+		if (my $raw = $ipcc_get_status->("tasklist", $node)) {
+		    $tasks = decode_json($raw);
+		}
+		push @$res, @$tasks;
+		$tasklistcache->{$node} = {
+		    data => $tasks,
 		    version => $ver,
 		};
-	    } elsif ($cd && $cd->{data}) {
-		push @$res, @{$cd->{data}};
+	    } elsif ($cache && $cache->{data}) {
+		push @$res, $cache->{data}->@*;
 	    }
 	};
 	my $err = $@;
