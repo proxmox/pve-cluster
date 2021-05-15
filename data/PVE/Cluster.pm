@@ -398,7 +398,8 @@ sub get_tasklist {
 	    if (!$cache || !$ver || !$cache->{version} || ($cache->{version} != $ver)) {
 		my $tasks = [];
 		if (my $raw = $ipcc_get_status->("tasklist", $node)) {
-		    $tasks = decode_json($raw);
+		    my $json_str = unpack("Z*", $raw);
+		    $tasks = decode_json($json_str);
 		}
 		push @$res, @$tasks;
 		$tasklistcache->{$node} = {
