@@ -1,3 +1,10 @@
+pve-cluster (7.0-2) bullseye; urgency=medium
+
+  * get tasklist: unpack null-terminated C string before decoding as JSON for
+    compatibillity with the JSON perl-module shipped in Bullseye
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 20 May 2021 11:21:02 +0200
+
 pve-cluster (7.0-1) bullseye; urgency=medium
 
   * re-build for Debian 11 Bullseye based releases
