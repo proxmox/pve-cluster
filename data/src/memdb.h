@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2010 - 2020 Proxmox Server Solutions GmbH
+  Copyright (C) 2010 - 2021 Proxmox Server Solutions GmbH
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU Affero General Public License as published by
@@ -28,9 +28,9 @@
 #include <glib.h>
 #include <sys/statvfs.h>
 
-#define MEMDB_MAX_FILE_SIZE (512*1024)
-#define MEMDB_MAX_FSSIZE (30*1024*1024)
-#define MEMDB_MAX_INODES 10000
+#define MEMDB_MAX_FILE_SIZE (1024 * 1024) // 1 MiB
+#define MEMDB_MAX_FSSIZE (128 * 1024 * 1024) // 128 MiB
+#define MEMDB_MAX_INODES (256 * 1024) // 256k
 
 #define MEMDB_BLOCKSIZE 4096
 #define MEMDB_BLOCKS ((MEMDB_MAX_FSSIZE + MEMDB_BLOCKSIZE - 1)/MEMDB_BLOCKSIZE)
