@@ -1,3 +1,10 @@
+pve-cluster (7.0-3) bullseye; urgency=medium
+
+  * pmxcfs: bump basic FS limits, 1 MiB per-file, 128 MiB total and 256k
+    inodes
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 01 Jul 2021 12:42:52 +0200
+
 pve-cluster (7.0-2) bullseye; urgency=medium
 
   * get tasklist: unpack null-terminated C string before decoding as JSON for
