@@ -181,6 +181,13 @@ my $datacenter_schema = {
 	    format => $u2f_format,
 	    description => 'u2f',
 	},
+	description => {
+	    type => 'string',
+	    description => "Datacenter description. Shown in the web-interface datacenter notes panel."
+		." This is saved as comment inside the configuration file.",
+	    maxLength => 64 * 1024,
+	    optional => 1,
+	},
     },
 };
 
@@ -190,7 +197,20 @@ sub get_datacenter_schema { return $datacenter_schema };
 sub parse_datacenter_config {
     my ($filename, $raw) = @_;
 
+    # description may be comment or key-value pair (or both)
+    my $comment = '';
+    my @lines = split(/\n/, $raw);
+    foreach my $line (@lines) {
+	if ($line =~ /^\#(.*)\s*$/) {
+	    $comment .= PVE::Tools::decode_text($1) . "\n";
+	}
+    }
+
+    # parse_config ignores lines with # => use $raw
     my $res = PVE::JSONSchema::parse_config($datacenter_schema, $filename, $raw // '');
+
+    $res->{description} = $comment;
+
 
     if (my $migration = $res->{migration}) {
 	$res->{migration} = PVE::JSONSchema::parse_property_string($migration_format, $migration);
@@ -251,7 +271,16 @@ sub write_datacenter_config {
 	$cfg->{u2f} = PVE::JSONSchema::print_property_string($u2f, $u2f_format);
     }
 
-    return PVE::JSONSchema::dump_config($datacenter_schema, $filename, $cfg);
+    my $comment = '';
+    # add description as comment to top of file
+    my $description = $cfg->{description} || '';
+    foreach my $line (split(/\n/, $description)) {
+	$comment .= '#' .  PVE::Tools::encode_text($line) . "\n";
+    }
+    delete $cfg->{description}; # add only as comment, no additional key-value pair
+    my $dump = PVE::JSONSchema::dump_config($datacenter_schema, $filename, $cfg);
+
+    return $comment . "\n" . $dump;
 }
 
 PVE::Cluster::cfs_register_file('datacenter.cfg',
