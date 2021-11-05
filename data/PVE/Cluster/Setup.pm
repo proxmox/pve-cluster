@@ -461,12 +461,11 @@ sub gen_pve_ssl_cert {
 
     $names .= ",IP:$ip";
 
-    my $fqdn = $nodename;
-
     $names .= ",DNS:$nodename";
 
+    my $fqdn = $nodename;
     if ($rc && $rc->{search}) {
-	$fqdn = $nodename . "." . $rc->{search};
+	$fqdn .= ".$rc->{search}";
 	$names .= ",DNS:$fqdn";
     }
 
@@ -502,8 +501,9 @@ __EOD
 
     my $pvessl_key_fn = "$pmxcfs_base_dir/nodes/$nodename/pve-ssl.key";
     eval {
-	run_silent_cmd(['openssl', 'req', '-batch', '-new', '-config', $cfgfn,
-			'-key', $pvessl_key_fn, '-out', $reqfn]);
+	run_silent_cmd([
+	    'openssl', 'req', '-batch', '-new', '-config', $cfgfn, '-key', $pvessl_key_fn, '-out', $reqfn
+	]);
     };
 
     if (my $err = $@) {
@@ -532,11 +532,11 @@ __EOD
     }
 
     eval {
-	# wrap openssl with faketime to prevent bug #904
-	run_silent_cmd(['faketime', 'yesterday', 'openssl', 'x509', '-req',
-			'-in', $reqfn, '-days', $daysleft, '-out', $pvessl_cert_fn,
-			'-CAkey', $pveca_key_fn, '-CA', $pveca_cert_fn,
-			'-CAserial', $pveca_srl_fn, '-extfile', $cfgfn]);
+	run_silent_cmd([
+	    'faketime', 'yesterday', # NOTE: wrap openssl with faketime to prevent bug #904
+	    'openssl', 'x509', '-req', '-in', $reqfn, '-days', $daysleft, '-out', $pvessl_cert_fn,
+	    '-CAkey', $pveca_key_fn, '-CA', $pveca_cert_fn, '-CAserial', $pveca_srl_fn, '-extfile', $cfgfn
+	]);
     };
 
     if (my $err = $@) {
