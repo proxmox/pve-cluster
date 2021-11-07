@@ -546,8 +546,11 @@ __PACKAGE__->register_method ({
 	PVE::Cluster::cfs_update(1);
 	my $conf = PVE::Cluster::cfs_read_file('corosync.conf');
 
-	die "node is not in a cluster, no join info available!\n"
-	    if !($conf && $conf->{main});
+	# FIXME: just return undef or empty object in PVE 8.0 (check if manager can handle it!)
+	PVE::Exception::raise(
+	    'node is not in a cluster, no join info available!',
+	    code => HTTP::Status::HTTP_FAILED_DEPENDENCY,
+	) if !($conf && $conf->{main});
 
 	my $totem_cfg = $conf->{main}->{totem} // {};
 	my $nodelist = $conf->{main}->{nodelist}->{node} // {};
