@@ -410,20 +410,13 @@ __PACKAGE__->register_method ({
 	$config_change_lock->($code);
 
 	# If vc_errors is set, we died because of verify_conf.
-	# Raise this error, since it contains more information than just a
-	# single-line string.
+	# Raise this error, since it contains more information than just a single-line string.
 	if (defined($vc_errors) && scalar(@$vc_errors)) {
 	    my $err_hash = {};
 	    my $add_errs = sub {
-		my $type = shift;
-		my @arr = @_;
+		my ($type, @arr) = @_;
 		return if !scalar(@arr);
-
-		my %newhash = map { $type . $_ => $arr[$_] } 0..$#arr;
-		$err_hash = {
-		    %$err_hash,
-		    %newhash,
-		};
+		$err_hash->{"${type}$_"} = $arr[$_] for 0..$#arr;
 	    };
 
 	    $add_errs->("warning", @$vc_warnings);
