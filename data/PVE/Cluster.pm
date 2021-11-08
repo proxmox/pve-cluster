@@ -45,6 +45,7 @@ my $dbbackupdir = "/var/lib/pve-cluster/backup";
 # using a computed version and only those can be used by the cfs_*_file methods
 my $observed = {
     'vzdump.cron' => 1,
+    'jobs.cfg' => 1,
     'storage.cfg' => 1,
     'datacenter.cfg' => 1,
     'replication.cfg' => 1,

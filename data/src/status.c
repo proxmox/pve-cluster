@@ -89,6 +89,7 @@ static memdb_change_t memdb_change_array[] = {
 	{ .path = "priv/ipam.db" },
 	{ .path = "datacenter.cfg" },
 	{ .path = "vzdump.cron" },
+	{ .path = "jobs.cfg" },
 	{ .path = "ha/crm_commands" },
 	{ .path = "ha/manager_status" },
 	{ .path = "ha/resources.cfg" },
