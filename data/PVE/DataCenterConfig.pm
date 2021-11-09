@@ -66,6 +66,34 @@ my $u2f_format = {
     },
 };
 
+my $webauthn_format = {
+    rp => {
+	type => 'string',
+	description =>
+	    'Relying party name. Any text identifier.'
+	    .' Changing this *may* break existing credentials.',
+	format_description => 'RELYING_PARTY',
+	optional => 1,
+    },
+    origin => {
+	type => 'string',
+	description =>
+	    'Site origin. Must be a `https://` URL (or `http://localhost`).'
+	    .' Should contain the address users type in their browsers to access'
+	    .' the web interface.'
+	    .' Changing this *may* break existing credentials.',
+	format_description => 'URL',
+	optional => 1,
+    },
+    id => {
+	type => 'string',
+	description =>
+	    'Relying part ID. Must be the domain name without protocol, port or location.'
+	    .' Changing this *will* break existing credentials.',
+	format_description => 'DOMAINNAME',
+	optional => 1,
+    },
+};
 
 PVE::JSONSchema::register_format('mac-prefix', \&pve_verify_mac_prefix);
 sub pve_verify_mac_prefix {
@@ -181,6 +209,12 @@ my $datacenter_schema = {
 	    format => $u2f_format,
 	    description => 'u2f',
 	},
+	webauthn => {
+	    optional => 1,
+	    type => 'string',
+	    format => $webauthn_format,
+	    description => 'webauthn configuration',
+	},
 	description => {
 	    type => 'string',
 	    description => "Datacenter description. Shown in the web-interface datacenter notes panel."
@@ -222,6 +256,10 @@ sub parse_datacenter_config {
 
     if (my $u2f = $res->{u2f}) {
 	$res->{u2f} = PVE::JSONSchema::parse_property_string($u2f_format, $u2f);
+    }
+
+    if (my $webauthn = $res->{webauthn}) {
+	$res->{webauthn} = PVE::JSONSchema::parse_property_string($webauthn_format, $webauthn);
     }
 
     # for backwards compatibility only, new migration property has precedence
@@ -269,6 +307,11 @@ sub write_datacenter_config {
     if (ref($cfg->{u2f})) {
 	my $u2f = $cfg->{u2f};
 	$cfg->{u2f} = PVE::JSONSchema::print_property_string($u2f, $u2f_format);
+    }
+
+    if (ref($cfg->{webauthn})) {
+	my $webauthn = $cfg->{webauthn};
+	$cfg->{webauthn} = PVE::JSONSchema::print_property_string($webauthn, $webauthn_format);
     }
 
     my $comment = '';
