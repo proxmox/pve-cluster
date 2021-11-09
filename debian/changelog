@@ -1,3 +1,15 @@
+pve-cluster (7.0-4) bullseye; urgency=medium
+
+  * datacenter config: add notes property to allow documenting clustert-
+    wide comments/notes
+
+  * api: join info: return explicit HTTP status error-code (424) for
+    no-cluster instead of generic 500 one
+
+  * add 'jobs.cfg' to observed files
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 09 Nov 2021 18:30:10 +0100
+
 pve-cluster (7.0-3) bullseye; urgency=medium
 
   * pmxcfs: bump basic FS limits, 1 MiB per-file, 128 MiB total and 256k
