@@ -1,4 +1,4 @@
-debian/sysctl.d/pve.conf etc/sysctl.d
+debian/sysctl.d/10-pve.conf usr/lib/sysctl.d
 usr/bin/create_pmxcfs_db
 usr/bin/pmxcfs
 usr/lib/
