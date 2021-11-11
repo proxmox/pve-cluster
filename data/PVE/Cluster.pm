@@ -307,19 +307,14 @@ sub broadcast_node_kv {
     my ($key, $data) = @_;
 
     if (!defined($data)) {
-	eval {
-	    $ipcc_remove_status->("kv/$key");
-	};
+	eval { $ipcc_remove_status->("kv/$key") };
     } else {
 	die "cannot send a reference\n" if ref($data);
 	my $size = length($data);
 	die "data for '$key' too big\n" if $size >= (32 * 1024); # limit from pmxfs
 
-	eval {
-	    $ipcc_update_status->("kv/$key", $data);
-	};
+	eval { $ipcc_update_status->("kv/$key", $data) };
     }
-
     warn $@ if $@;
 }
 
@@ -337,9 +332,7 @@ sub get_node_kv {
     if ($nodename) {
 	$get_node_data->($nodename);
     } else {
-	my $nodelist = get_nodelist();
-
-	foreach my $node (@$nodelist) {
+	for my $node (get_nodelist()->@*) {
 	    $get_node_data->($node);
 	}
     }
