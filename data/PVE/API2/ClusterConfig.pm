@@ -485,9 +485,13 @@ __PACKAGE__->register_method ({
 
 	    delete $nodelist->{$node};
 
-	    PVE::Corosync::update_nodelist($conf, $nodelist);
+	    # allowed to fail when node is already shut down!
+	    eval {
+		PVE::Tools::run_command(['corosync-cfgtool','-k', $nodeid])
+		    if defined($nodeid);
+	    };
 
-	    PVE::Tools::run_command(['corosync-cfgtool','-k', $nodeid]) if defined($nodeid);
+	    PVE::Corosync::update_nodelist($conf, $nodelist);
 	};
 
 	$config_change_lock->($code);
