@@ -1,3 +1,9 @@
+pve-cluster (7.1-1) bullseye; urgency=medium
+
+  * fix #3596: handle delnode of offline node
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 15 Nov 2021 08:24:30 +0100
+
 pve-cluster (7.0-5) bullseye; urgency=medium
 
   * add WebAuthn configuration to datacenter.cfg
