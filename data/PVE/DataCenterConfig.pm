@@ -231,6 +231,8 @@ sub get_datacenter_schema { return $datacenter_schema };
 sub parse_datacenter_config {
     my ($filename, $raw) = @_;
 
+    $raw = '' if !defined($raw);
+
     # description may be comment or key-value pair (or both)
     my $comment = '';
     my @lines = split(/\n/, $raw);
@@ -241,7 +243,7 @@ sub parse_datacenter_config {
     }
 
     # parse_config ignores lines with # => use $raw
-    my $res = PVE::JSONSchema::parse_config($datacenter_schema, $filename, $raw // '');
+    my $res = PVE::JSONSchema::parse_config($datacenter_schema, $filename, $raw);
 
     $res->{description} = $comment;
 
