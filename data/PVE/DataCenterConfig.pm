@@ -235,8 +235,7 @@ sub parse_datacenter_config {
 
     # description may be comment or key-value pair (or both)
     my $comment = '';
-    my @lines = split(/\n/, $raw);
-    foreach my $line (@lines) {
+    for my $line (split(/\n/, $raw)) {
 	if ($line =~ /^\#(.*)\s*$/) {
 	    $comment .= PVE::Tools::decode_text($1) . "\n";
 	}
@@ -246,7 +245,6 @@ sub parse_datacenter_config {
     my $res = PVE::JSONSchema::parse_config($datacenter_schema, $filename, $raw);
 
     $res->{description} = $comment;
-
 
     if (my $migration = $res->{migration}) {
 	$res->{migration} = PVE::JSONSchema::parse_property_string($migration_format, $migration);
