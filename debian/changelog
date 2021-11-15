@@ -1,8 +1,11 @@
-pve-cluster (7.1-1) bullseye; urgency=medium
+pve-cluster (7.1-2) bullseye; urgency=medium
 
   * fix #3596: handle delnode of offline node
 
- -- Proxmox Support Team <support@proxmox.com>  Mon, 15 Nov 2021 08:24:30 +0100
+  * datacenter.cfg: avoid warning due to broken fallback if no config file
+    exists
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 15 Nov 2021 14:31:56 +0100
 
 pve-cluster (7.0-5) bullseye; urgency=medium
 
