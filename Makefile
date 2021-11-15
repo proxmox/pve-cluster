@@ -6,11 +6,11 @@ PACKAGE=pve-cluster
 GITVERSION:=$(shell git rev-parse HEAD)
 
 DEB=${PACKAGE}_${DEB_VERSION_UPSTREAM_REVISION}_${DEB_BUILD_ARCH}.deb
-LIBDEB  = libpve-cluster-perl_${DEB_VERSION_UPSTREAM_REVISION}_all.deb
-LIBDEB += libpve-cluster-api-perl_${DEB_VERSION_UPSTREAM_REVISION}_all.deb
-DBGDEB=${PACKAGE}-dbgsym_${DEB_VERSION_UPSTREAM_REVISION}_${DEB_BUILD_ARCH}.deb
+LIB_DEB  = libpve-cluster-perl_${DEB_VERSION_UPSTREAM_REVISION}_all.deb
+LIB_DEB += libpve-cluster-api-perl_${DEB_VERSION_UPSTREAM_REVISION}_all.deb
+DBG_DEB=${PACKAGE}-dbgsym_${DEB_VERSION_UPSTREAM_REVISION}_${DEB_BUILD_ARCH}.deb
 
-DEBS = ${DEB} ${DBG_DEB} ${LIBDEB}
+DEBS = ${DEB} ${DBG_DEB} ${LIB_DEB}
 
 PERL_APIVER := `perl -MConfig -e 'print $$Config{debian_abi}//$$Config{version};'`
 
@@ -20,11 +20,11 @@ cpgtest: cpgtest.c
 	gcc -Wall cpgtest.c $(shell pkg-config --cflags --libs libcpg libqb) -o cpgtest
 
 .PHONY: dinstall
-dinstall: ${DEB} ${LIBDEB}
+dinstall: ${DEB} ${LIB_DEB}
 	dpkg -i $^
 
 .PHONY: deb
-deb ${DBG_DEB} ${LIBDEB}: ${DEB}
+deb ${DBG_DEB} ${LIB_DEB}: ${DEB}
 ${DEB}:
 	rm -f *.deb
 	rm -rf build
