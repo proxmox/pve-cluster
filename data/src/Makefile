@@ -35,6 +35,9 @@ create_pmxcfs_db: create_pmxcfs_db.o libpmxcfs.a
 logtest: logtest.o libpmxcfs.a
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
+logtest2: logtest2.o libpmxcfs.a
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
 check_memdb: check_memdb.o libpmxcfs.a
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(shell pkg-config --libs check)
 
