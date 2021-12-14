@@ -136,6 +136,11 @@ clog_dump(clog_base_t *clog)
 	while (cpos && (cpos <= clog->cpos || cpos > (clog->cpos + CLOG_MAX_ENTRY_SIZE))) {
 		clog_entry_t *cur = (clog_entry_t *)((char *)clog + cpos);
 		clog_dump_entry(cur, cpos);
+
+		// wrap-around has to land after initial position
+		if (cpos < cur->prev && cur->prev <= clog->cpos) {
+			break;
+		}
 		cpos = cur->prev;
 	}
 }
@@ -165,6 +170,11 @@ clog_dump_json(
 	guint count = 0;
 	while (cpos && (cpos <= clog->cpos || cpos > (clog->cpos + CLOG_MAX_ENTRY_SIZE))) {
 		clog_entry_t *cur = (clog_entry_t *)((char *)clog + cpos);
+
+		// wrap-around has to land after initial position
+		if (cpos < cur->prev && cur->prev <= clog->cpos) {
+			break;
+		}
 		cpos = cur->prev;
 
 		if (count >= max_entries)
@@ -358,6 +368,11 @@ clog_sort(clog_base_t *clog)
 
 		g_tree_insert(tree, cur, cur);
 
+		// wrap-around has to land after initial position
+		if (cpos < cur->prev && cur->prev <= clog->cpos) {
+			break;
+		}
+
 		cpos = cur->prev;
 	}
 
@@ -509,10 +524,12 @@ clusterlog_merge(
 				break;
 		}
 
-		if (!cur->prev) {
+		// no previous entry or wrap-around into already overwritten entry
+		if (!cur->prev || (cpos[found] < cur->prev && cur->prev <= clog[found]->cpos)) {
 			cpos[found] = 0;
 		} else {
 			cpos[found] = cur->prev;
+			// wrap-around into current entry
 			if (!(cpos[found] <= clog[found]->cpos || 
 			      cpos[found] > (clog[found]->cpos + CLOG_MAX_ENTRY_SIZE))) {
 				cpos[found] = 0;
