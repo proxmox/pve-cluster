@@ -264,7 +264,7 @@ sub parse_datacenter_config {
     # description may be comment or key-value pair (or both)
     my $comment = '';
     for my $line (split(/\n/, $raw)) {
-	if ($line =~ /^\#(.*)\s*$/) {
+	if ($line =~ /^\#(.*)$/) {
 	    $comment .= PVE::Tools::decode_text($1) . "\n";
 	}
     }
