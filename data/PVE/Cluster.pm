@@ -342,7 +342,7 @@ sub get_node_kv {
 
 # property: a config property you want to get, e.g., this is perfect to get
 # the 'lock' entry of a guest _fast_ (>100 faster than manual parsing here)
-# vmid: optipnal, if a valid is passed we only check that one, else return all
+# vmid: optional, if a valid is passed we only check that one, else return all
 # NOTE: does *not* searches snapshot and PENDING entries sections!
 sub get_guest_config_property {
     my ($property, $vmid) = @_;
