@@ -3,7 +3,7 @@ package PVE::DataCenterConfig;
 use strict;
 use warnings;
 
-use PVE::JSONSchema;
+use PVE::JSONSchema qw(parse_property_string);
 use PVE::Tools;
 use PVE::Cluster;
 
@@ -247,19 +247,19 @@ sub parse_datacenter_config {
     $res->{description} = $comment;
 
     if (my $migration = $res->{migration}) {
-	$res->{migration} = PVE::JSONSchema::parse_property_string($migration_format, $migration);
+	$res->{migration} = parse_property_string($migration_format, $migration);
     }
 
     if (my $ha = $res->{ha}) {
-	$res->{ha} = PVE::JSONSchema::parse_property_string($ha_format, $ha);
+	$res->{ha} = parse_property_string($ha_format, $ha);
     }
 
     if (my $u2f = $res->{u2f}) {
-	$res->{u2f} = PVE::JSONSchema::parse_property_string($u2f_format, $u2f);
+	$res->{u2f} = parse_property_string($u2f_format, $u2f);
     }
 
     if (my $webauthn = $res->{webauthn}) {
-	$res->{webauthn} = PVE::JSONSchema::parse_property_string($webauthn_format, $webauthn);
+	$res->{webauthn} = parse_property_string($webauthn_format, $webauthn);
     }
 
     # for backwards compatibility only, new migration property has precedence
