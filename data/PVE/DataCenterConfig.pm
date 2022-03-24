@@ -51,6 +51,25 @@ my $ha_format = {
     }
 };
 
+my $next_id_format = {
+    lower => {
+	type => 'integer',
+	description => "Lower, inclusive boundary for free next-id API range.",
+	min => 100,
+	max => 1000 * 1000 * 1000 - 1,
+	default => 100,
+	optional => 1,
+    },
+    upper => {
+	type => 'integer',
+	description => "Upper, inclusive boundary for free next-id API range.",
+	min => 100,
+	max => 1000 * 1000 * 1000 - 1,
+	default => 1000 * 1000, # lower than the maximum on purpose
+	optional => 1,
+    },
+};
+
 my $u2f_format = {
     appid => {
 	type => 'string',
@@ -157,6 +176,12 @@ my $datacenter_schema = {
 	      "For secure private networks you can disable it to speed up " .
 	      "migration. Deprecated, use the 'migration' property instead!",
 	},
+	'next-id' => {
+	    optional => 1,
+	    type => 'string',
+	    format => $next_id_format,
+	    description => "Control the range for the free VMID auto-selection pool.",
+	},
 	migration => {
 	    optional => 1,
 	    type => 'string', format => $migration_format,
@@ -250,6 +275,10 @@ sub parse_datacenter_config {
 	$res->{migration} = parse_property_string($migration_format, $migration);
     }
 
+    if (my $next_id = $res->{'next-id'}) {
+	$res->{'next-id'} = parse_property_string($next_id_format, $next_id);
+    }
+
     if (my $ha = $res->{ha}) {
 	$res->{ha} = parse_property_string($ha_format, $ha);
     }
@@ -296,6 +325,17 @@ sub write_datacenter_config {
 
     if (ref(my $migration = $cfg->{migration})) {
 	$cfg->{migration} = PVE::JSONSchema::print_property_string($migration, $migration_format);
+    }
+
+    if (defined(my $next_id = $cfg->{'next-id'})) {
+        $next_id = parse_property_string($next_id_format, $next_id) if !ref($next_id);
+
+	my $lower = int($next_id->{lower} // $next_id_format->{lower}->{default});
+	my $upper = int($next_id->{upper} // $next_id_format->{upper}->{default});
+
+	die "lower ($lower) <= upper ($upper) boundary rule broken" if $lower > $upper;
+
+	$cfg->{'next-id'} = PVE::JSONSchema::print_property_string($next_id, $next_id_format);
     }
 
     if (ref(my $ha = $cfg->{ha})) {
