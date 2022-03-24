@@ -294,23 +294,19 @@ sub write_datacenter_config {
 	$cfg->{console} = 'html5';
     }
 
-    if (ref($cfg->{migration})) {
-	my $migration = $cfg->{migration};
+    if (ref(my $migration = $cfg->{migration})) {
 	$cfg->{migration} = PVE::JSONSchema::print_property_string($migration, $migration_format);
     }
 
-    if (ref($cfg->{ha})) {
-	my $ha = $cfg->{ha};
+    if (ref(my $ha = $cfg->{ha})) {
 	$cfg->{ha} = PVE::JSONSchema::print_property_string($ha, $ha_format);
     }
 
-    if (ref($cfg->{u2f})) {
-	my $u2f = $cfg->{u2f};
+    if (ref(my $u2f = $cfg->{u2f})) {
 	$cfg->{u2f} = PVE::JSONSchema::print_property_string($u2f, $u2f_format);
     }
 
-    if (ref($cfg->{webauthn})) {
-	my $webauthn = $cfg->{webauthn};
+    if (ref(my $webauthn = $cfg->{webauthn})) {
 	$cfg->{webauthn} = PVE::JSONSchema::print_property_string($webauthn, $webauthn_format);
     }
 
