@@ -322,8 +322,10 @@ sub write_datacenter_config {
     return $comment . "\n" . $dump;
 }
 
-PVE::Cluster::cfs_register_file('datacenter.cfg',
-		  \&parse_datacenter_config,
-		  \&write_datacenter_config);
+PVE::Cluster::cfs_register_file(
+    'datacenter.cfg',
+    \&parse_datacenter_config,
+    \&write_datacenter_config,
+);
 
 1;
