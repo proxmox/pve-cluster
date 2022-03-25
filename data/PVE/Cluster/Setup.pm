@@ -733,7 +733,7 @@ sub join {
 	if (ref($err) && $err->isa('PVE::APIClient::Exception')) {
 	    # we received additional info about the error, show the user
 	    chomp $err->{msg};
-	    warn "An error occured on the cluster node: $err->{msg}\n";
+	    warn "An error occurred on the cluster node: $err->{msg}\n";
 	    foreach my $key (sort keys %{$err->{errors}}) {
 		my $symbol = ($key =~ m/^warning/) ? '*' : '!';
 		warn "$symbol $err->{errors}->{$key}\n";
