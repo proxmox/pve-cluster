@@ -169,6 +169,7 @@ my $datacenter_schema = {
 	    description => "Specify external http proxy which is used for downloads (example: 'http://username:password\@host:port/')",
 	    pattern => "http://.*",
 	},
+	# FIXME: remove with 8.0 (add check to pve7to8!), merged into "migration" since 4.3
 	migration_unsecure => {
 	    optional => 1,
 	    type => 'boolean',
@@ -190,7 +191,9 @@ my $datacenter_schema = {
 	console => {
 	    optional => 1,
 	    type => 'string',
-	    description => "Select the default Console viewer. You can either use the builtin java applet (VNC; deprecated and maps to html5), an external virt-viewer comtatible application (SPICE), an HTML5 based vnc viewer (noVNC), or an HTML5 based console client (xtermjs). If the selected viewer is not available (e.g. SPICE not activated for the VM), the fallback is noVNC.",
+	    description => "Select the default Console viewer. You can either use the builtin java"
+	        ." applet (VNC; deprecated and maps to html5), an external virt-viewer comtatible application (SPICE), an HTML5 based vnc viewer (noVNC), or an HTML5 based console client (xtermjs). If the selected viewer is not available (e.g. SPICE not activated for the VM), the fallback is noVNC.",
+	    # FIXME: remove 'applet' with 8.0 (add pve7to8 check!)
 	    enum => ['applet', 'vv', 'html5', 'xtermjs'],
 	},
 	email_from => {
