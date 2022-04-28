@@ -1,3 +1,14 @@
+pve-cluster (7.2-1) bullseye; urgency=medium
+
+  * fix #439: datacenter config: add infrastructure for next-id range
+    configuration
+
+  * fix #3957: spell 'occurred' correctly
+
+  * parse datacenter config: remove "\s*" from comment regex
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 28 Apr 2022 17:11:10 +0200
+
 pve-cluster (7.1-3) bullseye; urgency=medium
 
   * cluster log: fix a segfault / wrong iteration bounds in ringbuffer
