@@ -62,9 +62,9 @@ my $next_id_format = {
     },
     upper => {
 	type => 'integer',
-	description => "Upper, inclusive boundary for free next-id API range.",
+	description => "Upper, exclusive boundary for free next-id API range.",
 	min => 100,
-	max => 1000 * 1000 * 1000 - 1,
+	max => 1000 * 1000 * 1000,
 	default => 1000 * 1000, # lower than the maximum on purpose
 	optional => 1,
     },
