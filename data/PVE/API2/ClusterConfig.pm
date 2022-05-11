@@ -661,6 +661,7 @@ __PACKAGE__->register_method ({
     name => 'status',
     path => 'qdevice',
     method => 'GET',
+    protected => 1,
     description => 'Get QDevice status',
     permissions => {
 	check => ['perm', '/', [ 'Sys.Audit' ]],
