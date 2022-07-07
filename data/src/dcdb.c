@@ -410,6 +410,12 @@ dcdb_sync_corosync_conf(
 		    HOST_CLUSTER_CONF_FN, new_version);
 	
 	if (notify_corosync && old_version) {
+		/*
+		 * sleep for 1s to hopefully allow new config to propagate
+		 * FIXME: actually query the status somehow?
+		 */
+		sleep(1);
+
 		/* tell corosync that there is a new config file */
 		cfs_debug ("run corosync-cfgtool -R");
 		int status = system("corosync-cfgtool -R >/dev/null 2>&1");
