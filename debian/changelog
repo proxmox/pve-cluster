@@ -1,3 +1,16 @@
+pve-cluster (7.2-2) bullseye; urgency=medium
+
+  * datacenter cfg: clarify that the next-id's upper boundary is exclusive and
+    adapt the max value accordingly
+
+  * cluster config: mark qdevice end point as protected to ensure we always
+    can get its status
+
+  * corosync.conf sync: add heuristic to wait for propagation of change to all
+    nodes before triggering a cluster wide config reload
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 14 Jul 2022 07:36:07 +0200
+
 pve-cluster (7.2-1) bullseye; urgency=medium
 
   * fix #439: datacenter config: add infrastructure for next-id range
