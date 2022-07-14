@@ -120,8 +120,7 @@ sub check_cfs_is_mounted {
 
     my $res = -l "$basedir/local";
 
-    die "pve configuration filesystem not mounted\n"
-	if !$res && !$noerr;
+    die "pve configuration filesystem (pmxcfs) not mounted\n" if !$res && !$noerr;
 
     return $res;
 }
@@ -359,18 +358,15 @@ sub get_guest_config_property {
 sub broadcast_tasklist {
     my ($data) = @_;
 
-    # the serialized list may not get bigger than 32kb (CFS_MAX_STATUS_SIZE
-    # from pmxcfs) - drop older items until we satisfy this constraint
+    # the serialized list may not get bigger than 128 KiB (CFS_MAX_STATUS_SIZE from pmxcfs)
+    # drop older items until we satisfy this constraint
     my $size = length(encode_json($data));
-    while ($size >= (32 * 1024)) {
+    while ($size >= (32 * 1024)) { # TODO: update to 128 KiB in PVE 8.x
 	pop @$data;
 	$size = length(encode_json($data));
     }
 
-    eval {
-	&$ipcc_update_status("tasklist", $data);
-    };
-
+    eval { $ipcc_update_status->("tasklist", $data) };
     warn $@ if $@;
 }
 
