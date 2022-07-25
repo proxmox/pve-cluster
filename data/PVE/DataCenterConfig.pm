@@ -107,10 +107,16 @@ my $webauthn_format = {
     id => {
 	type => 'string',
 	description =>
-	    'Relying part ID. Must be the domain name without protocol, port or location.'
+	    'Relying party ID. Must be the domain name without protocol, port or location.'
 	    .' Changing this *will* break existing credentials.',
 	format_description => 'DOMAINNAME',
 	optional => 1,
+    },
+    'allow-subdomains' => {
+	type => 'boolean',
+	description => 'Whether to allow the origin to be a subdomain, rather than the exact URL.',
+	optional => 1,
+	default => 1,
     },
 };
 
