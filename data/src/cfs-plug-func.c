@@ -212,7 +212,7 @@ cfs_plug_func_t *
 cfs_plug_func_new(
 	const char *name, 
 	mode_t mode,
-	cfs_plug_func_udpate_data_fn_t update_callback,
+	cfs_plug_func_update_data_fn_t update_callback,
 	cfs_plug_func_write_data_fn_t write_callback)
 {
 	g_return_val_if_fail(name != NULL, NULL);

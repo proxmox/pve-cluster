@@ -76,7 +76,7 @@ typedef struct {
 	char *symlink;
 } cfs_plug_link_t;
 
-typedef char *(*cfs_plug_func_udpate_data_fn_t)(cfs_plug_t *plug);
+typedef char *(*cfs_plug_func_update_data_fn_t)(cfs_plug_t *plug);
 typedef int (*cfs_plug_func_write_data_fn_t)(
 	cfs_plug_t *plug, 
 	const char *buf,
@@ -87,7 +87,7 @@ typedef struct {
 	char *data;
 	GRWLock data_rw_lock;
 	mode_t mode;
-	cfs_plug_func_udpate_data_fn_t update_callback;
+	cfs_plug_func_update_data_fn_t update_callback;
 	cfs_plug_func_write_data_fn_t write_callback;
 } cfs_plug_func_t;
 
@@ -98,7 +98,7 @@ cfs_plug_link_t *cfs_plug_link_new(const char *name, const char *symlink);
 cfs_plug_func_t *cfs_plug_func_new(
 	const char *name, 
 	mode_t mode,
-	cfs_plug_func_udpate_data_fn_t update_callback,
+	cfs_plug_func_update_data_fn_t update_callback,
 	cfs_plug_func_write_data_fn_t write_callback);
 
 
