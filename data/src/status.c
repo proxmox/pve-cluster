@@ -106,6 +106,7 @@ static memdb_change_t memdb_change_array[] = {
 	{ .path = "sdn/dns.cfg" },
 	{ .path = "sdn/.running-config" },
 	{ .path = "virtual-guest/cpu-models.conf" },
+	{ .path = "nodes/hardware-map.conf" },
 };
 
 static GMutex mutex;
