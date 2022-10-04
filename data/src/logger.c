@@ -626,7 +626,7 @@ clusterlog_insert(
 	if (dedup_lookup(cl->dedup, entry)) {
 		clog_copy(cl->base, entry);
 	} else {
-		cfs_message("ignore duplicate"); // fixme remove
+		cfs_message("ignore insert of duplicate cluster log");
 	}
 
 	g_mutex_unlock(&cl->mutex);
