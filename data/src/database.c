@@ -48,19 +48,19 @@ struct db_backend {
 	sqlite3_stmt *stmt_delete_entry;
 	sqlite3_stmt *stmt_begin;
 	sqlite3_stmt *stmt_commit;
-	sqlite3_stmt *stmt_rollback;	
-	sqlite3_stmt *stmt_load_all;	
+	sqlite3_stmt *stmt_rollback;
+	sqlite3_stmt *stmt_load_all;
 };
 
 #define VERSIONFILENAME "__version__"
 
 /* colume type "INTEGER PRIMARY KEY" is a special case, because sqlite
- * usese the internal ROWID. So only real interger are allowed, and
+ * uses the internal ROWID. So only real interger are allowed, and
  * there is no need to add an additionl check
  */
-static const char *sql_create_db = 
+static const char *sql_create_db =
 	"CREATE TABLE IF NOT EXISTS tree ("
-	"  inode INTEGER PRIMARY KEY NOT NULL," 
+	"  inode INTEGER PRIMARY KEY NOT NULL,"
 	"  parent INTEGER NOT NULL CHECK(typeof(parent)=='integer'),"
 	"  version INTEGER NOT NULL CHECK(typeof(version)=='integer'),"
 	"  writer INTEGER NOT NULL CHECK(typeof(writer)=='integer'),"
@@ -108,7 +108,7 @@ static sqlite3 *bdb_create(
 
 	if (chmod(filename, 0600) == -1) {
 		cfs_critical("chmod failed: %s", strerror(errno));
-		return NULL;		
+		return NULL;
 	}
 
 	/* use WAL mode - to allow concurrent reads */
@@ -142,24 +142,19 @@ static sqlite3 *bdb_create(
 static int backend_write_inode(
 	sqlite3 *db,
 	sqlite3_stmt *stmt,
-	guint64 inode, 
-	guint64 parent, 
-	guint64 version, 
+	guint64 inode,
+	guint64 parent,
+	guint64 version,
 	guint32 writer,
 	guint32 mtime,
-	guint32 size, 
-	char type, 
+	guint32 size,
+	char type,
 	char *name,
 	gpointer value)
 {
 	int rc;
 
-	cfs_debug(
-	    "enter backend_write_inode %016" PRIX64 " '%s', size %"PRIu32"",
-	    inode,
-	    name,
-	    size
-	);
+	cfs_debug("enter backend_write_inode %016" PRIX64 " '%s', size %"PRIu32"", inode, name, size);
 
 	if ((rc = sqlite3_bind_int64(stmt, 1, inode)) !=  SQLITE_OK) {
 		cfs_critical("sqlite3_bind failed: %s\n", sqlite3_errmsg(db));
@@ -233,19 +228,19 @@ static int bdb_backend_delete_inode(
 
 int bdb_backend_write(
 	db_backend_t *bdb,
-	guint64 inode, 
-	guint64 parent, 
-	guint64 version, 
+	guint64 inode,
+	guint64 parent,
+	guint64 version,
 	guint32 writer,
 	guint32 mtime,
-	guint32 size, 
-	char type, 
+	guint32 size,
+	char type,
 	char *name,
 	gpointer value,
 	guint64 delete_inode)
 {
-	g_return_val_if_fail(bdb != NULL, SQLITE_PERM); 
-	g_return_val_if_fail(inode == 0 || (name != NULL && name[0]), SQLITE_PERM); 
+	g_return_val_if_fail(bdb != NULL, SQLITE_PERM);
+	g_return_val_if_fail(inode == 0 || (name != NULL && name[0]), SQLITE_PERM);
 	g_return_val_if_fail(type == DT_REG || type == DT_DIR, SQLITE_PERM);
 	int rc;
 
@@ -267,11 +262,11 @@ int bdb_backend_write(
 
 	if (inode != 0) {
 
-		sqlite3_stmt *stmt = (inode > version) ? 
+		sqlite3_stmt *stmt = (inode > version) ?
 			bdb->stmt_insert_entry : bdb->stmt_replace_entry;
 
-		rc = backend_write_inode(bdb->db, stmt, inode, parent, version, 
-					 writer, mtime, size, type, name, value); 
+		rc = backend_write_inode(bdb->db, stmt, inode, parent, version,
+					 writer, mtime, size, type, name, value);
 		if (rc != SQLITE_OK)
 			goto rollback;
 
@@ -281,26 +276,26 @@ int bdb_backend_write(
 		}
 	}
 
-	rc = backend_write_inode(bdb->db, bdb->stmt_replace_entry, 0, 0, version, 
-				 writer, mtime, 0, DT_REG, VERSIONFILENAME, NULL); 
+	rc = backend_write_inode(bdb->db, bdb->stmt_replace_entry, 0, 0, version,
+				 writer, mtime, 0, DT_REG, VERSIONFILENAME, NULL);
 
 	if (rc != SQLITE_OK)
 		goto rollback;
 
-	
+
 	if (need_txn) {
 		rc = sqlite3_step(bdb->stmt_commit);
 		sqlite3_reset(bdb->stmt_commit);
 		if (rc != SQLITE_DONE) {
 			cfs_critical("commit transaction failed: %s\n", sqlite3_errmsg(bdb->db));
-			goto rollback;		
+			goto rollback;
 		}
 	}
 
 	return SQLITE_OK;
 
 rollback:
-	
+
 	if (!need_txn)
 		return rc;
 
@@ -310,12 +305,12 @@ rollback:
 		cfs_critical("rollback transaction failed: %s\n", sqlite3_errmsg(bdb->db));
 		return rc;
 	}
-	
+
 	return rc;
 }
 
 static gboolean bdb_backend_load_index(
-	db_backend_t *bdb, 
+	db_backend_t *bdb,
 	memdb_tree_entry_t *root,
 	GHashTable *index)
 {
@@ -338,22 +333,22 @@ static gboolean bdb_backend_load_index(
 		if (name == NULL || namelen == 0) {
 			cfs_critical("inode has no name (inode = %016" PRIX64 ")", inode);
 			goto fail;
-		} 
+		}
 		te = g_malloc0(sizeof(memdb_tree_entry_t) + namelen + 1);
 		strcpy(te->name, name);
 
-		te->inode = inode;  
+		te->inode = inode;
 		te->parent = sqlite3_column_int64(stmt, 1);
  		te->version = sqlite3_column_int64(stmt, 2);
  		te->writer = sqlite3_column_int64(stmt, 3) & 0x0ffffffff;
  		te->mtime = sqlite3_column_int64(stmt, 4) & 0x0ffffffff;
  		te->type = sqlite3_column_int64(stmt, 5) & 255;
- 
+
 		gconstpointer value = sqlite3_column_blob(stmt, 7);
-		
+
 		int size = sqlite3_column_bytes(stmt, 7);
-		te->size = size;		       
-		
+		te->size = size;
+
 		if (te->type == DT_REG) {
 			if (size > 0)
 				te->data.value = g_memdup(value, size);
@@ -389,8 +384,8 @@ static gboolean bdb_backend_load_index(
 		} else {
 			memdb_tree_entry_t *pte;
 
-			if (!(pte = g_hash_table_lookup(index, &te->parent))) {		
-				/* allocate placeholder (type == 0) 
+			if (!(pte = g_hash_table_lookup(index, &te->parent))) {
+				/* allocate placeholder (type == 0)
 				 * this is simply replaced if we find a real inode later
  				 */
 				pte = g_malloc0(sizeof(memdb_tree_entry_t));
@@ -465,7 +460,7 @@ static gboolean bdb_backend_load_index(
 	return TRUE;
 
 fail:
-	sqlite3_reset(stmt);	
+	sqlite3_reset(stmt);
 
 	cfs_critical("DB load failed");
 
@@ -473,9 +468,9 @@ fail:
 }
 
 gboolean bdb_backend_commit_update(
-	memdb_t *memdb, 
-	memdb_index_t *master, 
-	memdb_index_t *slave, 
+	memdb_t *memdb,
+	memdb_index_t *master,
+	memdb_index_t *slave,
 	GList *inodes)
 {
 	g_return_val_if_fail(memdb != NULL, FALSE);
@@ -544,8 +539,8 @@ gboolean bdb_backend_commit_update(
 		tree_entry_debug(te);
 
 		if (backend_write_inode(
-			    bdb->db, bdb->stmt_replace_entry, te->inode, te->parent, te->version, 
-			    te->writer, te->mtime, te->size, te->type, 
+			    bdb->db, bdb->stmt_replace_entry, te->inode, te->parent, te->version,
+			    te->writer, te->mtime, te->size, te->type,
 			    te->inode ? te->name : VERSIONFILENAME, te->data.value) !=  SQLITE_OK) {
 			goto abort;
 		}
@@ -558,7 +553,7 @@ gboolean bdb_backend_commit_update(
 	root->data.entries = g_hash_table_new(g_str_hash, g_str_equal);
 	root->type = DT_DIR;
 
-	index = g_hash_table_new_full(g_int64_hash, g_int64_equal, NULL, 
+	index = g_hash_table_new_full(g_int64_hash, g_int64_equal, NULL,
 				      (GDestroyNotify)memdb_tree_entry_free);
 
 	g_hash_table_replace(index, &root->inode, root);
@@ -576,7 +571,7 @@ gboolean bdb_backend_commit_update(
 		cfs_critical("cant encode new index - internal error");
 		goto abort;
 	}
- 
+
 	int idx_equal = (new_idx->bytes == master->bytes &&
 			 (memcmp(master, new_idx, new_idx->bytes) == 0));
 
@@ -591,7 +586,7 @@ gboolean bdb_backend_commit_update(
 	sqlite3_reset(bdb->stmt_commit);
 	if (rc != SQLITE_DONE) {
 		cfs_critical("commit transaction failed: %s\n", sqlite3_errmsg(bdb->db));
-		goto abort;		
+		goto abort;
 	}
 
 	g_hash_table_destroy(memdb->index);
@@ -638,7 +633,7 @@ abort:
 }
 
 void bdb_backend_close(db_backend_t *bdb)
-{	
+{
 	g_return_if_fail(bdb != NULL);
 
 	sqlite3_finalize(bdb->stmt_insert_entry);
@@ -685,49 +680,49 @@ db_backend_t *bdb_backend_open(
 
 	rc = sqlite3_prepare_v3(bdb->db, sql_insert_entry, -1, flags, &bdb->stmt_insert_entry, NULL);
 	if (rc != SQLITE_OK) {
-		cfs_critical("sqlite3_prepare 'sql_insert_entry' failed: %s\n", 
+		cfs_critical("sqlite3_prepare 'sql_insert_entry' failed: %s\n",
 			     sqlite3_errmsg(bdb->db));
 		goto fail;
 	}
 	rc = sqlite3_prepare_v3(bdb->db, sql_update_entry, -1, flags, &bdb->stmt_update_entry, NULL);
 	if (rc != SQLITE_OK) {
-		cfs_critical("sqlite3_prepare 'sql_update_entry' failed: %s\n", 
+		cfs_critical("sqlite3_prepare 'sql_update_entry' failed: %s\n",
 			     sqlite3_errmsg(bdb->db));
 		goto fail;
 	}
 	rc = sqlite3_prepare_v3(bdb->db, sql_replace_entry, -1, flags, &bdb->stmt_replace_entry, NULL);
 	if (rc != SQLITE_OK) {
-		cfs_critical("sqlite3_prepare 'sql_replace_entry' failed: %s\n", 
+		cfs_critical("sqlite3_prepare 'sql_replace_entry' failed: %s\n",
 			     sqlite3_errmsg(bdb->db));
 		goto fail;
 	}
 	rc = sqlite3_prepare_v3(bdb->db, sql_delete_entry, -1, flags, &bdb->stmt_delete_entry, NULL);
 	if (rc != SQLITE_OK) {
-		cfs_critical("sqlite3_prepare 'sql_delete_entry' failed: %s\n", 
+		cfs_critical("sqlite3_prepare 'sql_delete_entry' failed: %s\n",
 			     sqlite3_errmsg(bdb->db));
 		goto fail;
 	}
 	rc = sqlite3_prepare_v3(bdb->db, sql_begin, -1, flags, &bdb->stmt_begin, NULL);
 	if (rc != SQLITE_OK) {
-		cfs_critical("sqlite3_prepare 'sql_begin' failed: %s\n", 
+		cfs_critical("sqlite3_prepare 'sql_begin' failed: %s\n",
 			     sqlite3_errmsg(bdb->db));
 		goto fail;
 	}
 	rc = sqlite3_prepare_v3(bdb->db, sql_commit, -1, flags, &bdb->stmt_commit, NULL);
 	if (rc != SQLITE_OK) {
-		cfs_critical("sqlite3_prepare 'sql_commit' failed: %s\n", 
+		cfs_critical("sqlite3_prepare 'sql_commit' failed: %s\n",
 			     sqlite3_errmsg(bdb->db));
 		goto fail;
 	}
 	rc = sqlite3_prepare_v3(bdb->db, sql_rollback, -1, flags, &bdb->stmt_rollback, NULL);
 	if (rc != SQLITE_OK) {
-		cfs_critical("sqlite3_prepare 'sql_rollback' failed: %s\n", 
+		cfs_critical("sqlite3_prepare 'sql_rollback' failed: %s\n",
 			     sqlite3_errmsg(bdb->db));
 		goto fail;
 	}
 	rc = sqlite3_prepare_v3(bdb->db, sql_load_all, -1, flags, &bdb->stmt_load_all, NULL);
 	if (rc != SQLITE_OK) {
-		cfs_critical("sqlite3_prepare 'sql_load_all' failed: %s\n", 
+		cfs_critical("sqlite3_prepare 'sql_load_all' failed: %s\n",
 			     sqlite3_errmsg(bdb->db));
 		goto fail;
 	}
@@ -737,10 +732,10 @@ db_backend_t *bdb_backend_open(
 
 	if (!root->version) {
 		root->version++;
-		
+
 		guint32 mtime = time(NULL);
 
-		if (bdb_backend_write(bdb, 0, 0, root->version, 0, mtime, 
+		if (bdb_backend_write(bdb, 0, 0, root->version, 0, mtime,
 				      0, DT_REG, NULL, NULL, 0) != SQLITE_OK)
 			goto fail;
 	}
