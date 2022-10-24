@@ -51,6 +51,7 @@ my $observed = {
     'replication.cfg' => 1,
     'corosync.conf' => 1,
     'corosync.conf.new' => 1,
+    'firewall/cluster.fw' => 1,
     'user.cfg' => 1,
     'domains.cfg' => 1,
     'priv/shadow.cfg' => 1,
