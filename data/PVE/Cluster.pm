@@ -76,7 +76,6 @@ my $observed = {
     'sdn/dns.cfg' => 1,
     'sdn/.running-config' => 1,
     'virtual-guest/cpu-models.conf' => 1,
-    'nodes/hardware-map.conf' => 1,
 };
 
 sub prepare_observed_file_basedirs {
