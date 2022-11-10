@@ -7,6 +7,18 @@ use PVE::JSONSchema qw(parse_property_string);
 use PVE::Tools;
 use PVE::Cluster;
 
+my $crs_format = {
+    ha => {
+	type => 'string',
+	enum => ['basic', 'static'],
+	description => "Use this resource scheduler mode for HA.",
+	default => 'basic',
+	verbose_description => "Configures how the HA manager should select nodes to start or ".
+	    "recover services. With 'basic', only the number of services is used, with 'static', ".
+	    "static CPU and memory configuration of services is considered.",
+    },
+};
+
 my $migration_format = {
     type => {
 	default_key => 1,
@@ -191,6 +203,11 @@ my $datacenter_schema = {
     type => "object",
     additionalProperties => 0,
     properties => {
+	crs => {
+	    optional => 1,
+	    type => 'string', format => $crs_format,
+	    description => "Cluster resource scheduling settings.",
+	},
 	keyboard => {
 	    optional => 1,
 	    type => 'string',
@@ -356,6 +373,10 @@ sub parse_datacenter_config {
 
     $res->{description} = $comment;
 
+    if (my $crs = $res->{crs}) {
+	$res->{crs} = parse_property_string($crs_format, $crs);
+    }
+
     if (my $migration = $res->{migration}) {
 	$res->{migration} = parse_property_string($migration_format, $migration);
     }
@@ -423,6 +444,10 @@ sub write_datacenter_config {
     # map deprecated applet setting to html5
     if (defined($cfg->{console}) && $cfg->{console} eq 'applet') {
 	$cfg->{console} = 'html5';
+    }
+
+    if (ref(my $crs = $cfg->{crs})) {
+	$cfg->{crs} = PVE::JSONSchema::print_property_string($crs, $crs_format);
     }
 
     if (ref(my $migration = $cfg->{migration})) {
