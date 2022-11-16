@@ -339,10 +339,37 @@ sub get_node_kv {
     return $res;
 }
 
+# properties: an array-ref of config properties you want to get, e.g., this
+# is perfect to get multiple properties of a guest _fast_
+# (>100 faster than manual parsing here)
+# vmid: optional, if a valid is passed we only check that one, else return all
+# NOTE: does *not* searches snapshot and PENDING entries sections!
+# NOTE: returns the guest config lines (excluding trailing whitespace) as is,
+#       so for non-trivial properties, checking the validity must be done
+# NOTE: no permission check is done, that is the responsibilty of the caller
+sub get_guest_config_properties {
+    my ($properties, $vmid) = @_;
+
+    die "properties required" if !defined($properties);
+
+    my $num_props = scalar(@$properties);
+    die "only up to 255 properties supported" if $num_props > 255;
+    my $bindata = pack "VC", $vmid // 0, $num_props;
+    for my $property (@$properties) {
+	$bindata .= pack "Z*", $property;
+    }
+    my $res = $ipcc_send_rec_json->(CFS_IPC_GET_GUEST_CONFIG_PROPERTIES, $bindata);
+
+    return $res;
+}
+
 # property: a config property you want to get, e.g., this is perfect to get
 # the 'lock' entry of a guest _fast_ (>100 faster than manual parsing here)
 # vmid: optional, if a valid is passed we only check that one, else return all
 # NOTE: does *not* searches snapshot and PENDING entries sections!
+# NOTE: returns the guest config lines (excluding trailing whitespace) as is,
+#       so for non-trivial properties, checking the validity must be done
+# NOTE: no permission check is done, that is the responsibilty of the caller
 sub get_guest_config_property {
     my ($property, $vmid) = @_;
 
