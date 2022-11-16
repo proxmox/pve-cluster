@@ -152,6 +152,13 @@ my $tag_style_format = {
 	typetext => '<tag>:<hex-color>[:<hex-color-for-text>][;<tag>=...]',
 	description => "Manual color mapping for tags (semicolon separated).",
     },
+    ordering => {
+	optional => 1,
+	type => 'string',
+	enum => ['config', 'alphabetical'],
+	default => 'alphabetical',
+	description => 'Controls the sorting of the tags in the web ui.',
+    }
 };
 
 my $user_tag_privs_format = {
