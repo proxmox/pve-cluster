@@ -154,6 +154,32 @@ my $tag_style_format = {
     },
 };
 
+my $user_tag_privs_format = {
+    'user-allow' => {
+	optional => 1,
+	type => 'string',
+	enum => ['none', 'list', 'existing', 'free'],
+	default => 'free',
+	description => "Controls tag usage for users without `Sys.Modify` on `/` by either "
+	    ."allowing `none`, a `list`, already `existing` or anything (`free`).",
+	verbose_description => "Controls which tags can be set or deleted on resources a user "
+	    ."controls (such as guests). Users with the `Sys.Modify` privilege on `/` are always "
+	    ." unrestricted. "
+	    ."'none' no tags are usable. "
+	    ."'list' tasg from 'user-allow'list' are usable. "
+	    ."'existing' like list, but already existing tags of resources are also usable."
+	    ."'free' no tag restrictions."
+    },
+    'user-allow-list' => {
+	optional => 1,
+	type => 'string',
+	pattern => "${PVE::JSONSchema::PVE_TAG_RE}(?:\;${PVE::JSONSchema::PVE_TAG_RE})*",
+	typetext => "<tag>[;<tag>...]",
+	description => "List of tags users are allowed to set and delete (semicolon separated) "
+	    ."for 'user-allow' values 'list' and 'existing'.",
+    },
+};
+
 my $datacenter_schema = {
     type => "object",
     additionalProperties => 0,
@@ -285,6 +311,20 @@ my $datacenter_schema = {
 	    description => "Tag style options.",
 	    format => $tag_style_format,
 	},
+	'user-tag-access' => {
+	    optional => 1,
+	    type => 'string',
+	    description => "Privilege options for user-settable tags",
+	    format => $user_tag_privs_format,
+	},
+	'registered-tags' => {
+	    optional => 1,
+	    type => 'string',
+	    description => "A list of tags that require a `Sys.Modify` on '/' to set and delete. "
+		."Tags set here that are also in 'user-tag-access' also require `Sys.Modify`.",
+	    pattern => "(?:${PVE::JSONSchema::PVE_TAG_RE};)*${PVE::JSONSchema::PVE_TAG_RE}",
+	    typetext => "<tag>[;<tag>...]",
+	},
     },
 };
 
@@ -331,6 +371,19 @@ sub parse_datacenter_config {
 
     if (my $tag_style = $res->{'tag-style'}) {
 	$res->{'tag-style'} = parse_property_string($tag_style_format, $tag_style);
+    }
+
+    if (my $user_tag_privs = $res->{'user-tag-access'}) {
+	$res->{'user-tag-access'} =
+	    parse_property_string($user_tag_privs_format, $user_tag_privs);
+
+	if (my $user_tags = $res->{'user-tag-access'}->{'user-allow-list'}) {
+	    $res->{'user-tag-access'}->{'user-allow-list'} = [split(';', $user_tags)];
+	}
+    }
+
+    if (my $admin_tags = $res->{'registered-tags'}) {
+	$res->{'registered-tags'} = [split(';', $admin_tags)];
     }
 
     # for backwards compatibility only, new migration property has precedence
@@ -394,6 +447,18 @@ sub write_datacenter_config {
 
     if (ref(my $tag_style = $cfg->{'tag-style'})) {
 	$cfg->{'tag-style'} = PVE::JSONSchema::print_property_string($tag_style, $tag_style_format);
+    }
+
+    if (ref(my $user_tag_privs = $cfg->{'user-tag-access'})) {
+	if (my $user_tags = $user_tag_privs->{'user-allow-list'}) {
+	    $user_tag_privs->{'user-allow-list'} = join(';', sort $user_tags->@*);
+	}
+	$cfg->{'user-tag-access'} =
+	    PVE::JSONSchema::print_property_string($user_tag_privs, $user_tag_privs_format);
+    }
+
+    if (ref(my $admin_tags = $cfg->{'registered-tags'})) {
+	$cfg->{'registered-tags'} = join(';', sort $admin_tags->@*);
     }
 
     my $comment = '';
