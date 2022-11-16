@@ -804,25 +804,63 @@ cfs_create_vmlist_msg(GString *str)
 	return 0;
 }
 
-// checks the conf for a line starting with '$prop:' and returns the value
-// afterwards, whitout initial whitespace(s), we only deal with the format
-// restricion imposed by our perl VM config parser, main reference is
+// checks if a config line starts with the given prop. if yes, writes a '\0'
+// at the end of the value, and returns the pointer where the value starts
+// note: line[line_end] needs to be guaranteed a null byte
+char *
+_get_property_value_from_line(char *line, size_t line_len, const char *prop, size_t prop_len)
+{
+	if (line_len <= prop_len + 1) return NULL;
+
+	if (line[prop_len] == ':' && memcmp(line, prop, prop_len) == 0) { // found
+		char *v_start = &line[prop_len + 1];
+		char *v_end = &line[line_len - 1];
+
+		// drop initial value whitespaces here already
+		while (v_start < v_end && *v_start && isspace(*v_start)) v_start++;
+
+		if (!*v_start) return NULL;
+
+		while (v_end > v_start && isspace(*v_end)) v_end--;
+		if (v_end < &line[line_len - 1]) {
+		    v_end[1] = '\0';
+		}
+
+		return v_start;
+	}
+
+	return NULL;
+}
+
+// checks the conf for lines starting with the given props and
+// writes the pointers into the correct positions into the 'found' array
+// afterwards, without initial whitespace(s), we only deal with the format
+// restriction imposed by our perl VM config parser, main reference is
 // PVE::QemuServer::parse_vm_config this allows to be very fast and still
 // relatively simple
-// main restrictions used for our advantage is the properties match reges:
+// main restrictions used for our advantage is the properties match regex:
 // ($line =~ m/^([a-z][a-z_]*\d*):\s*(.+?)\s*$/) from parse_vm_config
 // currently we only look at the current configuration in place, i.e., *no*
-// snapshort and *no* pending changes
-static char *
-_get_property_value(char *conf, int conf_size, const char *prop, int prop_len)
+// snapshot and *no* pending changes
+//
+// min..max is the char range of the first character of the given props,
+// so that we can return early when checking the line
+// note: conf must end with a newline
+void
+_get_property_values(char **found, char *conf, int conf_size, const char **props, uint8_t num_props, char min, char max)
 {
 	const char *const conf_end = conf + conf_size;
 	char *line = conf;
-	size_t remaining_size;
+	size_t remaining_size = conf_size;
+	uint8_t count = 0;
+
+	if (conf_size == 0) {
+	    return;
+	}
 
 	char *next_newline = memchr(conf, '\n', conf_size);
 	if (next_newline == NULL) {
-		return NULL; // valid property lines end with \n, but none in the config
+		return; // valid property lines end with \n, but none in the config
 	}
 	*next_newline = '\0';
 
@@ -830,41 +868,32 @@ _get_property_value(char *conf, int conf_size, const char *prop, int prop_len)
 		if (!line[0]) goto next;
 
 		// snapshot or pending section start, but nothing found yet -> not found
-		if (line[0] == '[') return NULL;
-		// properties start with /^[a-z]/, so continue early if not
-		if (line[0] < 'a' || line[0] > 'z') goto next;
+		if (line[0] == '[') return;
+		// continue early if line does not begin with the min/max char of the properties
+		if (line[0] < min || line[0] > max) goto next;
 
-		int line_len = strlen(line);
-		if (line_len <= prop_len + 1) goto next;
-
-		if (line[prop_len] == ':' && memcmp(line, prop, prop_len) == 0) { // found
-			char *v_start = &line[prop_len + 1];
-
-			// drop initial value whitespaces here already
-			while (*v_start && isspace(*v_start)) v_start++;
-
-			if (!*v_start) return NULL;
-
-			char *v_end = &line[line_len - 1];
-			while (v_end > v_start && isspace(*v_end)) v_end--;
-			v_end[1] = '\0';
-
-			return v_start;
+		size_t line_len = next_newline - line;
+		for (uint8_t i = 0; i < num_props; i++) {
+			char * value = _get_property_value_from_line(line, line_len, props[i], strlen(props[i]));
+			if (value != NULL) {
+				count += (found[i] != NULL) & 0x1; // count newly found lines
+				found[i] = value;
+			}
+		}
+		if (count == num_props) {
+			return; // found all
 		}
 next:
 		line = next_newline + 1;
 		remaining_size = conf_end - line;
-		if (remaining_size <= prop_len) {
-			return NULL;
-		}
 		next_newline = memchr(line, '\n', remaining_size);
 		if (next_newline == NULL) {
-			return NULL; // valid property lines end with \n, but none in the config
+			return; // valid property lines end with \n, but none in the config
 		}
 		*next_newline = '\0';
 	}
 
-	return NULL; // not found
+	return;
 }
 
 static void
@@ -883,24 +912,77 @@ _g_str_append_kv_jsonescaped(GString *str, const char *k, const char *v)
 }
 
 int
-cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *prop, uint32_t vmid)
+_print_found_properties(
+	GString *str,
+	gpointer conf,
+	int size,
+	const char **props,
+	uint8_t num_props,
+	uint32_t vmid,
+	char **values,
+	char min,
+	char max,
+	int first)
+{
+	_get_property_values(values, conf, size, props, num_props, min, max);
+
+	uint8_t found = 0;
+	for (uint8_t i = 0; i < num_props; i++) {
+		if (values[i] == NULL) {
+			continue;
+		}
+		if (found) {
+			g_string_append_c(str, ',');
+		} else {
+			if (!first) {
+				g_string_append_printf(str, ",\n");
+			} else {
+				first = 0;
+			}
+			g_string_append_printf(str, "\"%u\":{", vmid);
+			found = 1;
+		}
+		_g_str_append_kv_jsonescaped(str, props[i], values[i]);
+	}
+
+	if (found) {
+		g_string_append_c(str, '}');
+	}
+
+	return first;
+}
+
+int
+cfs_create_guest_conf_properties_msg(GString *str, memdb_t *memdb, const char **props, uint8_t num_props, uint32_t vmid)
 {
 	g_return_val_if_fail(cfs_status.vmlist != NULL, -EINVAL);
 	g_return_val_if_fail(str != NULL, -EINVAL);
-
-	int prop_len = strlen(prop);
-	int res = 0;
-	GString *path = NULL;
 
 	// Prelock &memdb->mutex in order to enable the usage of memdb_read_nolock
 	// to prevent Deadlocks as in #2553
 	g_mutex_lock (&memdb->mutex);
 	g_mutex_lock (&mutex);
 
-	g_string_printf(str,"{\n");
+	g_string_printf(str, "{\n");
 
 	GHashTable *ht = cfs_status.vmlist;
+
+	int res = 0;
+	GString *path = NULL;
 	gpointer tmp = NULL;
+	char **values = calloc(num_props, sizeof(char*));
+	char min = 'z', max = 'a';
+
+	for (uint8_t i = 0; i < num_props; i++) {
+		if (props[i][0] > max) {
+			max = props[i][0];
+		}
+
+		if (props[i][0] < min) {
+			min = props[i][0];
+		}
+	}
+
 	if (!g_hash_table_size(ht)) {
 		goto ret;
 	}
@@ -919,15 +1001,15 @@ cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *pro
 		// use memdb_read_nolock because lock is handled here
 		int size = memdb_read_nolock(memdb, path->str, &tmp);
 		if (tmp == NULL) goto err;
-		if (size <= prop_len) goto ret;
 
-		char *val = _get_property_value(tmp, size, prop, prop_len);
-		if (val == NULL) goto ret;
-
-		g_string_append_printf(str, "\"%u\":{", vmid);
-		_g_str_append_kv_jsonescaped(str, prop, val);
-		g_string_append_c(str, '}');
-
+		// conf needs to be newline terminated
+		if (((char *)tmp)[size - 1] != '\n') {
+			gpointer new = realloc(tmp, size + 1);
+			if (new == NULL) goto err;
+			tmp = new;
+			((char *)tmp)[size++] = '\n';
+		}
+		_print_found_properties(str, tmp, size, props, num_props, vmid, values, min, max, 1);
 	} else {
 		GHashTableIter iter;
 		g_hash_table_iter_init (&iter, ht);
@@ -943,21 +1025,24 @@ cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *pro
 			tmp = NULL;
 			// use memdb_read_nolock because lock is handled here
 			int size = memdb_read_nolock(memdb, path->str, &tmp);
-			if (tmp == NULL || size <= prop_len) continue;
+			if (tmp == NULL) continue;
 
-			char *val = _get_property_value(tmp, size, prop, prop_len);
-			if (val == NULL) continue;
+			// conf needs to be newline terminated
+			if (((char *)tmp)[size - 1] != '\n') {
+			    gpointer new = realloc(tmp, size + 1);
+			    if (new == NULL) continue;
+			    tmp = new;
+			    ((char *)tmp)[size++] = '\n';
+			}
 
-			if (!first) g_string_append_printf(str, ",\n");
-			else first = 0;
-
-			g_string_append_printf(str, "\"%u\":{", vminfo->vmid);
-			_g_str_append_kv_jsonescaped(str, prop, val);
-			g_string_append_c(str, '}');
+			memset(values, 0, sizeof(char*)*num_props); // reset array
+			first = _print_found_properties(str, tmp, size, props, num_props,
+					vminfo->vmid, values, min, max, first);
 		}
 	}
 ret:
 	g_free(tmp);
+	free(values);
 	if (path != NULL) {
 		g_string_free(path, TRUE);
 	}
@@ -971,6 +1056,12 @@ err:
 enoent:
 	res = -ENOENT;
 	goto ret;
+}
+
+int
+cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *prop, uint32_t vmid)
+{
+	return cfs_create_guest_conf_properties_msg(str, memdb, &prop, 1, vmid);
 }
 
 void

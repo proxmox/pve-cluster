@@ -91,6 +91,13 @@ typedef struct {
 
 typedef struct {
 	struct qb_ipc_request_header req_header;
+	uint32_t vmid;
+	uint8_t num_props;
+	char props[]; /* list of \0 terminated properties */
+} cfs_guest_config_properties_get_request_header_t;
+
+typedef struct {
+	struct qb_ipc_request_header req_header;
 	char token[];
 } cfs_verify_token_request_header_t;
 
@@ -347,6 +354,62 @@ static int32_t s1_msg_process_fn(
 			cfs_debug("cfs_get_guest_config_property: basic valid checked, do request");
 
 			result = cfs_create_guest_conf_property_msg(outbuf, memdb, rh->property, rh->vmid);
+		}
+	} else if (request_id == CFS_IPC_GET_GUEST_CONFIG_PROPERTIES) {
+
+		cfs_guest_config_properties_get_request_header_t *rh =
+			(cfs_guest_config_properties_get_request_header_t *) data;
+
+		size_t remaining = request_size - G_STRUCT_OFFSET(cfs_guest_config_properties_get_request_header_t, props);
+
+		result = 0;
+		if (rh->vmid < 100 && rh->vmid != 0) {
+			cfs_debug("vmid out of range %u", rh->vmid);
+			result = -EINVAL;
+		} else if (rh->vmid >= 100 && !vmlist_vm_exists(rh->vmid)) {
+			result = -ENOENT;
+		} else if (rh->num_props == 0) {
+			cfs_debug("num_props == 0");
+			result = -EINVAL;
+		} else if (remaining <= 1) {
+			cfs_debug("property length <= 1, %ld", remaining);
+			result = -EINVAL;
+		} else {
+			const char **properties = malloc(sizeof(char*) * rh->num_props);
+			char *current = (rh->props);
+			for (uint8_t i = 0; i < rh->num_props; i++) {
+			    size_t proplen = strnlen(current, remaining);
+			    if (proplen == 0) {
+				cfs_debug("property length 0");
+				result = -EINVAL;
+				break;
+			    }
+			    if (proplen == remaining || current[proplen] != '\0') {
+				cfs_debug("property not \\0 terminated");
+				result = -EINVAL;
+				break;
+			    }
+			    if (current[0] < 'a' || current[0] > 'z') {
+				cfs_debug("property does not start with [a-z]");
+				result = -EINVAL;
+				break;
+			    }
+			    properties[i] = current;
+			    remaining -= (proplen + 1);
+			    current += proplen + 1;
+			}
+
+			if (remaining != 0) {
+			    cfs_debug("leftover data after parsing %u properties", rh->num_props);
+			    result = -EINVAL;
+			}
+
+			if (result == 0) {
+			    cfs_debug("cfs_get_guest_config_properties: basic validity checked, do request");
+			    result = cfs_create_guest_conf_properties_msg(outbuf, memdb, properties, rh->num_props, rh->vmid);
+			}
+
+			free(properties);
 		}
 	} else if (request_id == CFS_IPC_VERIFY_TOKEN) {
 
