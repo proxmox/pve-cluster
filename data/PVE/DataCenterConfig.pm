@@ -131,6 +131,29 @@ sub pve_verify_mac_prefix {
     return $mac_prefix;
 }
 
+my $COLOR_RE = '[0-9a-fA-F]{6}';
+my $TAG_COLOR_OVERRIDE_RE = "(?:${PVE::JSONSchema::PVE_TAG_RE}:${COLOR_RE}(?:\:${COLOR_RE})?)";
+
+my $tag_style_format = {
+    'shape' => {
+	optional => 1,
+	type => 'string',
+	enum => ['full', 'circle', 'dense', 'none'],
+	default => 'circle',
+	description => "Tag shape for the web ui tree. 'full' draws the full tag. "
+	    ."'circle' draws only a circle with the background color. "
+	    ."'dense' only draws a small rectancle (useful when many tags are assigned to each guest)."
+	    ."'none' disables showing the tags.",
+    },
+    'color-map' => {
+	optional => 1,
+	type => 'string',
+	pattern => "${TAG_COLOR_OVERRIDE_RE}(?:\;$TAG_COLOR_OVERRIDE_RE)*",
+	typetext => '<tag>:<hex-color>[:<hex-color-for-text>][;<tag>=...]',
+	description => "Manual color mapping for tags (semicolon separated).",
+    },
+};
+
 my $datacenter_schema = {
     type => "object",
     additionalProperties => 0,
@@ -256,6 +279,12 @@ my $datacenter_schema = {
 	    maxLength => 64 * 1024,
 	    optional => 1,
 	},
+	'tag-style' => {
+	    optional => 1,
+	    type => 'string',
+	    description => "Tag style options.",
+	    format => $tag_style_format,
+	},
     },
 };
 
@@ -298,6 +327,10 @@ sub parse_datacenter_config {
 
     if (my $webauthn = $res->{webauthn}) {
 	$res->{webauthn} = parse_property_string($webauthn_format, $webauthn);
+    }
+
+    if (my $tag_style = $res->{'tag-style'}) {
+	$res->{'tag-style'} = parse_property_string($tag_style_format, $tag_style);
     }
 
     # for backwards compatibility only, new migration property has precedence
@@ -357,6 +390,10 @@ sub write_datacenter_config {
 
     if (ref(my $webauthn = $cfg->{webauthn})) {
 	$cfg->{webauthn} = PVE::JSONSchema::print_property_string($webauthn, $webauthn_format);
+    }
+
+    if (ref(my $tag_style = $cfg->{'tag-style'})) {
+	$cfg->{'tag-style'} = PVE::JSONSchema::print_property_string($tag_style, $tag_style_format);
     }
 
     my $comment = '';
