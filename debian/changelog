@@ -1,3 +1,22 @@
+pve-cluster (7.2-3) bullseye; urgency=medium
+
+  * add 'allow-subdomains' to webauthn schema
+
+  * pmxcfs: add IPC call to get multiple guest config properties at once
+    including a `get_guest_config_properties` perl wrapper
+
+  * datacenter config: add tag-style property and options to control tag usage
+    rights
+
+  * datacenter config: add 'ordering' property to 'tag-style' option
+
+  * datacenter config: add cluster resource scheduling (crs) options
+
+  * register the `firewall/cluster.fw` file so that we can adapt the firewall
+    code for config caching
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 17 Nov 2022 13:04:33 +0100
+
 pve-cluster (7.2-2) bullseye; urgency=medium
 
   * datacenter cfg: clarify that the next-id's upper boundary is exclusive and
