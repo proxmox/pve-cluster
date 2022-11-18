@@ -185,7 +185,7 @@ my $user_tag_privs_format = {
 	    ."controls (such as guests). Users with the `Sys.Modify` privilege on `/` are always "
 	    ." unrestricted. "
 	    ."'none' no tags are usable. "
-	    ."'list' tasg from 'user-allow'list' are usable. "
+	    ."'list' tags from 'user-allow-list' are usable. "
 	    ."'existing' like list, but already existing tags of resources are also usable."
 	    ."'free' no tag restrictions."
     },
