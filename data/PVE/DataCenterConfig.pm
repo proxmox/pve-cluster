@@ -169,8 +169,14 @@ my $tag_style_format = {
 	type => 'string',
 	enum => ['config', 'alphabetical'],
 	default => 'alphabetical',
-	description => 'Controls the sorting of the tags in the web ui.',
-    }
+	description => 'Controls the sorting of the tags in the web-interface and the API update.',
+    },
+    'case-sensitive' => {
+	type => 'boolean',
+	description => 'Controls if filtering for unique tags on update should check case-sensitive.',
+	optional => 1,
+	default => 0,
+    },
 };
 
 my $user_tag_privs_format = {
