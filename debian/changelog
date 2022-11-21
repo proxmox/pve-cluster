@@ -1,3 +1,11 @@
+pve-cluster (7.3-1) bullseye; urgency=medium
+
+  * datacenter config: remove typos in "user-tag-access" description
+
+  * datacenter config: add 'case-sensitive' option for 'tag-styles'
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 21 Nov 2022 08:34:10 +0100
+
 pve-cluster (7.2-3) bullseye; urgency=medium
 
   * add 'allow-subdomains' to webauthn schema
