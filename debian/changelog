@@ -1,3 +1,9 @@
+pve-cluster (7.3-2) bullseye; urgency=medium
+
+  * fix #1295: add config schema to control pending update notifications
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 03 Jan 2023 16:32:14 +0100
+
 pve-cluster (7.3-1) bullseye; urgency=medium
 
   * datacenter config: remove typos in "user-tag-access" description
