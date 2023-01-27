@@ -411,7 +411,7 @@ sub get_tasklist {
     foreach my $node (@$nodelist) {
 	next if $nodename && ($nodename ne $node);
 	eval {
-	    my $ver = $kvstore->{$node}->{tasklist} if $kvstore->{$node};
+	    my $ver = exists $kvstore->{$node} ? $kvstore->{$node}->{tasklist} : undef;
 	    my $cache = $tasklistcache->{$node};
 	    if (!$cache || !$ver || !$cache->{version} || ($cache->{version} != $ver)) {
 		my $tasks = [];
