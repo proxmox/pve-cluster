@@ -3,6 +3,7 @@ package PVE::CLI::pvecm;
 use strict;
 use warnings;
 
+use Cwd qw(getcwd);
 use File::Path;
 use File::Basename;
 use PVE::Tools qw(run_command);
@@ -347,6 +348,11 @@ __PACKAGE__->register_method ({
 
     code => sub {
 	my ($param) = @_;
+
+	# avoid "transport endpoint not connected" errors that occur if
+	# restarting pmxcfs while in fuse-mounted /etc/pve
+	die "Navigate out of $basedir before running 'pvecm add', for example by running 'cd'.\n"
+	    if getcwd() =~ m!^$basedir(/.*)?$!;
 
 	my $nodename = PVE::INotify::nodename();
 	my $host = $param->{hostname};
