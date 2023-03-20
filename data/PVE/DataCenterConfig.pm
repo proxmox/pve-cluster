@@ -11,8 +11,9 @@ my $crs_format = {
     ha => {
 	type => 'string',
 	enum => ['basic', 'static'],
-	description => "Use this resource scheduler mode for HA.",
+	optional => 1,
 	default => 'basic',
+	description => "Use this resource scheduler mode for HA.",
 	verbose_description => "Configures how the HA manager should select nodes to start or ".
 	    "recover services. With 'basic', only the number of services is used, with 'static', ".
 	    "static CPU and memory configuration of services is considered.",
