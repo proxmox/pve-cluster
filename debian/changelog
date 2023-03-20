@@ -1,3 +1,14 @@
+pve-cluster (7.3-3) bullseye; urgency=medium
+
+  * pvecm add: require user to navigate out of `/etc/pve` to avoid issues due
+    to the pmxcfs mountpoint vanishing (restarting) on join
+
+  * datacenter config: mark HA CRS scheduler sub-property optional
+
+  * crs: add `ha-rebalance-on-start` sub-option to datacenter config
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 20 Mar 2023 11:17:00 +0100
+
 pve-cluster (7.3-2) bullseye; urgency=medium
 
   * fix #1295: add config schema to control pending update notifications
