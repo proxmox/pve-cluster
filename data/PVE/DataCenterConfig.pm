@@ -18,6 +18,13 @@ my $crs_format = {
 	    "recover services. With 'basic', only the number of services is used, with 'static', ".
 	    "static CPU and memory configuration of services is considered.",
     },
+    'ha-rebalance-on-start' => {
+	type => 'boolean',
+	optional => 1,
+	default => 0,
+	description => "Set to use CRS for selecting a suited node when a HA services request-state"
+	    ." changes from stop to start.",
+    }
 };
 
 my $migration_format = {
