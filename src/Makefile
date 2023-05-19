@@ -1,4 +1,4 @@
-SUBDIRS := PVE src test
+SUBDIRS := PVE pmxcfs test
 
 export LD_LIBRARY_PATH+=$(CURDIR)/PVE
 export PERLLIB+=$(CURDIR)/PVE

@@ -15,12 +15,9 @@ DEBS = $(DEB) $(DBG_DEB) $(LIB_DEB)
 
 all: $(DEB) $(DBG_DEB)
 
-cpgtest: cpgtest.c
-	gcc -Wall cpgtest.c $(shell pkg-config --cflags --libs libcpg libqb) -o cpgtest
-
 $(BUILDDIR):
 	rm -rf $@ $@.tmp
-	cp -a data $@.tmp
+	cp -a src $@.tmp
 	cp -a debian $@.tmp/
 	echo "git clone git://git.proxmox.com/git/pve-cluster.git\\ngit checkout $(GITVERSION)" > $@.tmp/debian/SOURCE
 	mv $@.tmp $@
