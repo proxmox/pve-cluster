@@ -36,6 +36,9 @@ $(DEB): $(BUILDDIR)
 	cd $(BUILDDIR); dpkg-buildpackage -b -us -uc
 	lintian $(DEB)
 
+sbuild: $(DSC)
+	sbuild $(DSC)
+
 .PHONY: dinstall
 dinstall: $(DEB) $(LIB_DEB)
 	dpkg -i $^
