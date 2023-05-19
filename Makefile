@@ -27,6 +27,11 @@ $(BUILDDIR):
 	echo "git clone git://git.proxmox.com/git/pve-cluster.git\\ngit checkout $(GITVERSION)" > $@.tmp/debian/SOURCE
 	mv $@.tmp $@
 
+dsc: $(DSC)
+$(DSC): $(BUILDDIR)
+	cd $(BUILDDIR); dpkg-buildpackage -S -us -uc -d
+	lintian $(DSC)
+
 .PHONY: deb
 deb $(DBG_DEB) $(LIB_DEB): $(DEB)
 $(DEB): $(BUILDDIR)
@@ -43,4 +48,4 @@ upload: $(DEBS)
 
 .PHONY: clean
 clean:
-	rm -rf $(PACKAGE)-[0-9]*/ *.deb *.changes *.dsc *.buildinfo
+	rm -rf $(PACKAGE)-[0-9]*/ *.deb *.dsc *.changes *.buildinfo *.build  *.tar.*
