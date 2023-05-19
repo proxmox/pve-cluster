@@ -1,6 +1,8 @@
 include /usr/share/dpkg/default.mk
 
 PACKAGE=pve-cluster
+BUILDDIR ?= $(PACKAGE)-$(DEB_VERSION)
+DSC=$(PACKAGE)_$(DEB_VERSION).dsc
 
 GITVERSION:=$(shell git rev-parse HEAD)
 
@@ -18,21 +20,22 @@ all: $(DEB) $(DBG_DEB)
 cpgtest: cpgtest.c
 	gcc -Wall cpgtest.c $(shell pkg-config --cflags --libs libcpg libqb) -o cpgtest
 
-.PHONY: dinstall
-dinstall: $(DEB) $(LIB_DEB)
-	dpkg -i $^
+$(BUILDDIR):
+	rm -rf $@ $@.tmp
+	cp -a data $@.tmp
+	cp -a debian $@.tmp/
+	echo "git clone git://git.proxmox.com/git/pve-cluster.git\\ngit checkout $(GITVERSION)" > $@.tmp/debian/SOURCE
+	mv $@.tmp $@
 
 .PHONY: deb
 deb $(DBG_DEB) $(LIB_DEB): $(DEB)
-$(DEB):
-	rm -f *.deb
-	rm -rf build
-	cp -a data build
-	cp -a debian build/debian
-	echo "git clone git://git.proxmox.com/git/pve-cluster.git\\ngit checkout $(GITVERSION)" > build/debian/SOURCE
-	cd build; dpkg-buildpackage -rfakeroot -b -us -uc
+$(DEB): $(BUILDDIR)
+	cd $(BUILDDIR); dpkg-buildpackage -b -us -uc
 	lintian $(DEB)
 
+.PHONY: dinstall
+dinstall: $(DEB) $(LIB_DEB)
+	dpkg -i $^
 
 .PHONY: upload
 upload: $(DEBS)
@@ -40,4 +43,4 @@ upload: $(DEBS)
 
 .PHONY: clean
 clean:
-	rm -rf *~ build *.deb *.changes *.dsc *.buildinfo
+	rm -rf $(PACKAGE)-[0-9]*/ *.deb *.changes *.dsc *.buildinfo
