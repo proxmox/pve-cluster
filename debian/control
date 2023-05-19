@@ -3,7 +3,7 @@ Section: admin
 Priority: optional
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Build-Depends: check,
-               debhelper (>= 12),
+               debhelper-compat (= 13),
                libcmap-dev (>= 0.17.1-1),
                libcorosync-common-dev,
                libcpg-dev (>= 2.3.4-1),
