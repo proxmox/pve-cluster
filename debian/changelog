@@ -1,3 +1,9 @@
+pve-cluster (8.0.0) bookworm; urgency=medium
+
+  * re-build for Debian 12 Bookworm based Proxmox VE 8.x series
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 19 May 2023 17:14:04 +0200
+
 pve-cluster (7.3-3) bullseye; urgency=medium
 
   * pvecm add: require user to navigate out of `/etc/pve` to avoid issues due
