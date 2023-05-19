@@ -13,8 +13,6 @@ DBG_DEB=$(PACKAGE)-dbgsym_$(DEB_VERSION)_$(DEB_BUILD_ARCH).deb
 
 DEBS = $(DEB) $(DBG_DEB) $(LIB_DEB)
 
-PERL_APIVER := `perl -MConfig -e 'print $$Config(debian_abi)//$$Config(version);'`
-
 all: $(DEB) $(DBG_DEB)
 
 cpgtest: cpgtest.c
