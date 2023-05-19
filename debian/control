@@ -23,7 +23,7 @@ Build-Depends: check,
                pve-doc-generator (>= 6.0-9~),
                rrdcached,
                sqlite3,
-Standards-Version: 4.5.0
+Standards-Version: 4.6.2
 
 Package: pve-cluster
 Architecture: any
