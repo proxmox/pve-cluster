@@ -73,7 +73,7 @@ memdb_tree_entry_copy(
 	cpy->size = te->size;
 
 	if (with_data && te->size && te->type == DT_REG) {
-		cpy->data.value = g_memdup(te->data.value, te->size);
+		cpy->data.value = g_memdup2(te->data.value, te->size);
 	} else { 
 		cpy->data.value = NULL;
 	}
@@ -676,7 +676,7 @@ memdb_read_nolock(
 
 	if ((te = memdb_lookup_path(memdb, path, &parent))) {
 		if (te->type == DT_REG) {
-			*data_ret = g_memdup(te->data.value, te->size);
+			*data_ret = g_memdup2(te->data.value, te->size);
 			guint32 size = te->size;
 			return size;
 		}
@@ -1451,7 +1451,7 @@ memdb_index_copy(memdb_index_t *idx)
 		return NULL;
 	}
 
- 	memdb_index_t *copy = (memdb_index_t *)g_memdup(idx, bytes);
+	memdb_index_t *copy = (memdb_index_t *)g_memdup2(idx, bytes);
 
 	return copy;
 }

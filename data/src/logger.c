@@ -606,7 +606,7 @@ clusterlog_get_state(
 	}
 
 	*res_len = clog_size(cl->base);
-	gpointer msg = g_memdup(cl->base, *res_len);
+	gpointer msg = g_memdup2(cl->base, *res_len);
 
 	g_mutex_unlock(&cl->mutex);
 

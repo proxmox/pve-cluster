@@ -1102,14 +1102,14 @@ kventry_hash_set(
 		g_hash_table_remove(kvhash, key);
 	} else if ((entry = (kventry_t *)g_hash_table_lookup(kvhash, key))) {
 		g_free(entry->data);
-		entry->data = g_memdup(data, len);
+		entry->data = g_memdup2(data, len);
 		entry->len = len;
 		entry->version++;
 	} else {
 		kventry_t *entry = g_new0(kventry_t, 1);
 
 		entry->key = g_strdup(key);
-		entry->data = g_memdup(data, len);
+		entry->data = g_memdup2(data, len);
 		entry->len = len;
 
 		g_hash_table_replace(kvhash, entry->key, entry);
@@ -1466,14 +1466,14 @@ rrdentry_hash_set(
 	rrdentry_t *entry;
 	if ((entry = (rrdentry_t *)g_hash_table_lookup(rrdhash, key))) {
 		g_free(entry->data);
-		entry->data = g_memdup(data, len);
+		entry->data = g_memdup2(data, len);
 		entry->len = len;
 		entry->time = time(NULL);
 	} else {
 		rrdentry_t *entry = g_new0(rrdentry_t, 1);
 
 		entry->key = g_strdup(key);
-		entry->data = g_memdup(data, len);
+		entry->data = g_memdup2(data, len);
 		entry->len = len;
 		entry->time = time(NULL);
 

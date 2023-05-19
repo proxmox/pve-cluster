@@ -351,7 +351,7 @@ static gboolean bdb_backend_load_index(
 
 		if (te->type == DT_REG) {
 			if (size > 0)
-				te->data.value = g_memdup(value, size);
+				te->data.value = g_memdup2(value, size);
 		} else if (te->type == DT_DIR) {
 			if (size) {
 				cfs_critical("directory inode contains data (inode = %016" PRIX64 ")",

@@ -347,7 +347,7 @@ dcdb_parse_update_inode(
 	te->type = type;
 
 	if (te->type == DT_REG && te->size) {
-		te->data.value = g_memdup(data, te->size);
+		te->data.value = g_memdup2(data, te->size);
 		if (!te->data.value) {
 			memdb_tree_entry_free(te);
 			return NULL;

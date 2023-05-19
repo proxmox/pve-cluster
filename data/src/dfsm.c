@@ -460,7 +460,7 @@ dfsm_queue_add_message(
 		
 	qm->nodeid = nodeid;
 	qm->pid = pid;
-	qm->msg = g_memdup (msg, msg_len);
+	qm->msg = g_memdup2 (msg, msg_len);
 	qm->msg_len = msg_len;
 	qm->msg_count =  msg_count;
 
@@ -877,7 +877,7 @@ dfsm_cpg_deliver_callback(
 				goto leave;
 			}
 
-			ni->state = g_memdup(msg, msg_len);
+			ni->state = g_memdup2(msg, msg_len);
 			ni->state_len = msg_len;
 
 			int received_all = 1;
