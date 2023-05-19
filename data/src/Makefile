@@ -43,7 +43,6 @@ check_memdb: check_memdb.o libpmxcfs.a
 
 pmxcfs.8:
 
-export NOVIEW=1
 -include /usr/share/pve-doc-generator/pve-doc-generator.mk
 
 .PHONY: install
