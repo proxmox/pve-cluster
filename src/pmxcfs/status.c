@@ -108,6 +108,8 @@ static memdb_change_t memdb_change_array[] = {
 	{ .path = "sdn/.running-config" },
 	{ .path = "virtual-guest/cpu-models.conf" },
 	{ .path = "firewall/cluster.fw" },
+	{ .path = "mapping/pci.cfg" },
+	{ .path = "mapping/usb.cfg" },
 };
 
 static GMutex mutex;
