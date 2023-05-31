@@ -7,9 +7,9 @@ CFLAGS += -Wall -Werror -Wno-unknown-pragmas -Wno-strict-aliasing
 CFLAGS += -Wpedantic
 CFLAGS += -g -O2
 CFLAGS += -I.
-CFLAGS += $(shell pkg-config --cflags ${DEPENDENCIES})
+CFLAGS += $(shell pkg-config --cflags $(DEPENDENCIES))
 
-LDFLAGS += -Wl,-z,relro $(shell pkg-config --libs ${DEPENDENCIES})
+LDFLAGS += -Wl,-z,relro $(shell pkg-config --libs $(DEPENDENCIES))
 
 AR = ar
 ARFLAGS = crs
@@ -47,9 +47,9 @@ pmxcfs.8:
 
 .PHONY: install
 install: pmxcfs create_pmxcfs_db pmxcfs.8
-	install -D -m 0755 pmxcfs ${DESTDIR}/usr/bin/pmxcfs
-	install -D -m 0755 create_pmxcfs_db ${DESTDIR}/usr/bin/create_pmxcfs_db
-	install -D pmxcfs.8 ${DESTDIR}/usr/share/man/man8/pmxcfs.8
+	install -D -m 0755 pmxcfs $(DESTDIR)/usr/bin/pmxcfs
+	install -D -m 0755 create_pmxcfs_db $(DESTDIR)/usr/bin/create_pmxcfs_db
+	install -D pmxcfs.8 $(DESTDIR)/usr/share/man/man8/pmxcfs.8
 
 .PHONY: check
 check: check_memdb

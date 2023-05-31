@@ -1,11 +1,11 @@
-PVEDIR=${DESTDIR}/usr/share/perl5/PVE
+PVEDIR=$(DESTDIR)/usr/share/perl5/PVE
 
 SOURCES=IPCConst.pm Setup.pm
 
 .PHONY: install
-install: ${SOURCES}
-	install -d ${PVEDIR}/Cluster
-	for f in ${SOURCES}; do install -m 0664 $$f ${PVEDIR}/Cluster/$$f; done
+install: $(SOURCES)
+	install -d $(PVEDIR)/Cluster
+	for f in $(SOURCES); do install -m 0664 $$f $(PVEDIR)/Cluster/$$f; done
 
 IPCConst.pm: ../../pmxcfs/cfs-ipc-ops.h
 	awk -f IPCConst.pm.awk $< > $@.tmp
