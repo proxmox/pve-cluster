@@ -5,11 +5,11 @@ CC = gcc
 CFLAGS += -std=gnu99
 CFLAGS += -Wall -Werror -Wno-unknown-pragmas -Wno-strict-aliasing
 CFLAGS += -Wpedantic
-CFLAGS += -g -O2 -Wl,-z,relro
+CFLAGS += -g -O2
 CFLAGS += -I.
 CFLAGS += $(shell pkg-config --cflags ${DEPENDENCIES})
 
-LDFLAGS += $(shell pkg-config --libs ${DEPENDENCIES})
+LDFLAGS += -Wl,-z,relro $(shell pkg-config --libs ${DEPENDENCIES})
 
 AR = ar
 ARFLAGS = crs
