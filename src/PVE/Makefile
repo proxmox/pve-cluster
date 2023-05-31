@@ -5,7 +5,7 @@ MAN=$(DESTDIR)/usr/share/man
 BASHCOMPLETION=$(DESTDIR)/usr/share/bash-completion/completions
 ZSHCOMPLETION=$(DESTDIR)/usr/share/zsh/vendor-completions
 
-PERL_VENDORARCH=$(shell perl -MConfig -e 'print $$Config(vendorarch);')
+PERL_VENDORARCH=$(shell perl -MConfig -e 'print $$Config{vendorarch};')
 PVE_VENDORARCH=$(DESTDIR)/$(PERL_VENDORARCH)/auto/PVE/IPCC
 
 PERL_DOC_INC_DIRS:=..
