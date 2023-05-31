@@ -1,4 +1,7 @@
-build
-*.deb
-*.changes
-*.buildinfo
+/*.build
+/*.buildinfo
+/*.changes
+/*.deb
+/*.dsc
+/*.tar*
+/pve-cluster-*/
