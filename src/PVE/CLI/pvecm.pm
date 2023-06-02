@@ -438,7 +438,7 @@ __PACKAGE__->register_method ({
 	    eval {
 		print "copy corosync auth key\n";
 		$cmd = ['rsync', '--rsh=ssh -l root -o BatchMode=yes', '-lpgoq',
-			"[$host]:$authfile $clusterconf", $tmpdir];
+			"[$host]:$authfile", "[$host]:$clusterconf", $tmpdir];
 
 		system(@$cmd) == 0 || die "can't rsync data from host '$host'\n";
 
