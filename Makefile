@@ -22,10 +22,13 @@ $(BUILDDIR):
 	echo "git clone git://git.proxmox.com/git/pve-cluster.git\\ngit checkout $(GITVERSION)" > $@.tmp/debian/SOURCE
 	mv $@.tmp $@
 
-dsc: $(DSC)
+dsc:
+	rm -rf $(BUILDDIR) $(DSC)
+	$(MAKE) $(DSC)
+	lintian $(DSC)
+
 $(DSC): $(BUILDDIR)
 	cd $(BUILDDIR); dpkg-buildpackage -S -us -uc -d
-	lintian $(DSC)
 
 .PHONY: deb
 deb $(DBG_DEB) $(LIB_DEB): $(DEB)
