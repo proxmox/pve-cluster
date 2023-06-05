@@ -1,3 +1,11 @@
+pve-cluster (8.0.1) bookworm; urgency=medium
+
+  * pvecm: fix cluster join over ssh with newer rsync
+
+  * add configuration files for resource mapping to observed files
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 05 Jun 2023 12:04:37 +0200
+
 pve-cluster (8.0.0) bookworm; urgency=medium
 
   * re-build for Debian 12 Bookworm based Proxmox VE 8.x series
