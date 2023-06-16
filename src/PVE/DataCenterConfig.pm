@@ -3,7 +3,7 @@ package PVE::DataCenterConfig;
 use strict;
 use warnings;
 
-use PVE::JSONSchema qw(parse_property_string);
+use PVE::JSONSchema qw(get_standard_option parse_property_string register_standard_option);
 use PVE::Tools;
 use PVE::Cluster;
 
@@ -59,30 +59,32 @@ my $notification_format = {
     },
 };
 
+register_standard_option('pve-ha-shutdown-policy', {
+    type => 'string',
+    enum => ['freeze', 'failover', 'conditional', 'migrate'],
+    description => "The policy for HA services on node shutdown. 'freeze' disables ".
+	"auto-recovery, 'failover' ensures recovery, 'conditional' recovers on ".
+	"poweroff and freezes on reboot. 'migrate' will migrate running services ".
+	"to other nodes, if possible. With 'freeze' or 'failover', HA Services will ".
+	"always get stopped first on shutdown.",
+    verbose_description => "Describes the policy for handling HA services on poweroff ".
+	"or reboot of a node. Freeze will always freeze services which are still located ".
+	"on the node on shutdown, those services won't be recovered by the HA manager. ".
+	"Failover will not mark the services as frozen and thus the services will get ".
+	"recovered to other nodes, if the shutdown node does not come up again quickly ".
+	"(< 1min). 'conditional' chooses automatically depending on the type of shutdown, ".
+	"i.e., on a reboot the service will be frozen but on a poweroff the service will ".
+	"stay as is, and thus get recovered after about 2 minutes. ".
+	"Migrate will try to move all running services to another node when a reboot or ".
+	"shutdown was triggered. The poweroff process will only continue once no running services ".
+	"are located on the node anymore. If the node comes up again, the service will ".
+	"be moved back to the previously powered-off node, at least if no other migration, ".
+	"reloaction or recovery took place.",
+    default => 'conditional',
+});
+
 my $ha_format = {
-    shutdown_policy => {
-	type => 'string',
-	enum => ['freeze', 'failover', 'conditional', 'migrate'],
-	description => "The policy for HA services on node shutdown. 'freeze' disables ".
-	    "auto-recovery, 'failover' ensures recovery, 'conditional' recovers on ".
-	    "poweroff and freezes on reboot. 'migrate' will migrate running services ".
-	    "to other nodes, if possible. With 'freeze' or 'failover', HA Services will ".
-	    "always get stopped first on shutdown.",
-	verbose_description => "Describes the policy for handling HA services on poweroff ".
-	    "or reboot of a node. Freeze will always freeze services which are still located ".
-	    "on the node on shutdown, those services won't be recovered by the HA manager. ".
-	    "Failover will not mark the services as frozen and thus the services will get ".
-	    "recovered to other nodes, if the shutdown node does not come up again quickly ".
-	    "(< 1min). 'conditional' chooses automatically depending on the type of shutdown, ".
-	    "i.e., on a reboot the service will be frozen but on a poweroff the service will ".
-	    "stay as is, and thus get recovered after about 2 minutes. ".
-	    "Migrate will try to move all running services to another node when a reboot or ".
-	    "shutdown was triggered. The poweroff process will only continue once no running services ".
-	    "are located on the node anymore. If the node comes up again, the service will ".
-	    "be moved back to the previously powered-off node, at least if no other migration, ".
-	    "reloaction or recovery took place.",
-	default => 'conditional',
-    }
+    shutdown_policy => get_standard_option('pve-ha-shutdown-policy'),
 };
 
 my $next_id_format = {
