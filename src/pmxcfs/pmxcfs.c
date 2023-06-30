@@ -727,27 +727,32 @@ lookup_node_ip(const char *nodename)
 {
 	char buf[INET6_ADDRSTRLEN];
 	struct addrinfo *ainfo;
-	struct addrinfo ahints;
-	char *res = NULL;
-	memset(&ahints, 0, sizeof(ahints));
-
+	struct addrinfo ahints = {
+		.ai_flags = AI_V4MAPPED | AI_ALL,
+	};
 	if (getaddrinfo(nodename, NULL, &ahints, &ainfo))
 		return NULL;
 
-	if (ainfo->ai_family == AF_INET) {
-		struct sockaddr_in *sa = (struct sockaddr_in *)ainfo->ai_addr;
-		inet_ntop(ainfo->ai_family, &sa->sin_addr, buf, sizeof(buf));
-		if (strncmp(buf, "127.", 4) != 0) {
-			res = g_strdup(buf);
-		}
-	} else if (ainfo->ai_family == AF_INET6) {
-		struct sockaddr_in6 *sa = (struct sockaddr_in6 *)ainfo->ai_addr;
-		inet_ntop(ainfo->ai_family, &sa->sin6_addr, buf, sizeof(buf));
-		if (strcmp(buf, "::1") != 0) {
-			res = g_strdup(buf);
+	char *res = NULL;
+	for (struct addrinfo *addr = ainfo; addr != NULL; addr = addr->ai_next) {
+		if (addr->ai_family == AF_INET) {
+			struct sockaddr_in *sa = (struct sockaddr_in *)addr->ai_addr;
+			inet_ntop(addr->ai_family, &sa->sin_addr, buf, sizeof(buf));
+			if (strncmp(buf, "127.", 4) != 0) {
+				res = g_strdup(buf);
+				goto ret;
+			}
+		} else if (addr->ai_family == AF_INET6) {
+			struct sockaddr_in6 *sa = (struct sockaddr_in6 *)addr->ai_addr;
+			inet_ntop(addr->ai_family, &sa->sin6_addr, buf, sizeof(buf));
+			if (strcmp(buf, "::1") != 0) {
+				res = g_strdup(buf);
+				goto ret;
+			}
 		}
 	}
 
+ret:
 	freeaddrinfo(ainfo);
 
 	return res;
