@@ -6,6 +6,8 @@ use warnings;
 use Cwd qw(getcwd);
 use File::Path;
 use File::Basename;
+use Time::HiRes qw(usleep);
+
 use PVE::Tools qw(run_command);
 use PVE::Cluster;
 use PVE::INotify;
@@ -576,6 +578,12 @@ __PACKAGE__->register_method ({
 	# no-good for ExecStartPre as it fails the whole service in this case
 	PVE::Tools::run_fork_with_timeout(30, sub {
 	    PVE::Cluster::Setup::generate_local_files();
+
+	    for (my $i = 0; !PVE::Cluster::check_cfs_quorum(1); $i++) {
+		print "waiting for pmxcfs mount to appear and get quorate...\n" if $i % 50 == 0;
+		usleep(100 * 1000);
+	    }
+
 	    PVE::Cluster::Setup::updatecerts_and_ssh($param->@{qw(force silent)});
 	    PVE::Cluster::prepare_observed_file_basedirs();
 	});
