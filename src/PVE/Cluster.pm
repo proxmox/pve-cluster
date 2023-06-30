@@ -93,7 +93,7 @@ sub prepare_observed_file_basedirs {
 	next if $f !~ m!^(.*)/[^/]+$!;
 	my $dir = "$basedir/$1";
 	next if -e $dir; # can also be a link, so just use -e xist check
-	print "creating directory '$dir' for observerd files\n";
+	print "creating directory '$dir' for observed files\n";
 	make_path($dir);
     }
 }
