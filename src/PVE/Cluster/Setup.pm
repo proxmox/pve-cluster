@@ -786,6 +786,7 @@ sub finish_join {
     }
     print "OK\n" if !$printqmsg;
 
+    generate_local_files();
     updatecerts_and_ssh(1);
 
     print "generated new node certificate, restart pveproxy and pvedaemon services\n";
@@ -794,14 +795,15 @@ sub finish_join {
     print "successfully added node '$nodename' to cluster.\n";
 }
 
+sub generate_local_files {
+    setup_rootsshconfig();
+    gen_pve_vzdump_symlink();
+}
+
 sub updatecerts_and_ssh {
     my ($force_new_cert, $silent) = @_;
 
     my $p = sub { print "$_[0]\n" if !$silent };
-
-    setup_rootsshconfig();
-
-    gen_pve_vzdump_symlink();
 
     if (!PVE::Cluster::check_cfs_quorum(1)) {
 	return undef if $silent;
