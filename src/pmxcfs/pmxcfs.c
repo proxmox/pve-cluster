@@ -848,10 +848,15 @@ int main(int argc, char *argv[])
 	cfs.nodename = g_strdup(utsname.nodename);
 
 	if (!(cfs.ip = lookup_node_ip(cfs.nodename))) {
-		cfs_critical("Unable to get local IP address");
+		cfs_critical(
+			"Unable to resolve node name '%s' to a non-loopback IP address - missing entry in"
+			" '/etc/hosts' or DNS?",
+			cfs.nodename
+		);
 		qb_log_fini();
 		exit(-1);
 	}
+	cfs_message("resolved node name '%s' to '%s' for default node IP address", cfs.nodename, cfs.ip);
 
 	struct group *www_data = getgrnam("www-data");
 	if (!www_data) {
