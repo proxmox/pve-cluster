@@ -200,14 +200,10 @@ safe_read(
 
 gboolean 
 full_write(
-	int fd, 
-	const char *buf, 
+	int fd,
+	const char *buf,
 	size_t len)
 {
-	size_t total;
-
-	total = 0;
-
 	while (len > 0) {
 		ssize_t n;
 		do {
@@ -218,7 +214,6 @@ full_write(
 			break;
 		
 		buf += n;
-		total += n;
 		len -= n;
 	}
 
