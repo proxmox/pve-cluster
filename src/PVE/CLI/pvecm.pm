@@ -581,7 +581,7 @@ __PACKAGE__->register_method ({
 	    PVE::Cluster::Setup::generate_local_files();
 
 	    for (my $i = 0; !PVE::Cluster::check_cfs_quorum(1); $i++) {
-		print "waiting for pmxcfs mount to appear and get quorate...\n" if $i % 50 == 0;
+		print "waiting for pmxcfs mount to appear and get quorate...\n" if !$silent && $i % 50 == 0;
 		usleep(100 * 1000);
 	    }
 
