@@ -572,6 +572,7 @@ __PACKAGE__->register_method ({
     returns => { type => 'null' },
     code => sub {
 	my ($param) = @_;
+	my ($force_new_cert, $silent) = $param->@{qw(force silent)};
 
 	# we get called by the pveproxy.service ExecStartPre and as we do
 	# IO (on /etc/pve) which can hang (uninterruptedly D state). That'd be
@@ -584,7 +585,7 @@ __PACKAGE__->register_method ({
 		usleep(100 * 1000);
 	    }
 
-	    PVE::Cluster::Setup::updatecerts_and_ssh($param->@{qw(force silent)});
+	    PVE::Cluster::Setup::updatecerts_and_ssh($force_new_cert, $silent);
 	    PVE::Cluster::prepare_observed_file_basedirs();
 	});
 
