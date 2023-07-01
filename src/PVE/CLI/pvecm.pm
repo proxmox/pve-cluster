@@ -577,7 +577,7 @@ __PACKAGE__->register_method ({
 	# pveproxy's ExecStartPre calls this, and as we do IO (on /etc/pve) that can hang
 	# (uninterruptible D state) we could fail the whole service, rendering the API guaranteed
 	# inaccessible. Let's rather fail small(er) as the API could still work without this..
-	PVE::Tools::run_fork_with_timeout(30, sub {
+	my ($_res, $got_timeout) = PVE::Tools::run_fork_with_timeout(30, sub {
 	    PVE::Cluster::Setup::generate_local_files();
 
 	    for (my $i = 0; !PVE::Cluster::check_cfs_quorum(1); $i++) {
@@ -588,6 +588,14 @@ __PACKAGE__->register_method ({
 	    PVE::Cluster::Setup::updatecerts_and_ssh($force_new_cert, $silent);
 	    PVE::Cluster::prepare_observed_file_basedirs();
 	});
+	if ($got_timeout) {
+	    my $msg = "got timeout when trying to ensure cluster certificates and base file"
+		." hierarchy is set up - no quorum (yet) or hung pmxcfs?\n";
+	    die $msg if !$silent;
+	    # this might be unexpected for the $silent case, but in our ExecStartPre use case it's
+	    # really better than keeping the user completely in the dark, so maybe split/fix params
+	    warn $msg;
+	}
 
 	return undef;
     }});
