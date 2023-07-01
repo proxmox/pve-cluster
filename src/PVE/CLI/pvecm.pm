@@ -393,8 +393,8 @@ __PACKAGE__->register_method ({
 	    PVE::Cluster::Setup::ssh_unmerge_known_hosts();
 
 	    my $cmd = ['ssh-copy-id', '-i', '/root/.ssh/id_rsa', "root\@$host"];
-	    run_command($cmd, 'outfunc' => sub {}, 'errfunc' => sub {},
-				    'errmsg' => "unable to copy ssh ID");
+	    run_command(
+		$cmd, 'outfunc' => sub {}, 'errfunc' => sub {}, 'errmsg' => "unable to copy ssh ID");
 
 	    $cmd = ['ssh', $host, '-o', 'BatchMode=yes', 'pvecm', 'apiver'];
 	    my $remote_apiver = 0;
@@ -405,8 +405,7 @@ __PACKAGE__->register_method ({
 
 	    PVE::Cluster::Setup::assert_we_can_join_cluster_version($remote_apiver);
 
-	    $cmd = ['ssh', $host, '-o', 'BatchMode=yes',
-		    'pvecm', 'addnode', $nodename, '--force', 1];
+	    $cmd = ['ssh', $host, '-o', 'BatchMode=yes', 'pvecm', 'addnode', $nodename, '--force', 1];
 
 	    push @$cmd, '--nodeid', $param->{nodeid} if $param->{nodeid};
 	    push @$cmd, '--votes', $param->{votes} if defined($param->{votes});
