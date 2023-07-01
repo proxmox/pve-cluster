@@ -574,9 +574,9 @@ __PACKAGE__->register_method ({
 	my ($param) = @_;
 	my ($force_new_cert, $silent) = $param->@{qw(force silent)};
 
-	# we get called by the pveproxy.service ExecStartPre and as we do
-	# IO (on /etc/pve) which can hang (uninterruptedly D state). That'd be
-	# no-good for ExecStartPre as it fails the whole service in this case
+	# pveproxy's ExecStartPre calls this, and as we do IO (on /etc/pve) that can hang
+	# (uninterruptible D state) we could fail the whole service, rendering the API guaranteed
+	# inaccessible. Let's rather fail small(er) as the API could still work without this..
 	PVE::Tools::run_fork_with_timeout(30, sub {
 	    PVE::Cluster::Setup::generate_local_files();
 
