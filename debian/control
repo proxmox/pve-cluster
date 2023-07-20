@@ -85,3 +85,12 @@ Breaks: pve-cluster (<= 6.0-7),
 Replaces: pve-cluster (<= 6.0-7),
 Description: Proxmox Virtual Environment cluster Perl API modules.
  This package contains the API2 endpoints and CLI binary 'pvecm'.
+
+Package: libpve-notify-perl
+Architecture: all
+Pre-Depends: ${misc:Pre-Depends},
+Depends: libpve-cluster-perl (= ${binary:Version}),
+         libpve-rs-perl (>= 0.7.1),
+         ${misc:Depends},
+         ${perl:Depends},
+Description: Notify helper module
