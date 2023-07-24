@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use PVE::Cluster qw(cfs_register_file cfs_read_file cfs_lock_file cfs_write_file);
-use PVE::RS::Notify;
+use Proxmox::RS::Notify;
 
 cfs_register_file(
     'notifications.cfg',
@@ -46,7 +46,7 @@ sub read_config {
     my $config = cfs_read_file('notifications.cfg');
     my $priv_config = cfs_read_file('priv/notifications.cfg');
 
-    my $notification_config = PVE::RS::Notify->parse_config($config, $priv_config);
+    my $notification_config = Proxmox::RS::Notify->parse_config($config, $priv_config);
 
     eval {
 	# This target should always be available...
