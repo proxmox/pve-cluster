@@ -1,3 +1,14 @@
+pve-cluster (8.0.3) bookworm; urgency=medium
+
+  * add libpve-notify-perl package
+
+  * add configuration files for notifications to observed files
+
+  * add notification configuration for APT, fencing and replication to
+    datacenter config
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 24 Jul 2023 15:06:08 +0200
+
 pve-cluster (8.0.2) bookworm; urgency=medium
 
   * datacenter config: turn shutdown policy into a standard option
