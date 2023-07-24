@@ -90,7 +90,7 @@ Package: libpve-notify-perl
 Architecture: all
 Pre-Depends: ${misc:Pre-Depends},
 Depends: libpve-cluster-perl (= ${binary:Version}),
-         libpve-rs-perl (>= 0.7.1),
+         libpve-rs-perl (>= 0.8.5),
          ${misc:Depends},
          ${perl:Depends},
 Description: Notify helper module
