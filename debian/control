@@ -94,4 +94,6 @@ Depends: libpve-cluster-perl (= ${binary:Version}),
          libproxmox-rs-perl (>= 0.3.1),
          ${misc:Depends},
          ${perl:Depends},
-Description: Notify helper module
+Description: Notify helper module.
+ Contains the main perl module related to managing and sending notifiations
+ according to the cluster wide notification configuration.
