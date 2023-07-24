@@ -9,6 +9,7 @@ GITVERSION:=$(shell git rev-parse HEAD)
 DEB=$(PACKAGE)_$(DEB_VERSION)_$(DEB_BUILD_ARCH).deb
 LIB_DEB  = libpve-cluster-perl_$(DEB_VERSION)_all.deb
 LIB_DEB += libpve-cluster-api-perl_$(DEB_VERSION)_all.deb
+LIB_DEB += libpve-notify-perl_$(DEB_VERSION)_all.deb
 DBG_DEB=$(PACKAGE)-dbgsym_$(DEB_VERSION)_$(DEB_BUILD_ARCH).deb
 
 DEBS = $(DEB) $(DBG_DEB) $(LIB_DEB)
