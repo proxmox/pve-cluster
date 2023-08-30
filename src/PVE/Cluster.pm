@@ -578,7 +578,7 @@ sub cfs_read_file {
 }
 
 sub cfs_write_file {
-    my ($filename, $data) = @_;
+    my ($filename, $data, $force_utf8) = @_;
 
     my ($version, $info) = cfs_file_version($filename);
 
@@ -592,7 +592,7 @@ sub cfs_write_file {
 	$ci->{version} = undef;
     }
 
-    PVE::Tools::file_set_contents($fsname, $raw);
+    PVE::Tools::file_set_contents($fsname, $raw, undef, 1);
 }
 
 my $cfs_lock = sub {
