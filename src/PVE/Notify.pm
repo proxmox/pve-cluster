@@ -79,8 +79,8 @@ sub write_config {
     };
 
     my ($config, $priv_config) = $notification_config->write_config();
-    cfs_write_file('notifications.cfg', $config);
-    cfs_write_file('priv/notifications.cfg', $priv_config);
+    cfs_write_file('notifications.cfg', $config, 1);
+    cfs_write_file('priv/notifications.cfg', $priv_config, 1);
 }
 
 sub default_target {
