@@ -1,3 +1,11 @@
+pve-cluster (8.0.4) bookworm; urgency=medium
+
+  * fix #4937: force UTF-8 encoding when writing notification
+    configuration files to avoid issues with certain characters like
+    'ü'.
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 11 Sep 2023 13:55:07 +0200
+
 pve-cluster (8.0.3) bookworm; urgency=medium
 
   * add libpve-notify-perl package
