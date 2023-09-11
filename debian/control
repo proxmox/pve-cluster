@@ -89,9 +89,9 @@ Description: Proxmox Virtual Environment cluster Perl API modules.
 Package: libpve-notify-perl
 Architecture: all
 Pre-Depends: ${misc:Pre-Depends},
-Depends: libpve-cluster-perl (= ${binary:Version}),
+Depends: libproxmox-rs-perl (>= 0.3.1),
+         libpve-cluster-perl (= ${binary:Version}),
          libpve-rs-perl (>= 0.8.5),
-         libproxmox-rs-perl (>= 0.3.1),
          ${misc:Depends},
          ${perl:Depends},
 Description: Notify helper module.
