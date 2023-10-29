@@ -268,15 +268,15 @@ my $user_tag_privs_format = {
 	type => 'string',
 	enum => ['none', 'list', 'existing', 'free'],
 	default => 'free',
-	description => "Controls tag usage for users without `Sys.Modify` on `/` by either "
-	    ."allowing `none`, a `list`, already `existing` or anything (`free`).",
-	verbose_description => "Controls which tags can be set or deleted on resources a user "
-	    ."controls (such as guests). Users with the `Sys.Modify` privilege on `/` are always "
-	    ." unrestricted. "
-	    ."* 'none' no tags are usable. "
-	    ."* 'list' tags from 'user-allow-list' are usable. "
-	    ."* 'existing' like list, but already existing tags of resources are also usable."
-	    ."* 'free' no tag restrictions.",
+	description => "Controls tag usage for users without `Sys.Modify` on `/` by either"
+	    ." allowing `none`, a `list`, already `existing` or anything (`free`).",
+	verbose_description => "Controls which tags can be set or deleted on resources a user"
+	    ." controls (such as guests). Users with the `Sys.Modify` privilege on `/` are always"
+	    ."unrestricted.\n"
+	    ."* 'none' no tags are usable.\n"
+	    ."* 'list' tags from 'user-allow-list' are usable.\n"
+	    ."* 'existing' like list, but already existing tags of resources are also usable.\n"
+	    ."* 'free' no tag restrictions.\n",
     },
     'user-allow-list' => {
 	optional => 1,
