@@ -308,27 +308,33 @@ my $datacenter_schema = {
 	    type => 'string',
 	    description => "Default GUI language.",
 	    enum => [
-		'ca',
-		'da',
-		'de',
-		'en',
-		'es',
-		'eu',
-		'fa',
-		'fr',
-		'he',
-		'it',
-		'ja',
-		'nb',
-		'nn',
-		'pl',
-		'pt_BR',
-		'ru',
-		'sl',
-		'sv',
-		'tr',
-		'zh_CN',
-		'zh_TW',
+		'ar', # Arabic
+		'ca', # Catalan
+		'da', # Danish
+		'de', # German
+		'en', # English
+		'es', # Spanish
+		'eu', # Euskera (Basque)
+		'fa', # Persian (Farsi)
+		'fr', # French
+		'hr', # Croatian
+		'he', # Hebrew
+		'it', # Italian
+		'ja', # Japanese
+		'ka', # Georgian
+		'kr', # Korean
+		'nb', # Norwegian (Bokmal)
+		'nl', # Dutch
+		'nn', # Norwegian (Nynorsk)
+		'pl', # Polish
+		'pt_BR', # Portuguese (Brazil)
+		'ru', # Russian
+		'sl', # Slovenian
+		'sv', # Swedish
+		'tr', # Turkish
+		'ukr', # Ukrainian
+		'zh_CN', # Chinese (Simplified)
+		'zh_TW', # Chinese (Traditional)
 	    ],
 	},
 	http_proxy => {
