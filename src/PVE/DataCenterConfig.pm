@@ -7,6 +7,9 @@ use PVE::JSONSchema qw(get_standard_option parse_property_string register_standa
 use PVE::Tools;
 use PVE::Cluster;
 
+# MA-L (large) assigned by IEEE
+my $PROXMOX_OUI = 'BC:24:11';
+
 my $crs_format = {
     ha => {
 	type => 'string',
@@ -402,9 +405,9 @@ my $datacenter_schema = {
 	    optional => 1,
 	    type => 'string',
 	    format => 'mac-prefix',
-	    default => 'BC:24:11',
+	    default => $PROXMOX_OUI,
 	    description => "Prefix for the auto-generated MAC addresses of virtual guests. The"
-		." default 'BC:24:11' is the OUI assigned by the IEEE to Proxmox Server Solutions"
+		." default '$PROXMOX_OUI' is the OUI assigned by the IEEE to Proxmox Server Solutions"
 		." GmbH for a 24-bit large MAC block. You're allowed to use this in local networks,"
 		." i.e., those not directly reachable by the public (e.g., in a LAN or behind NAT)."
 		,
@@ -417,7 +420,7 @@ my $datacenter_schema = {
 		." their virtual guests, it's highly recommended that you extend the default MAC"
 		." prefix, or generate a custom (valid) one, to reduce the chance of MAC collisions."
 		." For example, add a separate extra hexadecimal to the Proxmox OUI for each cluster,"
-		." like `BC:24:11:0` for the first, `BC:24:11:1` for the second, and so on.\n"
+		." like `$PROXMOX_OUI:0` for the first, `$PROXMOX_OUI:1` for the second, and so on.\n"
 		." Alternatively, you can also separate the networks of the guests logically, e.g.,"
 		." by using VLANs.\n\nFor publicly accessible guests it's recommended that you get"
 		." your own https://standards.ieee.org/products-programs/regauth/[OUI from the IEEE]"
@@ -495,8 +498,7 @@ sub parse_datacenter_config {
 
     # it could be better to track that this is the default, and not explicitly set, but having
     # no MAC prefix is really not ideal, and overriding that here centrally catches all call sites
-    $res->{mac_prefix} = $datacenter_schema->{properties}->{mac_prefix}->{default}
-	if !defined($res->{mac_prefix});
+    $res->{mac_prefix} = $PROXMOX_OUI if !defined($res->{mac_prefix});
 
     if (my $crs = $res->{crs}) {
 	$res->{crs} = parse_property_string($crs_format, $crs);
@@ -572,6 +574,10 @@ sub write_datacenter_config {
     # map deprecated applet setting to html5
     if (defined($cfg->{console}) && $cfg->{console} eq 'applet') {
 	$cfg->{console} = 'html5';
+    }
+
+    if (defined($cfg->{mac_prefix}) && uc($cfg->{mac_prefix}) eq $PROXMOX_OUI) {
+	delete $cfg->{mac_prefix}; # avoid writing out default prefix
     }
 
     if (ref(my $crs = $cfg->{crs})) {
