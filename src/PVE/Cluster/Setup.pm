@@ -78,40 +78,41 @@ my $pveca_cert_fn = "$pmxcfs_base_dir/pve-root-ca.pem";
 my $pvewww_key_fn = "$pmxcfs_base_dir/pve-www.key";
 
 # ssh related files
-my $ssh_rsa_id_priv = "/root/.ssh/id_rsa";
-my $ssh_rsa_id = "/root/.ssh/id_rsa.pub";
 my $ssh_host_rsa_id = "/etc/ssh/ssh_host_rsa_key.pub";
-my $sshglobalknownhosts = "/etc/ssh/ssh_known_hosts";
-my $sshknownhosts = "$pmxcfs_auth_dir/known_hosts";
-my $sshauthkeys = "$pmxcfs_auth_dir/authorized_keys";
-my $sshd_config_fn = "/etc/ssh/sshd_config";
-my $rootsshauthkeys = "/root/.ssh/authorized_keys";
-my $rootsshauthkeysbackup = "${rootsshauthkeys}.org";
-my $rootsshconfig = "/root/.ssh/config";
+my $ssh_cluster_known_hosts = "$pmxcfs_auth_dir/known_hosts";
+my $ssh_cluster_authorized_keys = "$pmxcfs_auth_dir/authorized_keys";
+my $ssh_system_known_hosts = "/etc/ssh/ssh_known_hosts";
+my $ssh_system_server_config = "/etc/ssh/sshd_config";
+
+my $ssh_root_rsa_key_private = "/root/.ssh/id_rsa";
+my $ssh_root_rsa_key_public = "/root/.ssh/id_rsa.pub";
+my $ssh_root_authorized_keys = "/root/.ssh/authorized_keys";
+my $ssh_root_authorized_keys_backup = "${ssh_root_authorized_keys}.org";
+my $ssh_root_client_config = "/root/.ssh/config";
 
 # ssh related utility functions
 
 sub ssh_merge_keys {
-    # remove duplicate keys in $sshauthkeys
+    # remove duplicate keys in $ssh_cluster_authorized_keys
     # ssh-copy-id simply add keys, so the file can grow to large
 
     my $data = '';
-    if (-f $sshauthkeys) {
-	$data = PVE::Tools::file_get_contents($sshauthkeys, 128*1024);
+    if (-f $ssh_cluster_authorized_keys) {
+	$data = PVE::Tools::file_get_contents($ssh_cluster_authorized_keys, 128*1024);
 	chomp($data);
     }
 
     my $found_backup;
-    if (-f $rootsshauthkeysbackup) {
+    if (-f $ssh_root_authorized_keys_backup) {
 	$data .= "\n";
-	$data .= PVE::Tools::file_get_contents($rootsshauthkeysbackup, 128*1024);
+	$data .= PVE::Tools::file_get_contents($ssh_root_authorized_keys_backup, 128*1024);
 	chomp($data);
 	$found_backup = 1;
     }
 
     # always add ourself
-    if (-f $ssh_rsa_id) {
-	my $pub = PVE::Tools::file_get_contents($ssh_rsa_id);
+    if (-f $ssh_root_rsa_key_public) {
+	my $pub = PVE::Tools::file_get_contents($ssh_root_rsa_key_public);
 	chomp($pub);
 	$data .= "\n$pub\n";
     }
@@ -126,18 +127,18 @@ sub ssh_merge_keys {
 	$newdata .= "$line\n";
     }
 
-    PVE::Tools::file_set_contents($sshauthkeys, $newdata, 0600);
+	PVE::Tools::file_set_contents($ssh_cluster_authorized_keys, $newdata, 0600);
 
-    if ($found_backup && -l $rootsshauthkeys) {
-	# everything went well, so we can remove the backup
-	unlink $rootsshauthkeysbackup;
+	if ($found_backup && -l $ssh_root_authorized_keys) {
+	    # everything went well, so we can remove the backup
+	    unlink $ssh_root_authorized_keys_backup;
+	}
     }
-}
 
 sub setup_sshd_config {
     my () = @_;
 
-    my $conf = PVE::Tools::file_get_contents($sshd_config_fn);
+    my $conf = PVE::Tools::file_get_contents($ssh_system_server_config);
 
     return if $conf =~ m/^PermitRootLogin\s+yes\s*$/m;
 
@@ -146,7 +147,7 @@ sub setup_sshd_config {
 	$conf .= "\nPermitRootLogin yes\n";
     }
 
-    PVE::Tools::file_set_contents($sshd_config_fn, $conf);
+    PVE::Tools::file_set_contents($ssh_system_server_config, $conf);
 
     PVE::Tools::run_command(['systemctl', 'reload-or-restart', 'sshd']);
 }
@@ -154,15 +155,15 @@ sub setup_sshd_config {
 sub setup_rootsshconfig {
 
     # create ssh key if it does not exist
-    if (! -f $ssh_rsa_id) {
+    if (! -f $ssh_root_rsa_key_public) {
 	mkdir '/root/.ssh/';
-	system ("echo|ssh-keygen -t rsa -N '' -b 2048 -f ${ssh_rsa_id_priv}");
+	system ("echo|ssh-keygen -t rsa -N '' -b 2048 -f ${ssh_root_rsa_key_private}");
     }
 
     # create ssh config if it does not exist
-    if (! -f $rootsshconfig) {
+    if (! -f $ssh_root_client_config) {
         mkdir '/root/.ssh';
-        if (my $fh = IO::File->new($rootsshconfig, O_CREAT|O_WRONLY|O_EXCL, 0640)) {
+        if (my $fh = IO::File->new($ssh_root_client_config, O_CREAT|O_WRONLY|O_EXCL, 0640)) {
             # this is the default ciphers list from Debian's OpenSSH package (OpenSSH_7.4p1 Debian-10, OpenSSL 1.0.2k  26 Jan 2017)
 	    # changed order to put AES before Chacha20 (most hardware has AESNI)
             print $fh "Ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-gcm\@openssh.com,aes256-gcm\@openssh.com,chacha20-poly1305\@openssh.com\n";
@@ -177,46 +178,46 @@ sub setup_ssh_keys {
 
     my $import_ok;
 
-    if (! -f $sshauthkeys) {
+    if (! -f $ssh_cluster_authorized_keys) {
 	my $old;
-	if (-f $rootsshauthkeys) {
-	    $old = PVE::Tools::file_get_contents($rootsshauthkeys, 128*1024);
+	if (-f $ssh_root_authorized_keys) {
+	    $old = PVE::Tools::file_get_contents($ssh_root_authorized_keys, 128*1024);
 	}
-	if (my $fh = IO::File->new ($sshauthkeys, O_CREAT|O_WRONLY|O_EXCL, 0400)) {
-	    PVE::Tools::safe_print($sshauthkeys, $fh, $old) if $old;
+	if (my $fh = IO::File->new ($ssh_cluster_authorized_keys, O_CREAT|O_WRONLY|O_EXCL, 0400)) {
+	    PVE::Tools::safe_print($ssh_cluster_authorized_keys, $fh, $old) if $old;
 	    close($fh);
 	    $import_ok = 1;
 	}
     }
 
-    warn "can't create shared ssh key database '$sshauthkeys'\n"
-	if ! -f $sshauthkeys;
+    warn "can't create shared ssh key database '$ssh_cluster_authorized_keys'\n"
+	if ! -f $ssh_cluster_authorized_keys;
 
-    if (-f $rootsshauthkeys && ! -l $rootsshauthkeys) {
-	if (!rename($rootsshauthkeys , $rootsshauthkeysbackup)) {
-	    warn "rename $rootsshauthkeys failed - $!\n";
+    if (-f $ssh_root_authorized_keys && ! -l $ssh_root_authorized_keys) {
+	if (!rename($ssh_root_authorized_keys , $ssh_root_authorized_keys_backup)) {
+	    warn "rename $ssh_root_authorized_keys failed - $!\n";
 	}
     }
 
-    if (! -l $rootsshauthkeys) {
-	symlink $sshauthkeys, $rootsshauthkeys;
+    if (! -l $ssh_root_authorized_keys) {
+	symlink $ssh_cluster_authorized_keys, $ssh_root_authorized_keys;
     }
 
-    if (! -l $rootsshauthkeys) {
-	warn "can't create symlink for ssh keys '$rootsshauthkeys' -> '$sshauthkeys'\n";
+    if (! -l $ssh_root_authorized_keys) {
+	warn "can't create symlink for ssh keys '$ssh_root_authorized_keys' -> '$ssh_cluster_authorized_keys'\n";
     } else {
-	unlink $rootsshauthkeysbackup if $import_ok;
+	unlink $ssh_root_authorized_keys_backup if $import_ok;
     }
 }
 
 sub ssh_unmerge_known_hosts {
-    return if ! -l $sshglobalknownhosts;
+    return if ! -l $ssh_system_known_hosts;
 
     my $old = '';
-    $old = PVE::Tools::file_get_contents($sshknownhosts, 128*1024)
-	if -f $sshknownhosts;
+    $old = PVE::Tools::file_get_contents($ssh_cluster_known_hosts, 128*1024)
+	if -f $ssh_cluster_known_hosts;
 
-    PVE::Tools::file_set_contents($sshglobalknownhosts, $old);
+    PVE::Tools::file_set_contents($ssh_system_known_hosts, $old);
 }
 
 sub ssh_merge_known_hosts {
@@ -231,18 +232,18 @@ sub ssh_merge_known_hosts {
 
     mkdir $pmxcfs_auth_dir;
 
-    if (! -f $sshknownhosts) {
-	if (my $fh = IO::File->new($sshknownhosts, O_CREAT|O_WRONLY|O_EXCL, 0600)) {
+    if (! -f $ssh_cluster_known_hosts) {
+	if (my $fh = IO::File->new($ssh_cluster_known_hosts, O_CREAT|O_WRONLY|O_EXCL, 0600)) {
 	    close($fh);
 	}
     }
 
-    my $old = PVE::Tools::file_get_contents($sshknownhosts, 128*1024);
+    my $old = PVE::Tools::file_get_contents($ssh_cluster_known_hosts, 128*1024);
 
     my $new = '';
 
-    if ((! -l $sshglobalknownhosts) && (-f $sshglobalknownhosts)) {
-	$new = PVE::Tools::file_get_contents($sshglobalknownhosts, 128*1024);
+    if ((! -l $ssh_system_known_hosts) && (-f $ssh_system_known_hosts)) {
+	$new = PVE::Tools::file_get_contents($ssh_system_known_hosts, 128*1024);
     }
 
     my $hostkey = PVE::Tools::file_get_contents($ssh_host_rsa_id);
@@ -319,15 +320,15 @@ sub ssh_merge_known_hosts {
     $data .= "$nodename $hostkey\n" if !$found_nodename;
     $data .= "$ip_address $hostkey\n" if !$found_local_ip;
 
-    PVE::Tools::file_set_contents($sshknownhosts, $data);
+    PVE::Tools::file_set_contents($ssh_cluster_known_hosts, $data);
 
     return if !$createLink;
 
-    unlink $sshglobalknownhosts;
-    symlink $sshknownhosts, $sshglobalknownhosts;
+    unlink $ssh_system_known_hosts;
+    symlink $ssh_cluster_known_hosts, $ssh_system_known_hosts;
 
-    warn "can't create symlink for ssh known hosts '$sshglobalknownhosts' -> '$sshknownhosts'\n"
-	if ! -l $sshglobalknownhosts;
+    warn "can't create symlink for ssh known hosts '$ssh_system_known_hosts' -> '$ssh_cluster_known_hosts'\n"
+	if ! -l $ssh_system_known_hosts;
 
 }
 
