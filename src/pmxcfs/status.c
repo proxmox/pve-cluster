@@ -110,6 +110,7 @@ static memdb_change_t memdb_change_array[] = {
 	{ .path = "sdn/dns.cfg" },
 	{ .path = "sdn/.running-config" },
 	{ .path = "virtual-guest/cpu-models.conf" },
+	{ .path = "virtual-guest/profiles.cfg" },
 	{ .path = "firewall/cluster.fw" },
 	{ .path = "mapping/pci.cfg" },
 	{ .path = "mapping/usb.cfg" },
