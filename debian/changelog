@@ -1,3 +1,21 @@
+pve-cluster (8.0.5) bookworm; urgency=medium
+
+  * datacenter config: fix descriptions for user-tag-access schema
+
+  * datacenter config: add missing language short-codes and comment what
+    actual language each refers too.
+
+  * fix # 4764: datacenter config: default MAC prefix to official Proxmox OUI
+
+  * datacenter config: avoid writing out default MAC prefix
+
+  * pmxcfs: track changes for new priv/macs.db ant virtual-guests/profiles.cfg
+    files
+
+  * notify: adapt to matcher based notification system
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 17 Nov 2023 14:40:32 +0100
+
 pve-cluster (8.0.4) bookworm; urgency=medium
 
   * fix #4937: force UTF-8 encoding when writing notification
