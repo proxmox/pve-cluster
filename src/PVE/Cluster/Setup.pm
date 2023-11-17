@@ -98,14 +98,14 @@ sub ssh_merge_keys {
 
     my $data = '';
     if (-f $ssh_cluster_authorized_keys) {
-	$data = PVE::Tools::file_get_contents($ssh_cluster_authorized_keys, 128*1024);
+	$data = PVE::Tools::file_get_contents($ssh_cluster_authorized_keys);
 	chomp($data);
     }
 
     my $found_backup;
     if (-f $ssh_root_authorized_keys_backup) {
 	$data .= "\n";
-	$data .= PVE::Tools::file_get_contents($ssh_root_authorized_keys_backup, 128*1024);
+	$data .= PVE::Tools::file_get_contents($ssh_root_authorized_keys_backup);
 	chomp($data);
 	$found_backup = 1;
     }
@@ -181,7 +181,7 @@ sub setup_ssh_keys {
     if (! -f $ssh_cluster_authorized_keys) {
 	my $old;
 	if (-f $ssh_root_authorized_keys) {
-	    $old = PVE::Tools::file_get_contents($ssh_root_authorized_keys, 128*1024);
+	    $old = PVE::Tools::file_get_contents($ssh_root_authorized_keys);
 	}
 	if (my $fh = IO::File->new ($ssh_cluster_authorized_keys, O_CREAT|O_WRONLY|O_EXCL, 0400)) {
 	    PVE::Tools::safe_print($ssh_cluster_authorized_keys, $fh, $old) if $old;
@@ -214,7 +214,7 @@ sub ssh_unmerge_known_hosts {
     return if ! -l $ssh_system_known_hosts;
 
     my $old = '';
-    $old = PVE::Tools::file_get_contents($ssh_cluster_known_hosts, 128*1024)
+    $old = PVE::Tools::file_get_contents($ssh_cluster_known_hosts)
 	if -f $ssh_cluster_known_hosts;
 
     PVE::Tools::file_set_contents($ssh_system_known_hosts, $old);
@@ -238,12 +238,12 @@ sub ssh_merge_known_hosts {
 	}
     }
 
-    my $old = PVE::Tools::file_get_contents($ssh_cluster_known_hosts, 128*1024);
+    my $old = PVE::Tools::file_get_contents($ssh_cluster_known_hosts);
 
     my $new = '';
 
     if ((! -l $ssh_system_known_hosts) && (-f $ssh_system_known_hosts)) {
-	$new = PVE::Tools::file_get_contents($ssh_system_known_hosts, 128*1024);
+	$new = PVE::Tools::file_get_contents($ssh_system_known_hosts);
     }
 
     my $hostkey = PVE::Tools::file_get_contents($ssh_host_rsa_id);
