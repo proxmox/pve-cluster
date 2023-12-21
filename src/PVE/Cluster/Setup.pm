@@ -157,7 +157,7 @@ sub setup_rootsshconfig {
     # create ssh key if it does not exist
     if (! -f $ssh_root_rsa_key_public) {
 	mkdir '/root/.ssh/';
-	system ("echo|ssh-keygen -t rsa -N '' -b 2048 -f ${ssh_root_rsa_key_private}");
+	system ("echo|ssh-keygen -t rsa -N '' -b 4096 -f ${ssh_root_rsa_key_private}");
     }
 
     # create ssh config if it does not exist
