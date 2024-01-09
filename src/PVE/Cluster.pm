@@ -594,7 +594,7 @@ sub cfs_write_file {
 	$ci->{version} = undef;
     }
 
-    PVE::Tools::file_set_contents($fsname, $raw, undef, 1);
+    PVE::Tools::file_set_contents($fsname, $raw, undef, $force_utf8);
 }
 
 my $cfs_lock = sub {
