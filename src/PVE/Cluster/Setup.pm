@@ -220,6 +220,20 @@ sub ssh_unmerge_known_hosts {
     PVE::Tools::file_set_contents($ssh_system_known_hosts, $old);
 }
 
+sub ssh_create_node_known_hosts {
+    my ($nodename) = @_;
+
+    my $hostkey = PVE::Tools::file_get_contents($ssh_host_rsa_id);
+    # Note: file sometimes containe empty lines at start, so we use multiline match
+    die "can't parse $ssh_host_rsa_id" if $hostkey !~ m/^(ssh-rsa\s\S+)(\s.*)?$/m;
+    $hostkey = $1;
+
+    my $raw = "$nodename $hostkey";
+    PVE::Tools::file_set_contents("/etc/pve/nodes/$nodename/ssh_known_hosts", $raw);
+
+    # TODO: also setup custom keypair and client config here to disentangle entirely from /root/.ssh?
+}
+
 sub ssh_merge_known_hosts {
     my ($nodename, $ip_address, $createLink) = @_;
 
@@ -823,6 +837,7 @@ sub updatecerts_and_ssh {
     $p->("merge authorized SSH keys and known hosts");
     ssh_merge_keys();
     ssh_merge_known_hosts($nodename, $local_ip_address, 1);
+    ssh_create_node_known_hosts($nodename);
     gen_pve_vzdump_files();
 }
 
