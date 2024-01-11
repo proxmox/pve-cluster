@@ -816,7 +816,7 @@ sub generate_local_files {
 }
 
 sub updatecerts_and_ssh {
-    my ($force_new_cert, $silent) = @_;
+    my ($force_new_cert, $silent, $unmerge_ssh) = @_;
 
     my $p = sub { print "$_[0]\n" if !$silent };
 
@@ -834,9 +834,12 @@ sub updatecerts_and_ssh {
     $p->("generate new node certificate") if $force_new_cert;
     gen_pve_node_files($nodename, $local_ip_address, $force_new_cert);
 
-    $p->("merge authorized SSH keys and known hosts");
+    $p->("merge authorized SSH keys");
     ssh_merge_keys();
-    ssh_merge_known_hosts($nodename, $local_ip_address, 1);
+    if ($unmerge_ssh) {
+	$p->("unmerge SSH known hosts");
+	ssh_unmerge_known_hosts();
+    }
     ssh_create_node_known_hosts($nodename);
     gen_pve_vzdump_files();
 }

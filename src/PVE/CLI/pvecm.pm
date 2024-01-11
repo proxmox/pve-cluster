@@ -567,12 +567,18 @@ __PACKAGE__->register_method ({
 		type => 'boolean',
 		optional => 1,
 	    },
+	    'unmerge-known-hosts' => {
+		description => "Unmerge legacy SSH known hosts.",
+		type => 'boolean',
+		optional => 1,
+		default => 0,
+	    },
 	},
     },
     returns => { type => 'null' },
     code => sub {
 	my ($param) = @_;
-	my ($force_new_cert, $silent) = $param->@{qw(force silent)};
+	my ($force_new_cert, $silent, $unmerge) = $param->@{qw(force silent unmerge-known-hosts)};
 
 	# pveproxy's ExecStartPre calls this, and as we do IO (on /etc/pve) that can hang
 	# (uninterruptible D state) we could fail the whole service, rendering the API guaranteed
@@ -585,7 +591,7 @@ __PACKAGE__->register_method ({
 		usleep(100 * 1000);
 	    }
 
-	    PVE::Cluster::Setup::updatecerts_and_ssh($force_new_cert, $silent);
+	    PVE::Cluster::Setup::updatecerts_and_ssh($force_new_cert, $silent, $unmerge);
 	    PVE::Cluster::prepare_observed_file_basedirs();
 	});
 	if ($got_timeout) {
