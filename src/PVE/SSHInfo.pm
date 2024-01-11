@@ -49,11 +49,24 @@ sub get_ssh_info {
 
 sub ssh_info_to_command_base {
     my ($info, @extra_options) = @_;
+
+    my $nodename = $info->{name};
+
+    my $known_hosts_file = "/etc/pve/nodes/$nodename/ssh_known_hosts";
+    my $known_hosts_options = undef;
+    if (-f $known_hosts_file) {
+	$known_hosts_options = [
+	    '-o', "UserKnownHostsFile=$known_hosts_file",
+	    '-o', 'GlobalKnownHostsFile=none',
+	];
+    }
+
     return [
 	'/usr/bin/ssh',
 	'-e', 'none',
 	'-o', 'BatchMode=yes',
-	'-o', 'HostKeyAlias='.$info->{name},
+	'-o', 'HostKeyAlias='.$nodename,
+	defined($known_hosts_options) ? @$known_hosts_options : (),
 	@extra_options
     ];
 }
