@@ -47,7 +47,7 @@ sub get_ssh_info {
     };
 }
 
-sub ssh_info_to_command_base {
+sub ssh_info_to_ssh_opts {
     my ($info, @extra_options) = @_;
 
     my $nodename = $info->{name};
@@ -62,12 +62,22 @@ sub ssh_info_to_command_base {
     }
 
     return [
-	'/usr/bin/ssh',
-	'-e', 'none',
 	'-o', 'BatchMode=yes',
 	'-o', 'HostKeyAlias='.$nodename,
 	defined($known_hosts_options) ? @$known_hosts_options : (),
 	@extra_options
+    ];
+}
+
+sub ssh_info_to_command_base {
+    my ($info, @extra_options) = @_;
+
+    my $opts = ssh_info_to_ssh_opts($info, @extra_options);
+
+    return [
+	'/usr/bin/ssh',
+	'-e', 'none', # only works for ssh, not scp!
+	$opts->@*,
     ];
 }
 
