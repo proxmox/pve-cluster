@@ -52,8 +52,10 @@ my $notification_format = {
     'package-updates' => {
 	type => 'string',
 	enum => ['auto', 'always', 'never'],
-	description => "Control when the daily update job should send out notifications.",
-	verbose_description => "Control how often the daily update job should send out notifications:\n"
+	description => "DEPRECATED: Use datacenter notification settings instead."
+            ." Control when the daily update job should send out notifications.",
+	verbose_description => "DEPRECATED: Use datacenter notification settings instead.\n"
+	    ."Control how often the daily update job should send out notifications:\n"
 	    ."* 'auto' daily for systems with a valid subscription, as those are assumed to be "
 	    ." production-ready and thus should know about pending updates.\n"
 	    ."* 'always' every update, if there are new pending updates.\n"
@@ -61,62 +63,37 @@ my $notification_format = {
 	default => 'auto',
 	optional => 1,
     },
+    # TODO: These are the left-overs of the first version of the overhauled notification system.
+    # It was already available on pvetest, thus we should keep these entries here for a while to
+    # avoid any breakage.
     'target-package-updates' => {
 	type => 'string',
 	format_description => 'TARGET',
-	description => "Control where notifications about available updates should be sent to.",
-	verbose_description => "Control where notifications about available"
-	    . " updates should be sent to."
-	    . " Has to be the name of a notification target (endpoint or notification group)."
-	    . " If the 'target-package-updates' parameter is not set, the system will send mails"
-	    . " to root via a 'sendmail' notification endpoint.",
+	description => "UNUSED - Use datacenter notification settings instead.",
 	optional => 1,
     },
     'fencing' => {
 	type => 'string',
 	enum => ['always', 'never'],
-	description => "Control if notifications about node fencing should be sent.",
-	verbose_description => "Control if notifications about node fencing should be sent.\n"
-	    . "* 'always' always send out notifications\n"
-	    . "* 'never' never send out notifications.\n"
-	    . "For production systems, turning off node fencing notifications is not"
-	    . "recommended!\n",
-	default => 'always',
+	description => "UNUSED - Use datacenter notification settings instead.",
 	optional => 1,
     },
     'target-fencing' => {
 	type => 'string',
 	format_description => 'TARGET',
-	description => "Control where notifications about fenced cluster nodes should be sent to.",
-	verbose_description => "Control where notifications about fenced cluster nodes"
-	    . " should be sent to."
-	    . " Has to be the name of a notification target (endpoint or notification group)."
-	    . " If the 'target-fencing' parameter is not set, the system will send mails"
-	    . " to root via a 'sendmail' notification endpoint.",
+	description => "UNUSED - Use datacenter notification settings instead.",
 	optional => 1,
     },
     'replication' => {
 	type => 'string',
 	enum => ['always', 'never'],
-	description => "Control if notifications for replication failures should be sent.",
-	verbose_description => "Control if notifications for replication failures should be sent.\n"
-	    . "* 'always' always send out notifications\n"
-	    . "* 'never' never send out notifications.\n"
-	    . "For production systems, turning off replication notifications is not"
-	    . "recommended!\n",
-	default => 'always',
+	description => "UNUSED - Use datacenter notification settings instead.",
 	optional => 1,
     },
     'target-replication' => {
 	type => 'string',
 	format_description => 'TARGET',
-	description => "Control where notifications for failed storage replication jobs should"
-	    . " be sent to.",
-	verbose_description => "Control where notifications for failed storage replication jobs"
-	    . " should be sent to."
-	    . " Has to be the name of a notification target (endpoint or notification group)."
-	    . " If the 'target-replication' parameter is not set, the system will send mails"
-	    . " to root via a 'sendmail' notification endpoint.",
+	description => "UNUSED - Use datacenter notification settings instead.",
 	optional => 1,
     },
 };
