@@ -1,3 +1,19 @@
+pve-cluster (8.0.6) bookworm; urgency=medium
+
+  * cfs_write_file: fix accidental UTF-8 re-encoding
+
+  * ssh: default to 4096 bit keys when generating
+
+  * datacenter config: mark notification settings as deprecated/unused
+
+  * fix #4886: write node SSH hostkey to pmxcfs
+
+  * fix #4886: SSH: pin node's host key if available
+
+  * pvecm: stop merging SSH known hosts by default
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 25 Mar 2024 18:02:24 +0100
+
 pve-cluster (8.0.5) bookworm; urgency=medium
 
   * datacenter config: fix descriptions for user-tag-access schema
