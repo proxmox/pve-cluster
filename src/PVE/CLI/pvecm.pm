@@ -18,6 +18,7 @@ use PVE::PTY;
 use PVE::API2::ClusterConfig;
 use PVE::Corosync;
 use PVE::Cluster::Setup;
+use PVE::SSHInfo;
 
 use base qw(PVE::CLIHandler);
 
@@ -173,10 +174,11 @@ __PACKAGE__->register_method ({
 	run_command([@$scp_cmd, "root\@\[$qnetd_addr\]:$ca_export_file", "/etc/pve/$ca_export_base"]);
 	$foreach_member->(sub {
 	    my ($node, $ip) = @_;
+	    my $ssh_cluster_cmd = PVE::SSHInfo::ssh_info_to_command({ ip => $ip, name => $node });
 	    my $outsub = sub { print "\nnode '$node': " . shift };
 	    run_command(
-		[@$ssh_cmd, $ip, $qdevice_certutil, "-i", "-c", "/etc/pve/$ca_export_base"],
-		noerr => 1, outfunc => \&$outsub
+		[@$ssh_cluster_cmd, '--', $qdevice_certutil, "-i", "-c", "/etc/pve/$ca_export_base"],
+		noerr => 1, outfunc => $outsub
 	    );
 	});
 	unlink "/etc/pve/$ca_export_base";
@@ -206,11 +208,12 @@ __PACKAGE__->register_method ({
 	run_command([@$scp_cmd, "$db_dir_node/$p12_file_base", "/etc/pve/"]);
 	$foreach_member->(sub {
 	    my ($node, $ip) = @_;
+	    my $ssh_cluster_cmd = PVE::SSHInfo::ssh_info_to_command({ ip => $ip, name => $node });
 	    my $outsub = sub { print "\nnode '$node': " . shift };
-	    run_command([
-		    @$ssh_cmd, $ip, "$qdevice_certutil", "-m", "-c",
-		    "/etc/pve/$p12_file_base"], outfunc => \&$outsub
-		);
+	    run_command(
+		[@$ssh_cluster_cmd, '--', "$qdevice_certutil", "-m", "-c", "/etc/pve/$p12_file_base"],
+		outfunc => $outsub
+	    );
 	});
 	unlink "/etc/pve/$p12_file_base";
 
@@ -243,10 +246,17 @@ __PACKAGE__->register_method ({
 
 	$foreach_member->(sub {
 	    my ($node, $ip) = @_;
+	    my $ssh_cluster_cmd = PVE::SSHInfo::ssh_info_to_command({ ip => $ip, name => $node });
 	    my $outsub = sub { print "\nnode '$node': " . shift };
 	    print "\nINFO: start and enable corosync qdevice daemon on node '$node'...\n";
-	    run_command([@$ssh_cmd, $ip, 'systemctl', 'start', 'corosync-qdevice'], outfunc => \&$outsub);
-	    run_command([@$ssh_cmd, $ip, 'systemctl', 'enable', 'corosync-qdevice'], outfunc => \&$outsub);
+	    run_command(
+		[@$ssh_cluster_cmd, '--', 'systemctl', 'start', 'corosync-qdevice'],
+		outfunc => $outsub
+	    );
+	    run_command(
+		[@$ssh_cluster_cmd, '--', 'systemctl', 'enable', 'corosync-qdevice'],
+		outfunc => $outsub
+	    );
 	});
 
 	run_command(['corosync-cfgtool', '-R']); # do cluster wide config reload
@@ -276,8 +286,6 @@ __PACKAGE__->register_method ({
 		if !$members->{$node}->{online};
 	}
 
-	my $ssh_cmd = ['ssh', '-o', 'BatchMode=yes', '-lroot'];
-
 	my $code = sub {
 	    my $conf = PVE::Cluster::cfs_read_file("corosync.conf");
 	    my $quorum_section = $conf->{main}->{quorum};
@@ -291,8 +299,9 @@ __PACKAGE__->register_method ({
 	    # cleanup qdev state (cert storage)
 	    my $qdev_state_dir =  "/etc/corosync/qdevice";
 	    $foreach_member->(sub {
-		my (undef, $ip) = @_;
-		run_command([@$ssh_cmd, $ip, '--', 'rm', '-rf', $qdev_state_dir]);
+		my ($node, $ip) = @_;
+		my $ssh_cluster_cmd = PVE::SSHInfo::ssh_info_to_command({ ip => $ip, name => $node });
+		run_command([@$ssh_cluster_cmd, '--', 'rm', '-rf', $qdev_state_dir]);
 	    });
 	};
 
@@ -300,9 +309,10 @@ __PACKAGE__->register_method ({
 	die $@ if $@;
 
 	$foreach_member->(sub {
-	    my (undef, $ip) = @_;
-	    run_command([@$ssh_cmd, $ip, 'systemctl', 'stop', 'corosync-qdevice']);
-	    run_command([@$ssh_cmd, $ip, 'systemctl', 'disable', 'corosync-qdevice']);
+	    my ($node, $ip) = @_;
+	    my $ssh_cluster_cmd = PVE::SSHInfo::ssh_info_to_command({ ip => $ip, name => $node });
+	    run_command([@$ssh_cluster_cmd, '--', 'systemctl', 'stop', 'corosync-qdevice']);
+	    run_command([@$ssh_cluster_cmd, '--', 'systemctl', 'disable', 'corosync-qdevice']);
 	});
 
 	run_command(['corosync-cfgtool', '-R']);
