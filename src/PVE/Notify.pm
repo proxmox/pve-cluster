@@ -58,17 +58,16 @@ sub write_config {
 }
 
 my $send_notification = sub {
-    my ($severity, $title, $message, $template_data, $fields, $config) = @_;
+    my ($severity, $template_name, $template_data, $fields, $config) = @_;
     $config = read_config() if !defined($config);
-    $config->send($severity, $title, $message, $template_data, $fields);
+    $config->send($severity, $template_name, $template_data, $fields);
 };
 
 sub notify {
-    my ($severity, $title, $message, $template_data, $fields, $config) = @_;
+    my ($severity, $template_name, $template_data, $fields, $config) = @_;
     $send_notification->(
         $severity,
-        $title,
-        $message,
+        $template_name,
         $template_data,
         $fields,
         $config
@@ -76,11 +75,10 @@ sub notify {
 }
 
 sub info {
-    my ($title, $message, $template_data, $fields, $config) = @_;
+    my ($template_name, $template_data, $fields, $config) = @_;
     $send_notification->(
         'info',
-        $title,
-        $message,
+        $template_name,
         $template_data,
         $fields,
         $config
@@ -88,11 +86,10 @@ sub info {
 }
 
 sub notice {
-    my ($title, $message, $template_data, $fields, $config) = @_;
+    my ($template_name, $template_data, $fields, $config) = @_;
     $send_notification->(
         'notice',
-        $title,
-        $message,
+        $template_name,
         $template_data,
         $fields,
         $config
@@ -100,11 +97,10 @@ sub notice {
 }
 
 sub warning {
-    my ($title, $message, $template_data, $fields, $config) = @_;
+    my ($template_name, $template_data, $fields, $config) = @_;
     $send_notification->(
         'warning',
-        $title,
-        $message,
+        $template_name,
         $template_data,
         $fields,
         $config
@@ -112,11 +108,10 @@ sub warning {
 }
 
 sub error {
-    my ($title, $message, $template_data, $fields, $config) = @_;
+    my ($template_name, $template_data, $fields, $config) = @_;
     $send_notification->(
         'error',
-        $title,
-        $message,
+        $template_name,
         $template_data,
         $fields,
         $config
