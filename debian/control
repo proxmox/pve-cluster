@@ -95,6 +95,8 @@ Depends: libproxmox-rs-perl (>= 0.3.1),
          libpve-rs-perl (>= 0.8.9),
          ${misc:Depends},
          ${perl:Depends},
+Breaks: pve-ha-manager (<< 4.0.5),
+        pve-manager (<< 8.2.3),
 Description: Notify helper module.
  Contains the main perl module related to managing and sending notifiations
  according to the cluster wide notification configuration.
