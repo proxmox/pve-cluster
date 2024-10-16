@@ -1,3 +1,13 @@
+pve-cluster (8.0.8) bookworm; urgency=medium
+
+  * fix #5728: pmxcfs: allow bigger writes than 4k by using the fuse
+    big_writes option. This reduces write-amplification in the sqlite DB for
+    writes bigger than 4 KiB, especially if paired with a recent change to the
+    file_set_contents helper from pve-common to write as much as possible in
+    one go.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 16 Oct 2024 19:10:29 +0200
+
 pve-cluster (8.0.7) bookworm; urgency=medium
 
   * fix #5461: pvecm: use ssh_info_to_command for intra cluster ssh
