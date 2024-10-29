@@ -407,8 +407,7 @@ sub gen_pveca_cert {
 
     gen_pveca_key();
 
-    # we try to generate an unique 'subject' to avoid browser problems
-    # (reused serial numbers, ..)
+    # we try to generate an unique 'subject' to avoid browser problems (reused serial numbers, ..)
     my $uuid;
     UUID::generate($uuid);
     my $uuid_str;
@@ -416,10 +415,18 @@ sub gen_pveca_cert {
 
     eval {
 	# wrap openssl with faketime to prevent bug #904
-	run_silent_cmd(['faketime', 'yesterday', 'openssl', 'req', '-batch',
-			'-days', '3650', '-new', '-x509', '-nodes', '-key',
-			$pveca_key_fn, '-out', $pveca_cert_fn, '-subj',
-			"/CN=Proxmox Virtual Environment/OU=$uuid_str/O=PVE Cluster Manager CA/"]);
+	run_silent_cmd([
+	    'faketime', 'yesterday',
+	    'openssl', 'req',
+	    '-batch',
+	    '-days', '3650',
+	    '-new',
+	    '-x509',
+	    '-nodes',
+	    '-key', $pveca_key_fn,
+	    '-out', $pveca_cert_fn,
+	    '-subj', "/CN=Proxmox Virtual Environment/OU=$uuid_str/O=PVE Cluster Manager CA/",
+	]);
     };
 
     die "generating pve root certificate failed:\n$@" if $@;
