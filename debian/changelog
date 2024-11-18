@@ -1,3 +1,10 @@
+pve-cluster (8.0.10) bookworm; urgency=medium
+
+  * cfs: add 'sdn/mac-cache.json' to observed files in a similar spirit as
+    adding 'sdn/pve-ipam-state.json' recently.
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 18 Nov 2024 22:19:58 +0100
+
 pve-cluster (8.0.9) bookworm; urgency=medium
 
   * cfs: add 'sdn/pve-ipam-state.json' to observed files so that the
