@@ -449,6 +449,12 @@ my $datacenter_schema = {
 	    pattern => "(?:${PVE::JSONSchema::PVE_TAG_RE};)*${PVE::JSONSchema::PVE_TAG_RE}",
 	    typetext => "<tag>[;<tag>...]",
 	},
+	'consent-text' => {
+	    optional => 1,
+	    type => 'string',
+	    maxLength => 64 * 1024,
+	    description => "Consent text that is displayed before logging in."
+	},
     },
 };
 
