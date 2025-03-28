@@ -4,6 +4,9 @@ use strict;
 use warnings;
 
 use PVE::Cluster qw(cfs_register_file cfs_read_file cfs_lock_file cfs_write_file);
+use PVE::INotify;
+use PVE::Tools;
+
 use Proxmox::RS::Notify;
 
 cfs_register_file(
@@ -128,6 +131,30 @@ sub check_may_use_target {
     for my $entity (@$entities) {
 	$rpcenv->check($user, "/mapping/notification/$entity", [ 'Mapping.Use' ]);
     }
+}
+
+my $cached_fqdn;
+sub common_template_data {
+    # The hostname is already cached by PVE::INotify::nodename,
+    # no need to cache it here as well.
+    my $hostname = PVE::INotify::nodename();
+
+    if (!$cached_fqdn) {
+        $cached_fqdn = PVE::Tools::get_fqdn($hostname);
+    }
+
+    my $data = {
+        hostname => $hostname,
+        fqdn => $cached_fqdn,
+    };
+
+    my $cluster_info = PVE::Cluster::get_clinfo();
+
+    if (my $d = $cluster_info->{cluster}) {
+        $data->{"cluster-name"} = $d->{name};
+    }
+
+    return $data;
 }
 
 1;
