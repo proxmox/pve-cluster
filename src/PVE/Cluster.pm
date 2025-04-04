@@ -86,6 +86,7 @@ my $observed = {
     'sdn/.running-config' => 1,
     'virtual-guest/cpu-models.conf' => 1,
     'virtual-guest/profiles.cfg' => 1,
+    'mapping/directory.cfg' => 1,
     'mapping/pci.cfg' => 1,
     'mapping/usb.cfg' => 1,
 };
