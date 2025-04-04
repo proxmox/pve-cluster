@@ -1,3 +1,15 @@
+pve-cluster (8.1.0) bookworm; urgency=medium
+
+  * notify: add helper for querying common template data
+
+  * add mapping/directory.cfg for resource mapping to observed files
+
+  * cluster: add sdn fabrics config file
+
+  * add consent-text parameter to datacenter config file
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 04 Apr 2025 19:13:26 +0200
+
 pve-cluster (8.0.10) bookworm; urgency=medium
 
   * cfs: add 'sdn/mac-cache.json' to observed files in a similar spirit as
