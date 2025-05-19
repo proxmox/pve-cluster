@@ -44,7 +44,7 @@ my $migration_format = {
 	optional => 1,
 	type => 'string', format => 'CIDR',
 	format_description => 'CIDR',
-	description => "CIDR of the (sub) network that is used for migration."
+	description => "CIDR of the (sub) network that is used for migration and replication."
     },
 };
 
