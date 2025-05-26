@@ -593,7 +593,7 @@ __PACKAGE__->register_method ({
 	# pveproxy's ExecStartPre calls this, and as we do IO (on /etc/pve) that can hang
 	# (uninterruptible D state) we could fail the whole service, rendering the API guaranteed
 	# inaccessible. Let's rather fail small(er) as the API could still work without this..
-	my ($_res, $got_timeout) = PVE::Tools::run_fork_with_timeout(30, sub {
+	my ($_res, $got_timeout) = PVE::Tools::run_fork_with_timeout(80, sub {
 	    PVE::Cluster::Setup::generate_local_files();
 
 	    for (my $i = 0; !PVE::Cluster::check_cfs_quorum(1); $i++) {
