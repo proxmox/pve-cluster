@@ -25,7 +25,7 @@ sub mocked_resolve {
     my ($hostname) = @_;
 
     foreach my $host (keys %$known_hosts) {
-	return $known_hosts->{$host} if $hostname eq $host;
+        return $known_hosts->{$host} if $hostname eq $host;
     }
 
     die "got unknown hostname '$hostname' during mocked resolve_hostname_like_corosync";
@@ -41,19 +41,20 @@ sub parser_self_check {
     my ($config1, $config2, $raw1, $raw2);
 
     eval {
-	# read first time
-	$raw1 = PVE::Tools::file_get_contents($cfg_fn);
-	$config1 = PVE::Corosync::parse_conf($cfg_fn, $raw1);
+        # read first time
+        $raw1 = PVE::Tools::file_get_contents($cfg_fn);
+        $config1 = PVE::Corosync::parse_conf($cfg_fn, $raw1);
 
-	# write config
-	$raw2 = PVE::Corosync::write_conf(undef, $config1);
-	# do not actually write cfg, but you can outcomment to do so, e.g. if
-	# you want to use diff for easy comparision
-	#PVE::Tools::file_set_contents($outfile, $raw2);
+        # write config
+        $raw2 = PVE::Corosync::write_conf(undef, $config1);
+        # do not actually write cfg, but you can outcomment to do so, e.g. if
+        # you want to use diff for easy comparision
+        #PVE::Tools::file_set_contents($outfile, $raw2);
 
-	# reparse written config (must be the same as config1)
-	$config2 = PVE::Corosync::parse_conf(undef, $raw2);
-    }; warn $@ if $@;
+        # reparse written config (must be the same as config1)
+        $config2 = PVE::Corosync::parse_conf(undef, $raw2);
+    };
+    warn $@ if $@;
 
     # test verify_config
     my ($err, $warn) = PVE::Corosync::verify_conf($config1);
@@ -77,7 +78,7 @@ if (my $file = shift) {
     parser_self_check($file);
 } else {
     foreach my $file (<corosync_configs/*.conf>) {
-	parser_self_check($file);
+        parser_self_check($file);
     }
 }
 

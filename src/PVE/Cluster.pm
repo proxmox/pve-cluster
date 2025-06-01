@@ -25,10 +25,10 @@ use PVE::Cluster::IPCConst;
 use base 'Exporter';
 
 our @EXPORT_OK = qw(
-cfs_read_file
-cfs_write_file
-cfs_register_file
-cfs_lock_file);
+    cfs_read_file
+    cfs_write_file
+    cfs_register_file
+    cfs_lock_file);
 
 # x509 certificate utils
 
@@ -94,16 +94,16 @@ my $observed = {
 sub prepare_observed_file_basedirs {
 
     if (!check_cfs_is_mounted(1)) {
-	warn "pmxcfs isn't mounted (/etc/pve), chickening out..\n";
-	return;
+        warn "pmxcfs isn't mounted (/etc/pve), chickening out..\n";
+        return;
     }
 
     for my $f (sort keys %$observed) {
-	next if $f !~ m!^(.*)/[^/]+$!;
-	my $dir = "$basedir/$1";
-	next if -e $dir; # can also be a link, so just use -e xist check
-	print "creating directory '$dir' for observed files\n";
-	make_path($dir);
+        next if $f !~ m!^(.*)/[^/]+$!;
+        my $dir = "$basedir/$1";
+        next if -e $dir; # can also be a link, so just use -e xist check
+        print "creating directory '$dir' for observed files\n";
+        make_path($dir);
     }
 }
 
@@ -168,11 +168,11 @@ my $ipcc_get_config = sub {
     my $bindata = pack "Z*", $path;
     my $res = PVE::IPCC::ipcc_send_rec(CFS_IPC_GET_CONFIG, $bindata);
     if (!defined($res)) {
-	if ($! != 0) {
-	    return undef if $! == ENOENT;
-	    die "$!\n";
-	}
-	return '';
+        if ($! != 0) {
+            return undef if $! == ENOENT;
+            die "$!\n";
+        }
+        return '';
     }
 
     return $res;
@@ -207,7 +207,7 @@ my $ipcc_log = sub {
     my ($priority, $ident, $tag, $msg) = @_;
 
     my $bindata = pack "CCCZ*Z*Z*", $priority, bytes::length($ident) + 1,
-    bytes::length($tag) + 1, $ident, $tag, $msg;
+        bytes::length($tag) + 1, $ident, $tag, $msg;
 
     return &$ipcc_send_rec(CFS_IPC_LOG_CLUSTER_MSG, $bindata);
 };
@@ -238,53 +238,56 @@ my $ccache = {};
 sub cfs_update {
     my ($fail) = @_;
     eval {
-	my $res = &$ipcc_send_rec_json(CFS_IPC_GET_FS_VERSION);
-	die "no starttime\n" if !$res->{starttime};
+        my $res = &$ipcc_send_rec_json(CFS_IPC_GET_FS_VERSION);
+        die "no starttime\n" if !$res->{starttime};
 
-	if (!$res->{starttime} || !$versions->{starttime} ||
-	    $res->{starttime} != $versions->{starttime}) {
-	    #print "detected changed starttime\n";
-	    $vmlist = {};
-	    $clinfo = {};
-	    $ccache = {};
-	}
+        if (
+            !$res->{starttime}
+            || !$versions->{starttime}
+            || $res->{starttime} != $versions->{starttime}
+        ) {
+            #print "detected changed starttime\n";
+            $vmlist = {};
+            $clinfo = {};
+            $ccache = {};
+        }
 
-	$versions = $res;
+        $versions = $res;
     };
     my $err = $@;
     if ($err) {
-	$versions = {};
-	$vmlist = {};
-	$clinfo = {};
-	$ccache = {};
-	die $err if $fail;
-	warn $err;
+        $versions = {};
+        $vmlist = {};
+        $clinfo = {};
+        $ccache = {};
+        die $err if $fail;
+        warn $err;
     }
 
     eval {
-	if (!$clinfo->{version} || $clinfo->{version} != $versions->{clinfo}) {
-	    #warn "detected new clinfo\n";
-	    $clinfo = &$ipcc_send_rec_json(CFS_IPC_GET_CLUSTER_INFO);
-	}
+        if (!$clinfo->{version} || $clinfo->{version} != $versions->{clinfo}) {
+            #warn "detected new clinfo\n";
+            $clinfo = &$ipcc_send_rec_json(CFS_IPC_GET_CLUSTER_INFO);
+        }
     };
     $err = $@;
     if ($err) {
-	$clinfo = {};
-	die $err if $fail;
-	warn $err;
+        $clinfo = {};
+        die $err if $fail;
+        warn $err;
     }
 
     eval {
-	if (!$vmlist->{version} || $vmlist->{version} != $versions->{vmlist}) {
-	    #warn "detected new vmlist1\n";
-	    $vmlist = &$ipcc_send_rec_json(CFS_IPC_GET_GUEST_LIST);
-	}
+        if (!$vmlist->{version} || $vmlist->{version} != $versions->{vmlist}) {
+            #warn "detected new vmlist1\n";
+            $vmlist = &$ipcc_send_rec_json(CFS_IPC_GET_GUEST_LIST);
+        }
     };
     $err = $@;
     if ($err) {
-	$vmlist = {};
-	die $err if $fail;
-	warn $err;
+        $vmlist = {};
+        die $err if $fail;
+        warn $err;
     }
 }
 
@@ -306,10 +309,10 @@ sub get_nodelist {
     my $nodename = PVE::INotify::nodename();
 
     if (!$nodelist || !$nodelist->{$nodename}) {
-	return [ $nodename ];
+        return [$nodename];
     }
 
-    return [ keys %$nodelist ];
+    return [keys %$nodelist];
 }
 
 # only stored in a in-memory hashtable inside pmxcfs, local data is gone after
@@ -319,13 +322,13 @@ sub broadcast_node_kv {
     my ($key, $data) = @_;
 
     if (!defined($data)) {
-	eval { $ipcc_remove_status->("kv/$key") };
+        eval { $ipcc_remove_status->("kv/$key") };
     } else {
-	die "cannot send a reference\n" if ref($data);
-	my $size = length($data);
-	die "data for '$key' too big\n" if $size >= (32 * 1024); # limit from pmxfs
+        die "cannot send a reference\n" if ref($data);
+        my $size = length($data);
+        die "data for '$key' too big\n" if $size >= (32 * 1024); # limit from pmxfs
 
-	eval { $ipcc_update_status->("kv/$key", $data) };
+        eval { $ipcc_update_status->("kv/$key", $data) };
     }
     warn $@ if $@;
 }
@@ -336,17 +339,17 @@ sub get_node_kv {
 
     my $res = {};
     my $get_node_data = sub {
-	my ($node) = @_;
-	my $raw = $ipcc_get_status->("kv/$key", $node);
-	$res->{$node} = unpack("Z*", $raw) if $raw;
+        my ($node) = @_;
+        my $raw = $ipcc_get_status->("kv/$key", $node);
+        $res->{$node} = unpack("Z*", $raw) if $raw;
     };
 
     if ($nodename) {
-	$get_node_data->($nodename);
+        $get_node_data->($nodename);
     } else {
-	for my $node (get_nodelist()->@*) {
-	    $get_node_data->($node);
-	}
+        for my $node (get_nodelist()->@*) {
+            $get_node_data->($node);
+        }
     }
 
     return $res;
@@ -369,7 +372,7 @@ sub get_guest_config_properties {
     die "only up to 255 properties supported" if $num_props > 255;
     my $bindata = pack "VC", $vmid // 0, $num_props;
     for my $property (@$properties) {
-	$bindata .= pack "Z*", $property;
+        $bindata .= pack "Z*", $property;
     }
     my $res = $ipcc_send_rec_json->(CFS_IPC_GET_GUEST_CONFIG_PROPERTIES, $bindata);
 
@@ -402,8 +405,8 @@ sub broadcast_tasklist {
     # drop older items until we satisfy this constraint
     my $size = length(encode_json($data));
     while ($size >= (32 * 1024)) { # TODO: update to 128 KiB in PVE 8.x
-	pop @$data;
-	$size = length(encode_json($data));
+        pop @$data;
+        $size = length(encode_json($data));
     }
 
     eval { $ipcc_update_status->("tasklist", $data) };
@@ -421,27 +424,27 @@ sub get_tasklist {
 
     my $res = [];
     foreach my $node (@$nodelist) {
-	next if $nodename && ($nodename ne $node);
-	eval {
-	    my $ver = exists $kvstore->{$node} ? $kvstore->{$node}->{tasklist} : undef;
-	    my $cache = $tasklistcache->{$node};
-	    if (!$cache || !$ver || !$cache->{version} || ($cache->{version} != $ver)) {
-		my $tasks = [];
-		if (my $raw = $ipcc_get_status->("tasklist", $node)) {
-		    my $json_str = unpack("Z*", $raw);
-		    $tasks = decode_json($json_str);
-		}
-		push @$res, @$tasks;
-		$tasklistcache->{$node} = {
-		    data => $tasks,
-		    version => $ver,
-		};
-	    } elsif ($cache && $cache->{data}) {
-		push @$res, $cache->{data}->@*;
-	    }
-	};
-	my $err = $@;
-	syslog('err', $err) if $err;
+        next if $nodename && ($nodename ne $node);
+        eval {
+            my $ver = exists $kvstore->{$node} ? $kvstore->{$node}->{tasklist} : undef;
+            my $cache = $tasklistcache->{$node};
+            if (!$cache || !$ver || !$cache->{version} || ($cache->{version} != $ver)) {
+                my $tasks = [];
+                if (my $raw = $ipcc_get_status->("tasklist", $node)) {
+                    my $json_str = unpack("Z*", $raw);
+                    $tasks = decode_json($json_str);
+                }
+                push @$res, @$tasks;
+                $tasklistcache->{$node} = {
+                    data => $tasks,
+                    version => $ver,
+                };
+            } elsif ($cache && $cache->{data}) {
+                push @$res, $cache->{data}->@*;
+            }
+        };
+        my $err = $@;
+        syslog('err', $err) if $err;
     }
 
     return $res;
@@ -450,9 +453,7 @@ sub get_tasklist {
 sub broadcast_rrd {
     my ($rrdid, $data) = @_;
 
-    eval {
-	&$ipcc_update_status("rrd/$rrdid", $data);
-    };
+    eval { &$ipcc_update_status("rrd/$rrdid", $data); };
     my $err = $@;
 
     warn $err if $err;
@@ -467,29 +468,27 @@ sub rrd_dump {
 
     my $diff = $ctime - $last_rrd_dump;
     if ($diff < 2) {
-	return $last_rrd_data;
+        return $last_rrd_data;
     }
 
     my $raw;
-    eval {
-	$raw = &$ipcc_send_rec(CFS_IPC_GET_RRD_DUMP);
-    };
+    eval { $raw = &$ipcc_send_rec(CFS_IPC_GET_RRD_DUMP); };
     my $err = $@;
 
     if ($err) {
-	warn $err;
-	return {};
+        warn $err;
+        return {};
     }
 
     my $res = {};
 
     if ($raw) {
-	while ($raw =~ s/^(.*)\n//) {
-	    my ($key, @ela) = split(/:/, $1);
-	    next if !$key;
-	    next if !(scalar(@ela) > 1);
-	    $res->{$key} = [ map { $_ eq 'U' ? undef : $_ } @ela ];
-	}
+        while ($raw =~ s/^(.*)\n//) {
+            my ($key, @ela) = split(/:/, $1);
+            next if !$key;
+            next if !(scalar(@ela) > 1);
+            $res->{$key} = [map { $_ eq 'U' ? undef : $_ } @ela];
+        }
     }
 
     $last_rrd_dump = $ctime;
@@ -497,7 +496,6 @@ sub rrd_dump {
 
     return $res;
 }
-
 
 # a fast way to read files (avoid fuse overhead)
 sub get_config {
@@ -528,8 +526,8 @@ sub cfs_register_file {
     die "file '$filename' already registered" if $file_info->{$filename};
 
     $file_info->{$filename} = {
-	parser => $parser,
-	writer => $writer,
+        parser => $parser,
+        writer => $writer,
     };
 }
 
@@ -541,11 +539,11 @@ my $ccache_read = sub {
     my $ci = $ccache->{$filename};
 
     if (!$ci->{version} || !$version || $ci->{version} != $version) {
-	# we always call the parser, even when the file does not exist
-	# (in that case $data is undef)
-	my $data = get_config($filename);
-	$ci->{data} = &$parser("/etc/pve/$filename", $data);
-	$ci->{version} = $version;
+        # we always call the parser, even when the file does not exist
+        # (in that case $data is undef)
+        my $data = get_config($filename);
+        $ci->{data} = &$parser("/etc/pve/$filename", $data);
+        $ci->{version} = $version;
     }
 
     my $res = ref($ci->{data}) ? dclone($ci->{data}) : $ci->{data};
@@ -559,18 +557,18 @@ sub cfs_file_version {
     my $version;
     my $infotag;
     if ($filename =~ m!^nodes/[^/]+/(openvz|lxc|qemu-server)/(\d+)\.conf$!) {
-	my ($type, $vmid) = ($1, $2);
-	if ($vmlist && $vmlist->{ids} && $vmlist->{ids}->{$vmid}) {
-	    $version = $vmlist->{ids}->{$vmid}->{version};
-	}
-	$infotag = "/$type/";
+        my ($type, $vmid) = ($1, $2);
+        if ($vmlist && $vmlist->{ids} && $vmlist->{ids}->{$vmid}) {
+            $version = $vmlist->{ids}->{$vmid}->{version};
+        }
+        $infotag = "/$type/";
     } else {
-	$infotag = $filename;
-	$version = $versions->{$filename};
+        $infotag = $filename;
+        $version = $versions->{$filename};
     }
 
-    my $info = $file_info->{$infotag} ||
-	die "unknown file type '$filename'\n";
+    my $info = $file_info->{$infotag}
+        || die "unknown file type '$filename'\n";
 
     return wantarray ? ($version, $info) : $version;
 }
@@ -596,7 +594,7 @@ sub cfs_write_file {
     my $raw = &$writer($fsname, $data);
 
     if (my $ci = $ccache->{$filename}) {
-	$ci->{version} = undef;
+        $ci->{version} = undef;
     }
 
     PVE::Tools::file_set_contents($fsname, $raw, undef, $force_utf8);
@@ -618,41 +616,41 @@ my $cfs_lock = sub {
     my $is_code_err = 0;
     eval {
 
-	mkdir $lockdir;
+        mkdir $lockdir;
 
-	if (! -d $lockdir) {
-	    die "pve cluster filesystem not online.\n";
-	}
+        if (!-d $lockdir) {
+            die "pve cluster filesystem not online.\n";
+        }
 
-	my $timeout_err = sub { die "got lock request timeout\n"; };
-	local $SIG{ALRM} = $timeout_err;
+        my $timeout_err = sub { die "got lock request timeout\n"; };
+        local $SIG{ALRM} = $timeout_err;
 
-	while (1) {
-	    alarm ($timeout);
-	    $got_lock = mkdir($filename);
-	    $timeout = alarm(0) - 1; # we'll sleep for 1s, see down below
+        while (1) {
+            alarm($timeout);
+            $got_lock = mkdir($filename);
+            $timeout = alarm(0) - 1; # we'll sleep for 1s, see down below
 
-	    last if $got_lock;
+            last if $got_lock;
 
-	    $timeout_err->() if $timeout <= 0;
+            $timeout_err->() if $timeout <= 0;
 
-	    print STDERR "trying to acquire cfs lock '$lockid' ...\n";
-	    utime (0, 0, $filename); # cfs unlock request
-	    sleep(1);
-	}
+            print STDERR "trying to acquire cfs lock '$lockid' ...\n";
+            utime(0, 0, $filename); # cfs unlock request
+            sleep(1);
+        }
 
-	# fixed command timeout: cfs locks have a timeout of 120
-	# using 60 gives us another 60 seconds to abort the task
-	local $SIG{ALRM} = sub { die "'$lockid'-locked command timed out - aborting\n"; };
-	alarm(60);
+        # fixed command timeout: cfs locks have a timeout of 120
+        # using 60 gives us another 60 seconds to abort the task
+        local $SIG{ALRM} = sub { die "'$lockid'-locked command timed out - aborting\n"; };
+        alarm(60);
 
-	cfs_update(); # make sure we read latest versions inside code()
+        cfs_update(); # make sure we read latest versions inside code()
 
-	$is_code_err = 1; # allows to differ between locking and actual-work errors
+        $is_code_err = 1; # allows to differ between locking and actual-work errors
 
-	$res = &$code(@param);
+        $res = &$code(@param);
 
-	alarm(0);
+        alarm(0);
     };
 
     my $err = $@;
@@ -664,13 +662,13 @@ my $cfs_lock = sub {
     alarm($prev_alarm);
 
     if ($err) {
-	if (ref($err) eq 'PVE::Exception' || $is_code_err) {
-	    # re-raise defined exceptions
-	    $@ = $err;
-	} else {
-	    # add lock info for plain errors comming from the locking itself
-	    $@ = "cfs-lock '$lockid' error: $err";
-	}
+        if (ref($err) eq 'PVE::Exception' || $is_code_err) {
+            # re-raise defined exceptions
+            $@ = $err;
+        } else {
+            # add lock info for plain errors comming from the locking itself
+            $@ = "cfs-lock '$lockid' error: $err";
+        }
         return undef;
     }
 
@@ -743,33 +741,32 @@ my $log_levels = {
 };
 
 sub log_msg {
-   my ($priority, $ident, $msg) = @_;
+    my ($priority, $ident, $msg) = @_;
 
-   if (my $tmp = $log_levels->{$priority}) {
-       $priority = $tmp;
-   }
+    if (my $tmp = $log_levels->{$priority}) {
+        $priority = $tmp;
+    }
 
-   die "need numeric log priority" if $priority !~ /^\d+$/;
+    die "need numeric log priority" if $priority !~ /^\d+$/;
 
-   my $tag = PVE::SafeSyslog::tag();
+    my $tag = PVE::SafeSyslog::tag();
 
-   $msg = "empty message" if !$msg;
+    $msg = "empty message" if !$msg;
 
-   $ident = "" if !$ident;
-   $ident = encode("ascii", $ident,
-		   sub { sprintf "\\u%04x", shift });
+    $ident = "" if !$ident;
+    $ident = encode("ascii", $ident, sub { sprintf "\\u%04x", shift });
 
-   my $ascii = encode("ascii", $msg, sub { sprintf "\\u%04x", shift });
+    my $ascii = encode("ascii", $msg, sub { sprintf "\\u%04x", shift });
 
-   if ($ident) {
-       syslog($priority, "<%s> %s", $ident, $ascii);
-   } else {
-       syslog($priority, "%s", $ascii);
-   }
+    if ($ident) {
+        syslog($priority, "<%s> %s", $ident, $ascii);
+    } else {
+        syslog($priority, "%s", $ascii);
+    }
 
-   eval { &$ipcc_log($priority, $ident, $tag, $ascii); };
+    eval { &$ipcc_log($priority, $ident, $tag, $ascii); };
 
-   syslog("err", "writing cluster log failed: $@") if $@;
+    syslog("err", "writing cluster log failed: $@") if $@;
 }
 
 sub check_vmid_unused {
@@ -782,7 +779,7 @@ sub check_vmid_unused {
 
     return undef if $noerr;
 
-    my $vmtypestr =  $d->{type} eq 'qemu' ? 'VM' : 'CT';
+    my $vmtypestr = $d->{type} eq 'qemu' ? 'VM' : 'CT';
     die "$vmtypestr $vmid already exists on node '$d->{node}'\n";
 }
 
@@ -803,16 +800,15 @@ sub remote_node_ip {
 
     my $nodelist = $clinfo->{nodelist};
     if ($nodelist && $nodelist->{$nodename}) {
-	if (my $ip = $nodelist->{$nodename}->{ip}) {
-	    return $ip if !wantarray;
-	    my $family = $nodelist->{$nodename}->{address_family};
-	    if (!$family) {
-		$nodelist->{$nodename}->{address_family} =
-		    $family =
-		    PVE::Tools::get_host_address_family($ip);
-	    }
-	    return wantarray ? ($ip, $family) : $ip;
-	}
+        if (my $ip = $nodelist->{$nodename}->{ip}) {
+            return $ip if !wantarray;
+            my $family = $nodelist->{$nodename}->{address_family};
+            if (!$family) {
+                $nodelist->{$nodename}->{address_family} = $family =
+                    PVE::Tools::get_host_address_family($ip);
+            }
+            return wantarray ? ($ip, $family) : $ip;
+        }
     }
 
     # fallback: try to get IP by other means
@@ -838,7 +834,7 @@ sub complete_next_vmid {
     my $idlist = $vmlist->{ids} || {};
 
     for (my $i = 100; $i < 10000; $i++) {
-	return [$i] if !defined($idlist->{$i});
+        return [$i] if !defined($idlist->{$i});
     }
 
     return [];
@@ -849,7 +845,7 @@ sub complete_vmid {
     my $vmlist = get_vmlist();
     my $ids = $vmlist->{ids} || {};
 
-    return [ keys %$ids ];
+    return [keys %$ids];
 }
 
 sub complete_local_vmid {
@@ -861,9 +857,9 @@ sub complete_local_vmid {
 
     my $res = [];
     foreach my $vmid (keys %$ids) {
-	my $d = $ids->{$vmid};
-	next if !$d->{node} || $d->{node} ne $nodename;
-	push @$res, $vmid;
+        my $d = $ids->{$vmid};
+        next if !$d->{node} || $d->{node} ne $nodename;
+        push @$res, $vmid;
     }
 
     return $res;
@@ -877,13 +873,12 @@ sub complete_migration_target {
 
     my $nodelist = get_nodelist();
     foreach my $node (@$nodelist) {
-	next if $node eq $nodename;
-	push @$res, $node;
+        next if $node eq $nodename;
+        push @$res, $node;
     }
 
     return $res;
 }
-
 
 # NOTE: filesystem must be offline here, no DB changes allowed
 sub cfs_backup_database {
@@ -894,18 +889,18 @@ sub cfs_backup_database {
 
     print "backup old database to '$backup_fn'\n";
 
-    my $cmd = [ ['sqlite3', $dbfile, '.dump'], ['gzip', '-', \ ">${backup_fn}"] ];
+    my $cmd = [['sqlite3', $dbfile, '.dump'], ['gzip', '-', \ ">${backup_fn}"]];
     run_command($cmd, 'errmsg' => "cannot backup old database\n");
 
     my $maxfiles = 10; # purge older backup
-    my $backups = [ sort { $b cmp $a } <$dbbackupdir/config-*.sql.gz> ];
+    my $backups = [sort { $b cmp $a } <$dbbackupdir/config-*.sql.gz>];
 
     if ((my $count = scalar(@$backups)) > $maxfiles) {
-	foreach my $f (@$backups[$maxfiles..$count-1]) {
-	    next if $f !~ m/^(\S+)$/; # untaint
-	    print "delete old backup '$1'\n";
-	    unlink $1;
-	}
+        foreach my $f (@$backups[$maxfiles .. $count - 1]) {
+            next if $f !~ m/^(\S+)$/; # untaint
+            print "delete old backup '$1'\n";
+            unlink $1;
+        }
     }
 
     return $dbfile;

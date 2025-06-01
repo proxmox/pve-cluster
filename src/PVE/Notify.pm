@@ -10,9 +10,7 @@ use PVE::Tools;
 use Proxmox::RS::Notify;
 
 cfs_register_file(
-    'notifications.cfg',
-    \&parse_notification_config,
-    \&write_notification_config,
+    'notifications.cfg', \&parse_notification_config, \&write_notification_config,
 );
 
 cfs_register_file(
@@ -36,10 +34,14 @@ sub write_notification_config {
 sub lock_config {
     my ($code, $timeout) = @_;
 
-    cfs_lock_file('notifications.cfg', $timeout, sub {
-	cfs_lock_file('priv/notifications.cfg', $timeout, $code);
-	die $@ if $@;
-    });
+    cfs_lock_file(
+        'notifications.cfg',
+        $timeout,
+        sub {
+            cfs_lock_file('priv/notifications.cfg', $timeout, $code);
+            die $@ if $@;
+        },
+    );
     die $@ if $@;
 }
 
@@ -69,55 +71,35 @@ my $send_notification = sub {
 sub notify {
     my ($severity, $template_name, $template_data, $fields, $config) = @_;
     $send_notification->(
-        $severity,
-        $template_name,
-        $template_data,
-        $fields,
-        $config
+        $severity, $template_name, $template_data, $fields, $config,
     );
 }
 
 sub info {
     my ($template_name, $template_data, $fields, $config) = @_;
     $send_notification->(
-        'info',
-        $template_name,
-        $template_data,
-        $fields,
-        $config
+        'info', $template_name, $template_data, $fields, $config,
     );
 }
 
 sub notice {
     my ($template_name, $template_data, $fields, $config) = @_;
     $send_notification->(
-        'notice',
-        $template_name,
-        $template_data,
-        $fields,
-        $config
+        'notice', $template_name, $template_data, $fields, $config,
     );
 }
 
 sub warning {
     my ($template_name, $template_data, $fields, $config) = @_;
     $send_notification->(
-        'warning',
-        $template_name,
-        $template_data,
-        $fields,
-        $config
+        'warning', $template_name, $template_data, $fields, $config,
     );
 }
 
 sub error {
     my ($template_name, $template_data, $fields, $config) = @_;
     $send_notification->(
-        'error',
-        $template_name,
-        $template_data,
-        $fields,
-        $config
+        'error', $template_name, $template_data, $fields, $config,
     );
 }
 
@@ -129,11 +111,12 @@ sub check_may_use_target {
     my $entities = $config->get_referenced_entities($target);
 
     for my $entity (@$entities) {
-	$rpcenv->check($user, "/mapping/notification/$entity", [ 'Mapping.Use' ]);
+        $rpcenv->check($user, "/mapping/notification/$entity", ['Mapping.Use']);
     }
 }
 
 my $cached_fqdn;
+
 sub common_template_data {
     # The hostname is already cached by PVE::INotify::nodename,
     # no need to cache it here as well.

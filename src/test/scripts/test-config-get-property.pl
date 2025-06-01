@@ -18,4 +18,4 @@ my $prop = shift // 'lock';
 
 my $res = PVE::Cluster::get_guest_config_property($prop, $vmid);
 
-print "res: " . to_json($res, {utf8 => 1, pretty => 1}) ."\n";
+print "res: " . to_json($res, { utf8 => 1, pretty => 1 }) . "\n";

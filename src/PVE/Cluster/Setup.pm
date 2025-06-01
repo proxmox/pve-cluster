@@ -31,9 +31,10 @@ sub assert_we_can_join_cluster_version {
     my ($version) = @_;
     my $min_version = JOIN_API_VERSION - JOIN_API_AGE_AS_JOINEE;
     return if $version >= $min_version;
-    die "error: incompatible join API version on cluster ($version), local node"
-	." has ". JOIN_API_VERSION ." and supports >= $min_version. Make sure"
-	."all cluster nodes are up-to-date.\n";
+    die "error: incompatible join API version on cluster ($version), local node" . " has "
+        . JOIN_API_VERSION
+        . " and supports >= $min_version. Make sure"
+        . "all cluster nodes are up-to-date.\n";
 }
 
 sub assert_node_can_join_our_version {
@@ -41,8 +42,10 @@ sub assert_node_can_join_our_version {
     my $min_version = JOIN_API_VERSION - JOIN_API_AGE_AS_CLUSTER;
     return if $version >= $min_version;
     die "error: unsupported old API version on joining node ($version), cluster"
-	." node has ". JOIN_API_VERSION ." and supports >= $min_version. Please"
-	." upgrade node before joining\n";
+        . " node has "
+        . JOIN_API_VERSION
+        . " and supports >= $min_version. Please"
+        . " upgrade node before joining\n";
 }
 
 my $pmxcfs_base_dir = PVE::Cluster::base_dir();
@@ -58,8 +61,8 @@ sub run_silent_cmd {
     eval { PVE::Tools::run_command($cmd, outfunc => $record, errfunc => $record) };
 
     if (my $err = $@) {
-	print STDERR $outbuf;
-	die $err;
+        print STDERR $outbuf;
+        die $err;
     }
 }
 
@@ -98,42 +101,42 @@ sub ssh_merge_keys {
 
     my $data = '';
     if (-f $ssh_cluster_authorized_keys) {
-	$data = PVE::Tools::file_get_contents($ssh_cluster_authorized_keys);
-	chomp($data);
+        $data = PVE::Tools::file_get_contents($ssh_cluster_authorized_keys);
+        chomp($data);
     }
 
     my $found_backup;
     if (-f $ssh_root_authorized_keys_backup) {
-	$data .= "\n";
-	$data .= PVE::Tools::file_get_contents($ssh_root_authorized_keys_backup);
-	chomp($data);
-	$found_backup = 1;
+        $data .= "\n";
+        $data .= PVE::Tools::file_get_contents($ssh_root_authorized_keys_backup);
+        chomp($data);
+        $found_backup = 1;
     }
 
     # always add ourself
     if (-f $ssh_root_rsa_key_public) {
-	my $pub = PVE::Tools::file_get_contents($ssh_root_rsa_key_public);
-	chomp($pub);
-	$data .= "\n$pub\n";
+        my $pub = PVE::Tools::file_get_contents($ssh_root_rsa_key_public);
+        chomp($pub);
+        $data .= "\n$pub\n";
     }
 
     my $newdata = "";
     my $vhash = {};
     my @lines = split(/\n/, $data);
     foreach my $line (@lines) {
-	if ($line !~ /^#/ && $line =~ m/(^|\s)ssh-(rsa|dsa)\s+(\S+)\s+\S+$/) {
+        if ($line !~ /^#/ && $line =~ m/(^|\s)ssh-(rsa|dsa)\s+(\S+)\s+\S+$/) {
             next if $vhash->{$3}++;
-	}
-	$newdata .= "$line\n";
+        }
+        $newdata .= "$line\n";
     }
 
-	PVE::Tools::file_set_contents($ssh_cluster_authorized_keys, $newdata, 0600);
+    PVE::Tools::file_set_contents($ssh_cluster_authorized_keys, $newdata, 0600);
 
-	if ($found_backup && -l $ssh_root_authorized_keys) {
-	    # everything went well, so we can remove the backup
-	    unlink $ssh_root_authorized_keys_backup;
-	}
+    if ($found_backup && -l $ssh_root_authorized_keys) {
+        # everything went well, so we can remove the backup
+        unlink $ssh_root_authorized_keys_backup;
     }
+}
 
 sub setup_sshd_config {
     my () = @_;
@@ -143,8 +146,8 @@ sub setup_sshd_config {
     return if $conf =~ m/^PermitRootLogin\s+yes\s*$/m;
 
     if ($conf !~ s/^#?PermitRootLogin.*$/PermitRootLogin yes/m) {
-	chomp $conf;
-	$conf .= "\nPermitRootLogin yes\n";
+        chomp $conf;
+        $conf .= "\nPermitRootLogin yes\n";
     }
 
     PVE::Tools::file_set_contents($ssh_system_server_config, $conf);
@@ -155,18 +158,19 @@ sub setup_sshd_config {
 sub setup_rootsshconfig {
 
     # create ssh key if it does not exist
-    if (! -f $ssh_root_rsa_key_public) {
-	mkdir '/root/.ssh/';
-	system ("echo|ssh-keygen -t rsa -N '' -b 4096 -f ${ssh_root_rsa_key_private}");
+    if (!-f $ssh_root_rsa_key_public) {
+        mkdir '/root/.ssh/';
+        system("echo|ssh-keygen -t rsa -N '' -b 4096 -f ${ssh_root_rsa_key_private}");
     }
 
     # create ssh config if it does not exist
-    if (! -f $ssh_root_client_config) {
+    if (!-f $ssh_root_client_config) {
         mkdir '/root/.ssh';
-        if (my $fh = IO::File->new($ssh_root_client_config, O_CREAT|O_WRONLY|O_EXCL, 0640)) {
+        if (my $fh = IO::File->new($ssh_root_client_config, O_CREAT | O_WRONLY | O_EXCL, 0640)) {
             # this is the default ciphers list from Debian's OpenSSH package (OpenSSH_7.4p1 Debian-10, OpenSSL 1.0.2k  26 Jan 2017)
-	    # changed order to put AES before Chacha20 (most hardware has AESNI)
-            print $fh "Ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-gcm\@openssh.com,aes256-gcm\@openssh.com,chacha20-poly1305\@openssh.com\n";
+            # changed order to put AES before Chacha20 (most hardware has AESNI)
+            print $fh
+                "Ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-gcm\@openssh.com,aes256-gcm\@openssh.com,chacha20-poly1305\@openssh.com\n";
             close($fh);
         }
     }
@@ -178,44 +182,47 @@ sub setup_ssh_keys {
 
     my $import_ok;
 
-    if (! -f $ssh_cluster_authorized_keys) {
-	my $old;
-	if (-f $ssh_root_authorized_keys) {
-	    $old = PVE::Tools::file_get_contents($ssh_root_authorized_keys);
-	}
-	if (my $fh = IO::File->new ($ssh_cluster_authorized_keys, O_CREAT|O_WRONLY|O_EXCL, 0400)) {
-	    PVE::Tools::safe_print($ssh_cluster_authorized_keys, $fh, $old) if $old;
-	    close($fh);
-	    $import_ok = 1;
-	}
+    if (!-f $ssh_cluster_authorized_keys) {
+        my $old;
+        if (-f $ssh_root_authorized_keys) {
+            $old = PVE::Tools::file_get_contents($ssh_root_authorized_keys);
+        }
+        if (
+            my $fh = IO::File->new($ssh_cluster_authorized_keys, O_CREAT | O_WRONLY | O_EXCL, 0400)
+        ) {
+            PVE::Tools::safe_print($ssh_cluster_authorized_keys, $fh, $old) if $old;
+            close($fh);
+            $import_ok = 1;
+        }
     }
 
     warn "can't create shared ssh key database '$ssh_cluster_authorized_keys'\n"
-	if ! -f $ssh_cluster_authorized_keys;
+        if !-f $ssh_cluster_authorized_keys;
 
-    if (-f $ssh_root_authorized_keys && ! -l $ssh_root_authorized_keys) {
-	if (!rename($ssh_root_authorized_keys , $ssh_root_authorized_keys_backup)) {
-	    warn "rename $ssh_root_authorized_keys failed - $!\n";
-	}
+    if (-f $ssh_root_authorized_keys && !-l $ssh_root_authorized_keys) {
+        if (!rename($ssh_root_authorized_keys, $ssh_root_authorized_keys_backup)) {
+            warn "rename $ssh_root_authorized_keys failed - $!\n";
+        }
     }
 
-    if (! -l $ssh_root_authorized_keys) {
-	symlink $ssh_cluster_authorized_keys, $ssh_root_authorized_keys;
+    if (!-l $ssh_root_authorized_keys) {
+        symlink $ssh_cluster_authorized_keys, $ssh_root_authorized_keys;
     }
 
-    if (! -l $ssh_root_authorized_keys) {
-	warn "can't create symlink for ssh keys '$ssh_root_authorized_keys' -> '$ssh_cluster_authorized_keys'\n";
+    if (!-l $ssh_root_authorized_keys) {
+        warn
+            "can't create symlink for ssh keys '$ssh_root_authorized_keys' -> '$ssh_cluster_authorized_keys'\n";
     } else {
-	unlink $ssh_root_authorized_keys_backup if $import_ok;
+        unlink $ssh_root_authorized_keys_backup if $import_ok;
     }
 }
 
 sub ssh_unmerge_known_hosts {
-    return if ! -l $ssh_system_known_hosts;
+    return if !-l $ssh_system_known_hosts;
 
     my $old = '';
     $old = PVE::Tools::file_get_contents($ssh_cluster_known_hosts)
-	if -f $ssh_cluster_known_hosts;
+        if -f $ssh_cluster_known_hosts;
 
     PVE::Tools::file_set_contents($ssh_system_known_hosts, $old);
 }
@@ -246,18 +253,18 @@ sub ssh_merge_known_hosts {
 
     mkdir $pmxcfs_auth_dir;
 
-    if (! -f $ssh_cluster_known_hosts) {
-	if (my $fh = IO::File->new($ssh_cluster_known_hosts, O_CREAT|O_WRONLY|O_EXCL, 0600)) {
-	    close($fh);
-	}
+    if (!-f $ssh_cluster_known_hosts) {
+        if (my $fh = IO::File->new($ssh_cluster_known_hosts, O_CREAT | O_WRONLY | O_EXCL, 0600)) {
+            close($fh);
+        }
     }
 
     my $old = PVE::Tools::file_get_contents($ssh_cluster_known_hosts);
 
     my $new = '';
 
-    if ((! -l $ssh_system_known_hosts) && (-f $ssh_system_known_hosts)) {
-	$new = PVE::Tools::file_get_contents($ssh_system_known_hosts);
+    if ((!-l $ssh_system_known_hosts) && (-f $ssh_system_known_hosts)) {
+        $new = PVE::Tools::file_get_contents($ssh_system_known_hosts);
     }
 
     my $hostkey = PVE::Tools::file_get_contents($ssh_host_rsa_id);
@@ -272,62 +279,62 @@ sub ssh_merge_known_hosts {
     my $found_local_ip;
 
     my $merge_line = sub {
-	my ($line, $all) = @_;
+        my ($line, $all) = @_;
 
-	return if $line =~ m/^\s*$/; # skip empty lines
-	return if $line =~ m/^#/; # skip comments
+        return if $line =~ m/^\s*$/; # skip empty lines
+        return if $line =~ m/^#/; # skip comments
 
-	if ($line =~ m/^(\S+)\s(ssh-rsa\s\S+)(\s.*)?$/) {
-	    my $key = $1;
-	    my $rsakey = $2;
-	    if (!$vhash->{$key}) {
-		$vhash->{$key} = 1;
-		if ($key =~ m/\|1\|([^\|\s]+)\|([^\|\s]+)$/) {
-		    my $salt = decode_base64($1);
-		    my $digest = $2;
-		    my $hmac = Digest::HMAC_SHA1->new($salt);
-		    $hmac->add($nodename);
-		    my $hd = $hmac->b64digest . '=';
-		    if ($digest eq $hd) {
-			if ($rsakey eq $hostkey) {
-			    $found_nodename = 1;
-			    $data .= $line;
-			}
-			return;
-		    }
-		    $hmac = Digest::HMAC_SHA1->new($salt);
-		    $hmac->add($ip_address);
-		    $hd = $hmac->b64digest . '=';
-		    if ($digest eq $hd) {
-			if ($rsakey eq $hostkey) {
-			    $found_local_ip = 1;
-			    $data .= $line;
-			}
-			return;
-		    }
-		} else {
-		    $key = lc($key); # avoid duplicate entries, ssh compares lowercased
-		    if ($key eq $ip_address) {
-			$found_local_ip = 1 if $rsakey eq $hostkey;
-		    } elsif ($key eq $nodename) {
-			$found_nodename = 1 if $rsakey eq $hostkey;
-		    }
-		}
-		$data .= $line;
-	    }
-	} elsif ($all) {
-	    $data .= $line;
-	}
+        if ($line =~ m/^(\S+)\s(ssh-rsa\s\S+)(\s.*)?$/) {
+            my $key = $1;
+            my $rsakey = $2;
+            if (!$vhash->{$key}) {
+                $vhash->{$key} = 1;
+                if ($key =~ m/\|1\|([^\|\s]+)\|([^\|\s]+)$/) {
+                    my $salt = decode_base64($1);
+                    my $digest = $2;
+                    my $hmac = Digest::HMAC_SHA1->new($salt);
+                    $hmac->add($nodename);
+                    my $hd = $hmac->b64digest . '=';
+                    if ($digest eq $hd) {
+                        if ($rsakey eq $hostkey) {
+                            $found_nodename = 1;
+                            $data .= $line;
+                        }
+                        return;
+                    }
+                    $hmac = Digest::HMAC_SHA1->new($salt);
+                    $hmac->add($ip_address);
+                    $hd = $hmac->b64digest . '=';
+                    if ($digest eq $hd) {
+                        if ($rsakey eq $hostkey) {
+                            $found_local_ip = 1;
+                            $data .= $line;
+                        }
+                        return;
+                    }
+                } else {
+                    $key = lc($key); # avoid duplicate entries, ssh compares lowercased
+                    if ($key eq $ip_address) {
+                        $found_local_ip = 1 if $rsakey eq $hostkey;
+                    } elsif ($key eq $nodename) {
+                        $found_nodename = 1 if $rsakey eq $hostkey;
+                    }
+                }
+                $data .= $line;
+            }
+        } elsif ($all) {
+            $data .= $line;
+        }
     };
 
     while ($old && $old =~ s/^((.*?)(\n|$))//) {
-	my $line = "$2\n";
-	&$merge_line($line, 1);
+        my $line = "$2\n";
+        &$merge_line($line, 1);
     }
 
     while ($new && $new =~ s/^((.*?)(\n|$))//) {
-	my $line = "$2\n";
-	&$merge_line($line);
+        my $line = "$2\n";
+        &$merge_line($line);
     }
 
     # add our own key if not already there
@@ -341,8 +348,9 @@ sub ssh_merge_known_hosts {
     unlink $ssh_system_known_hosts;
     symlink $ssh_cluster_known_hosts, $ssh_system_known_hosts;
 
-    warn "can't create symlink for ssh known hosts '$ssh_system_known_hosts' -> '$ssh_cluster_known_hosts'\n"
-	if ! -l $ssh_system_known_hosts;
+    warn
+        "can't create symlink for ssh known hosts '$ssh_system_known_hosts' -> '$ssh_cluster_known_hosts'\n"
+        if !-l $ssh_system_known_hosts;
 
 }
 
@@ -354,18 +362,19 @@ sub gen_local_dirs {
     PVE::Cluster::check_cfs_is_mounted();
 
     my @required_dirs = (
-	"$pmxcfs_base_dir/priv",
-	"$pmxcfs_base_dir/nodes",
-	"$pmxcfs_base_dir/nodes/$nodename",
-	"$pmxcfs_base_dir/nodes/$nodename/lxc",
-	"$pmxcfs_base_dir/nodes/$nodename/qemu-server",
-	"$pmxcfs_base_dir/nodes/$nodename/openvz",
-	"$pmxcfs_base_dir/nodes/$nodename/priv");
+        "$pmxcfs_base_dir/priv",
+        "$pmxcfs_base_dir/nodes",
+        "$pmxcfs_base_dir/nodes/$nodename",
+        "$pmxcfs_base_dir/nodes/$nodename/lxc",
+        "$pmxcfs_base_dir/nodes/$nodename/qemu-server",
+        "$pmxcfs_base_dir/nodes/$nodename/openvz",
+        "$pmxcfs_base_dir/nodes/$nodename/priv",
+    );
 
     foreach my $dir (@required_dirs) {
-	if (! -d $dir) {
-	    mkdir($dir) || $! == EEXIST || die "unable to create directory '$dir' - $!\n";
-	}
+        if (!-d $dir) {
+            mkdir($dir) || $! == EEXIST || die "unable to create directory '$dir' - $!\n";
+        }
     }
 }
 
@@ -377,13 +386,19 @@ sub gen_auth_key {
 
     PVE::Cluster::check_cfs_is_mounted();
 
-    PVE::Cluster::cfs_lock_authkey(undef, sub {
-	mkdir $pmxcfs_auth_dir || $! == EEXIST || die "unable to create dir '$pmxcfs_auth_dir' - $!\n";
+    PVE::Cluster::cfs_lock_authkey(
+        undef,
+        sub {
+            mkdir $pmxcfs_auth_dir
+                || $! == EEXIST
+                || die "unable to create dir '$pmxcfs_auth_dir' - $!\n";
 
-	run_silent_cmd(['openssl', 'genrsa', '-out', $authprivkeyfn, '2048']);
+            run_silent_cmd(['openssl', 'genrsa', '-out', $authprivkeyfn, '2048']);
 
-	run_silent_cmd(['openssl', 'rsa', '-in', $authprivkeyfn, '-pubout', '-out', $authpubkeyfn]);
-    });
+            run_silent_cmd(
+                ['openssl', 'rsa', '-in', $authprivkeyfn, '-pubout', '-out', $authpubkeyfn]);
+        },
+    );
 
     die "$@\n" if $@;
 }
@@ -392,9 +407,7 @@ sub gen_pveca_key {
 
     return if -f $pveca_key_fn;
 
-    eval {
-	run_silent_cmd(['openssl', 'genrsa', '-out', $pveca_key_fn, '4096']);
-    };
+    eval { run_silent_cmd(['openssl', 'genrsa', '-out', $pveca_key_fn, '4096']); };
 
     die "unable to generate pve ca key:\n$@" if $@;
 }
@@ -402,7 +415,7 @@ sub gen_pveca_key {
 sub gen_pveca_cert {
 
     if (-f $pveca_key_fn && -f $pveca_cert_fn) {
-	return 0;
+        return 0;
     }
 
     gen_pveca_key();
@@ -414,19 +427,25 @@ sub gen_pveca_cert {
     UUID::unparse($uuid, $uuid_str);
 
     eval {
-	# wrap openssl with faketime to prevent bug #904
-	run_silent_cmd([
-	    'faketime', 'yesterday',
-	    'openssl', 'req',
-	    '-batch',
-	    '-days', '3650',
-	    '-new',
-	    '-x509',
-	    '-nodes',
-	    '-key', $pveca_key_fn,
-	    '-out', $pveca_cert_fn,
-	    '-subj', "/CN=Proxmox Virtual Environment/OU=$uuid_str/O=PVE Cluster Manager CA/",
-	]);
+        # wrap openssl with faketime to prevent bug #904
+        run_silent_cmd([
+            'faketime',
+            'yesterday',
+            'openssl',
+            'req',
+            '-batch',
+            '-days',
+            '3650',
+            '-new',
+            '-x509',
+            '-nodes',
+            '-key',
+            $pveca_key_fn,
+            '-out',
+            $pveca_cert_fn,
+            '-subj',
+            "/CN=Proxmox Virtual Environment/OU=$uuid_str/O=PVE Cluster Manager CA/",
+        ]);
     };
 
     die "generating pve root certificate failed:\n$@" if $@;
@@ -443,9 +462,7 @@ sub gen_pve_ssl_key {
 
     return if -f $pvessl_key_fn;
 
-    eval {
-	run_silent_cmd(['openssl', 'genrsa', '-out', $pvessl_key_fn, '2048']);
-    };
+    eval { run_silent_cmd(['openssl', 'genrsa', '-out', $pvessl_key_fn, '2048']); };
 
     die "unable to generate pve ssl key for node '$nodename':\n$@" if $@;
 }
@@ -454,9 +471,7 @@ sub gen_pve_www_key {
 
     return if -f $pvewww_key_fn;
 
-    eval {
-	run_silent_cmd(['openssl', 'genrsa', '-out', $pvewww_key_fn, '2048']);
-    };
+    eval { run_silent_cmd(['openssl', 'genrsa', '-out', $pvewww_key_fn, '2048']); };
 
     die "unable to generate pve www key:\n$@" if $@;
 }
@@ -487,8 +502,8 @@ sub gen_pve_ssl_cert {
 
     my $fqdn = $nodename;
     if ($rc && $rc->{search}) {
-	$fqdn .= ".$rc->{search}";
-	$names .= ",DNS:$fqdn";
+        $fqdn .= ".$rc->{search}";
+        $names .= ",DNS:$fqdn";
     }
 
     my $sslconf = <<__EOD;
@@ -514,34 +529,43 @@ subjectAltName = $names
 __EOD
 
     my $cfgfn = "/tmp/pvesslconf-$$.tmp";
-    my $fh = IO::File->new ($cfgfn, "w");
+    my $fh = IO::File->new($cfgfn, "w");
     print $fh $sslconf;
-    close ($fh);
+    close($fh);
 
     my $reqfn = "/tmp/pvecertreq-$$.tmp";
     unlink $reqfn;
 
     my $pvessl_key_fn = "$pmxcfs_base_dir/nodes/$nodename/pve-ssl.key";
     eval {
-	run_silent_cmd([
-	    'openssl', 'req', '-batch', '-new', '-config', $cfgfn, '-key', $pvessl_key_fn, '-out', $reqfn
-	]);
+        run_silent_cmd([
+            'openssl',
+            'req',
+            '-batch',
+            '-new',
+            '-config',
+            $cfgfn,
+            '-key',
+            $pvessl_key_fn,
+            '-out',
+            $reqfn,
+        ]);
     };
 
     if (my $err = $@) {
-	unlink $reqfn;
-	unlink $cfgfn;
-	die "unable to generate pve certificate request:\n$err";
+        unlink $reqfn;
+        unlink $cfgfn;
+        die "unable to generate pve certificate request:\n$err";
     }
 
-    update_serial("0000000000000000") if ! -f $pveca_srl_fn;
+    update_serial("0000000000000000") if !-f $pveca_srl_fn;
 
     # get ca expiry
     my $cainfo = PVE::Certificate::get_certificate_info($pveca_cert_fn);
-    my $daysleft = int(($cainfo->{notafter} - time())/(24*60*60));
+    my $daysleft = int(($cainfo->{notafter} - time()) / (24 * 60 * 60));
 
     if ($daysleft < 14) {
-	die "CA expires in less than 2 weeks, unable to generate certificate.\n";
+        die "CA expires in less than 2 weeks, unable to generate certificate.\n";
     }
 
     # let the certificate expire a little sooner that the ca, so subtract 2 days
@@ -549,22 +573,24 @@ __EOD
 
     # we want the certificates to only last 2 years, since some browsers
     # do not accept certificates with very long expiry time
-    if ($daysleft >= 2*365) {
-	$daysleft = 2*365;
+    if ($daysleft >= 2 * 365) {
+        $daysleft = 2 * 365;
     }
 
     eval {
-	run_silent_cmd([
-	    'faketime', 'yesterday', # NOTE: wrap openssl with faketime to prevent bug #904
-	    'openssl', 'x509', '-req', '-in', $reqfn, '-days', $daysleft, '-out', $pvessl_cert_fn,
-	    '-CAkey', $pveca_key_fn, '-CA', $pveca_cert_fn, '-CAserial', $pveca_srl_fn, '-extfile', $cfgfn
-	]);
+        run_silent_cmd([
+            'faketime', 'yesterday', # NOTE: wrap openssl with faketime to prevent bug #904
+            'openssl', 'x509', '-req', '-in', $reqfn, '-days', $daysleft, '-out',
+            $pvessl_cert_fn,
+            '-CAkey', $pveca_key_fn, '-CA', $pveca_cert_fn, '-CAserial', $pveca_srl_fn,
+            '-extfile', $cfgfn,
+        ]);
     };
 
     if (my $err = $@) {
-	unlink $reqfn;
-	unlink $cfgfn;
-	die "unable to generate pve ssl certificate:\n$err";
+        unlink $reqfn;
+        unlink $cfgfn;
+        die "unable to generate pve ssl certificate:\n$err";
     }
 
     unlink $cfgfn;
@@ -607,9 +633,9 @@ sub gen_pve_vzdump_symlink {
 
     my $link_fn = "/etc/cron.d/vzdump";
 
-    if ((-f $filename) && (! -l $link_fn)) {
-	rename($link_fn, "/root/etc_cron_vzdump.org"); # make backup if file exists
-	symlink($filename, $link_fn);
+    if ((-f $filename) && (!-l $link_fn)) {
+        rename($link_fn, "/root/etc_cron_vzdump.org"); # make backup if file exists
+        symlink($filename, $link_fn);
     }
 }
 
@@ -618,10 +644,10 @@ sub gen_pve_vzdump_files {
     my $filename = "/etc/pve/vzdump.cron";
 
     PVE::Tools::file_set_contents($filename, $vzdump_cron_dummy)
-	if ! -f $filename;
+        if !-f $filename;
 
     gen_pve_vzdump_symlink();
-};
+}
 
 # join helpers
 
@@ -632,52 +658,52 @@ sub assert_joinable {
     my $error = sub { $errors .= "* $_[0]\n"; };
 
     if (-f $authfile) {
-	$error->("authentication key '$authfile' already exists");
+        $error->("authentication key '$authfile' already exists");
     }
 
-    if (-f $clusterconf)  {
-	$error->("cluster config '$clusterconf' already exists");
+    if (-f $clusterconf) {
+        $error->("cluster config '$clusterconf' already exists");
     }
 
     my $vmlist = PVE::Cluster::get_vmlist();
-    if ($vmlist && $vmlist->{ids} && scalar(keys %{$vmlist->{ids}})) {
-	$error->("this host already contains virtual guests");
+    if ($vmlist && $vmlist->{ids} && scalar(keys %{ $vmlist->{ids} })) {
+        $error->("this host already contains virtual guests");
     }
 
     if (PVE::Tools::run_command(['corosync-quorumtool', '-l'], noerr => 1, quiet => 1) == 0) {
-	$error->("corosync is already running, is this node already in a cluster?!");
+        $error->("corosync is already running, is this node already in a cluster?!");
     }
 
     # check if corosync ring IPs are configured on the current nodes interfaces
     my $check_ip = sub {
-	my $ip = shift // return;
-	my $logid = shift;
-	if (!PVE::JSONSchema::pve_verify_ip($ip, 1)) {
-	    my $host = $ip;
-	    eval { $ip = PVE::Network::get_ip_from_hostname($host); };
-	    if ($@) {
-		$error->("$logid: cannot use '$host': $@\n") ;
-		return;
-	    }
-	}
+        my $ip = shift // return;
+        my $logid = shift;
+        if (!PVE::JSONSchema::pve_verify_ip($ip, 1)) {
+            my $host = $ip;
+            eval { $ip = PVE::Network::get_ip_from_hostname($host); };
+            if ($@) {
+                $error->("$logid: cannot use '$host': $@\n");
+                return;
+            }
+        }
 
-	my $cidr = (Net::IP::ip_is_ipv6($ip)) ? "$ip/128" : "$ip/32";
-	my $configured_ips = PVE::Network::get_local_ip_from_cidr($cidr);
+        my $cidr = (Net::IP::ip_is_ipv6($ip)) ? "$ip/128" : "$ip/32";
+        my $configured_ips = PVE::Network::get_local_ip_from_cidr($cidr);
 
-	$error->("$logid: cannot use IP '$ip', not found on local node!\n")
-	    if scalar(@$configured_ips) < 1;
+        $error->("$logid: cannot use IP '$ip', not found on local node!\n")
+            if scalar(@$configured_ips) < 1;
     };
 
     $check_ip->($local_addr, 'local node address');
 
     foreach my $link (keys %$links) {
-	$check_ip->($links->{$link}->{address}, "link$link");
+        $check_ip->($links->{$link}->{address}, "link$link");
     }
 
     if ($errors) {
-	warn "detected the following error(s):\n$errors";
-	die "Check if node may join a cluster failed!\n" if !$force;
-	warn "\nWARNING : detected error but forced to continue!\n\n";
+        warn "detected the following error(s):\n$errors";
+        die "Check if node may join a cluster failed!\n" if !$force;
+        warn "\nWARNING : detected error but forced to continue!\n\n";
     }
 }
 
@@ -701,19 +727,19 @@ sub join {
 
     my $host = $param->{hostname};
     my $conn_args = {
-	username => 'root@pam',
-	password => $param->{password},
-	cookie_name => 'PVEAuthCookie',
-	protocol => 'https',
-	host => $host,
-	port => 8006,
+        username => 'root@pam',
+        password => $param->{password},
+        cookie_name => 'PVEAuthCookie',
+        protocol => 'https',
+        host => $host,
+        port => 8006,
     };
 
     if (my $fp = $param->{fingerprint}) {
-	$conn_args->{cached_fingerprints} = { uc($fp) => 1 };
+        $conn_args->{cached_fingerprints} = { uc($fp) => 1 };
     } else {
-	# API schema ensures that we can only get here from CLI handler
-	$conn_args->{manual_verification} = 1;
+        # API schema ensures that we can only get here from CLI handler
+        $conn_args->{manual_verification} = 1;
     }
 
     print "Establishing API connection with host '$host'\n";
@@ -733,44 +759,44 @@ sub join {
     $args->{nodeid} = $param->{nodeid} if $param->{nodeid};
     $args->{votes} = $param->{votes} if defined($param->{votes});
     foreach my $link (keys %$links) {
-	$args->{"link$link"} = PVE::Corosync::print_corosync_link($links->{$link});
+        $args->{"link$link"} = PVE::Corosync::print_corosync_link($links->{$link});
     }
 
     # this will be used as fallback if no links are specified
     if (!%$links) {
-	$args->{link0} = $local_ip_address if $apiver == 0;
-	$args->{new_node_ip} = $local_ip_address if $apiver >= 1;
+        $args->{link0} = $local_ip_address if $apiver == 0;
+        $args->{new_node_ip} = $local_ip_address if $apiver >= 1;
 
-	print "No cluster network links passed explicitly, fallback to local node"
-	    . " IP '$local_ip_address'\n";
+        print "No cluster network links passed explicitly, fallback to local node"
+            . " IP '$local_ip_address'\n";
     }
 
     if ($apiver >= 1) {
-	$args->{apiversion} = JOIN_API_VERSION;
+        $args->{apiversion} = JOIN_API_VERSION;
     }
 
     print "Request addition of this node\n";
     my $res = eval { $conn->post("/cluster/config/nodes/$nodename", $args); };
     if (my $err = $@) {
-	if (ref($err) && $err->isa('PVE::APIClient::Exception')) {
-	    # we received additional info about the error, show the user
-	    chomp $err->{msg};
-	    warn "An error occurred on the cluster node: $err->{msg}\n";
-	    foreach my $key (sort keys %{$err->{errors}}) {
-		my $symbol = ($key =~ m/^warning/) ? '*' : '!';
-		warn "$symbol $err->{errors}->{$key}\n";
-	    }
+        if (ref($err) && $err->isa('PVE::APIClient::Exception')) {
+            # we received additional info about the error, show the user
+            chomp $err->{msg};
+            warn "An error occurred on the cluster node: $err->{msg}\n";
+            foreach my $key (sort keys %{ $err->{errors} }) {
+                my $symbol = ($key =~ m/^warning/) ? '*' : '!';
+                warn "$symbol $err->{errors}->{$key}\n";
+            }
 
-	    die "Cluster join aborted!\n";
-	}
+            die "Cluster join aborted!\n";
+        }
 
-	die $@;
+        die $@;
     }
 
     if (defined($res->{warnings})) {
-	foreach my $warn (@{$res->{warnings}}) {
-	    warn "cluster: $warn\n";
-	}
+        foreach my $warn (@{ $res->{warnings} }) {
+            warn "cluster: $warn\n";
+        }
     }
 
     print "Join request OK, finishing setup locally\n";
@@ -799,12 +825,12 @@ sub finish_join {
     # wait for quorum
     my $printqmsg = 1;
     while (!PVE::Cluster::check_cfs_quorum(1)) {
-	if ($printqmsg) {
-	    print "waiting for quorum...";
-	    STDOUT->flush();
-	    $printqmsg = 0;
-	}
-	sleep(1);
+        if ($printqmsg) {
+            print "waiting for quorum...";
+            STDOUT->flush();
+            $printqmsg = 0;
+        }
+        sleep(1);
     }
     print "OK\n" if !$printqmsg;
 
@@ -828,8 +854,8 @@ sub updatecerts_and_ssh {
     my $p = sub { print "$_[0]\n" if !$silent };
 
     if (!PVE::Cluster::check_cfs_quorum(1)) {
-	return undef if $silent;
-	die "no quorum - unable to update files\n";
+        return undef if $silent;
+        die "no quorum - unable to update files\n";
     }
 
     setup_ssh_keys();
@@ -844,8 +870,8 @@ sub updatecerts_and_ssh {
     $p->("merge authorized SSH keys");
     ssh_merge_keys();
     if ($unmerge_ssh) {
-	$p->("unmerge SSH known hosts");
-	ssh_unmerge_known_hosts();
+        $p->("unmerge SSH known hosts");
+        ssh_unmerge_known_hosts();
     }
     ssh_create_node_known_hosts($nodename);
     gen_pve_vzdump_files();

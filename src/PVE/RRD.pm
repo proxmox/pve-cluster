@@ -1,6 +1,7 @@
 package PVE::RRD;
 
-use strict; use warnings;
+use strict;
+use warnings;
 
 use RRDs;
 
@@ -14,24 +15,24 @@ sub create_rrd_data {
     my $rrd = "$rrddir/$rrdname";
 
     my $setup = {
-	hour =>  [ 60, 70 ],
-	day  =>  [ 60*30, 70 ],
-	week =>  [ 60*180, 70 ],
-	month => [ 60*720, 70 ],
-	year =>  [ 60*10080, 70 ],
+        hour => [60, 70],
+        day => [60 * 30, 70],
+        week => [60 * 180, 70],
+        month => [60 * 720, 70],
+        year => [60 * 10080, 70],
     };
 
-    my ($reso, $count) = @{$setup->{$timeframe}};
-    my $ctime  = $reso*int(time()/$reso);
-    my $req_start = $ctime - $reso*$count;
+    my ($reso, $count) = @{ $setup->{$timeframe} };
+    my $ctime = $reso * int(time() / $reso);
+    my $req_start = $ctime - $reso * $count;
 
     $cf = "AVERAGE" if !$cf;
 
     my @args = (
-	"-s" => $req_start,
-	"-e" => $ctime - 1,
-	"-r" => $reso,
-	);
+        "-s" => $req_start,
+        "-e" => $ctime - 1,
+        "-r" => $reso,
+    );
 
     my $socket = "/var/run/rrdcached.sock";
     push @args, "--daemon" => "unix:$socket" if -S $socket;
@@ -42,23 +43,23 @@ sub create_rrd_data {
     die "RRD error: $err\n" if $err;
 
     die "got wrong time resolution ($step != $reso)\n"
-	if $step != $reso;
+        if $step != $reso;
 
     my $res = [];
     my $fields = scalar(@$names);
     for my $line (@$data) {
-	my $entry = { 'time' => $start };
-	$start += $step;
-	for (my $i = 0; $i < $fields; $i++) {
-	    my $name = $names->[$i];
-	    if (defined(my $val = $line->[$i])) {
-		$entry->{$name} = $val;
-	    } else {
-		# leave empty fields undefined
-		# maybe make this configurable?
-	    }
-	}
-	push @$res, $entry;
+        my $entry = { 'time' => $start };
+        $start += $step;
+        for (my $i = 0; $i < $fields; $i++) {
+            my $name = $names->[$i];
+            if (defined(my $val = $line->[$i])) {
+                $entry->{$name} = $val;
+            } else {
+                # leave empty fields undefined
+                # maybe make this configurable?
+            }
+        }
+        push @$res, $entry;
     }
 
     return $res;
@@ -82,24 +83,24 @@ sub create_rrd_graph {
     my $filename = "${rrd}_${ds_txt}.png";
 
     my $setup = {
-	hour =>  [ 60, 60 ],
-	day  =>  [ 60*30, 70 ],
-	week =>  [ 60*180, 70 ],
-	month => [ 60*720, 70 ],
-	year =>  [ 60*10080, 70 ],
+        hour => [60, 60],
+        day => [60 * 30, 70],
+        week => [60 * 180, 70],
+        month => [60 * 720, 70],
+        year => [60 * 10080, 70],
     };
 
-    my ($reso, $count) = @{$setup->{$timeframe}};
+    my ($reso, $count) = @{ $setup->{$timeframe} };
 
     my @args = (
-	"--imgformat" => "PNG",
-	"--border" => 0,
-	"--height" => 200,
-	"--width" => 800,
-	"--start" => - $reso*$count,
-	"--end" => 'now' ,
-	"--lower-limit" => 0,
-	);
+        "--imgformat" => "PNG",
+        "--border" => 0,
+        "--height" => 200,
+        "--width" => 800,
+        "--start" => -$reso * $count,
+        "--end" => 'now',
+        "--lower-limit" => 0,
+    );
 
     my $socket = "/var/run/rrdcached.sock";
     push @args, "--daemon" => "unix:$socket" if -S $socket;
@@ -110,14 +111,14 @@ sub create_rrd_graph {
 
     my $i = 0;
     foreach my $id (@ids) {
-	my $col = $coldef[$i++] || die "fixme: no color definition";
-	push @args, "DEF:${id}=$rrd:${id}:$cf";
-	my $dataid = $id;
-	if ($id eq 'cpu' || $id eq 'iowait') {
-	    push @args, "CDEF:${id}_per=${id},100,*";
-	    $dataid = "${id}_per";
-	}
-	push @args, "LINE2:${dataid}${col}:${id}";
+        my $col = $coldef[$i++] || die "fixme: no color definition";
+        push @args, "DEF:${id}=$rrd:${id}:$cf";
+        my $dataid = $id;
+        if ($id eq 'cpu' || $id eq 'iowait') {
+            push @args, "CDEF:${id}_per=${id},100,*";
+            $dataid = "${id}_per";
+        }
+        push @args, "LINE2:${dataid}${col}:${id}";
     }
 
     push @args, '--full-size-mode';

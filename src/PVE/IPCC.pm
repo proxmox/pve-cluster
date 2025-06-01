@@ -15,14 +15,16 @@ our @ISA = qw(Exporter);
 # This allows declaration	use PVE::IPCC ':all';
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
-our %EXPORT_TAGS = ( 'all' => [ qw(
-	
-) ] );
+our %EXPORT_TAGS = (
+    'all' => [qw(
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+    )],
+);
+
+our @EXPORT_OK = (@{ $EXPORT_TAGS{'all'} });
 
 our @EXPORT = qw(
-	
+
 );
 
 our $VERSION = '1.0';
@@ -42,9 +44,9 @@ PVE::IPCC - Perl extension to access the PVE IPC Server
 =head1 SYNOPSIS
 
   use PVE::IPCC;
-  
+
   my $res = PVE::IPCC::ipcc_send_rec(1, "hello");
- 
+
   my $res = PVE::IPCC::sendfd($socketfd, $fd, $opt_data);
 
 =head1 DESCRIPTION

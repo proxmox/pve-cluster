@@ -25,4 +25,4 @@ if (defined $v) {
 print "querying value for key: $k\n";
 my $res = PVE::Cluster::get_node_kv($k);
 
-print "res: " . to_json($res, {utf8 => 1, pretty => 1}) ."\n";
+print "res: " . to_json($res, { utf8 => 1, pretty => 1 }) . "\n";

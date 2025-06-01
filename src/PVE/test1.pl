@@ -7,7 +7,6 @@ use PVE::INotify;
 use PVE::AccessControl;
 use Data::Dumper;
 
-
 my $nodename = PVE::INotify::nodename();
 PVE::Cluster::log_msg(1, "ident2", "msg1 öäü");
 PVE::Cluster::log_msg(1, "root\@pam", "msg1 öäü");
@@ -25,7 +24,6 @@ exit 0;
 
 while (1) {
 
-    
     print "update start\n";
     PVE::Cluster::cfs_update();
     print "update end\n";
@@ -42,20 +40,19 @@ exit 0;
 
 my $loopcount = 0;
 
-
 while (1) {
 
     PVE::Cluster::update();
 
-    PVE::Cluster::broadcast_vminfo({ count => $loopcount});
+    PVE::Cluster::broadcast_vminfo({ count => $loopcount });
 
     my $res = PVE::Cluster::get_vminfo($nodename);
     print "TEST1: " . Dumper($res);
 
-   if (defined($res = PVE::Cluster::get_config("cluster.conf"))) {
-	print "TEST2: " . Dumper($res);
+    if (defined($res = PVE::Cluster::get_config("cluster.conf"))) {
+        print "TEST2: " . Dumper($res);
     } else {
-	warn "get_config failed: $!\n";
+        warn "get_config failed: $!\n";
     }
 
     $loopcount++;

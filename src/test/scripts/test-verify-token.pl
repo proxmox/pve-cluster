@@ -18,4 +18,4 @@ my $userid = shift // 'root@pam';
 
 my $res = PVE::Cluster::verify_token($userid, $token);
 
-print "token '$userid $token' ". ($res ? '' : "not " ) ."found\n";
+print "token '$userid $token' " . ($res ? '' : "not ") . "found\n";

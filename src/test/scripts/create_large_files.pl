@@ -12,18 +12,18 @@ sub safe_mkdir {
     (mkdir $dir) || die "safe_mkdir $dir failed - $!\n";
 }
 
-my $data = "0" x (1024*100);
+my $data = "0" x (1024 * 100);
 
 sub create_file {
     my ($filename) = shift;
 
-    my $fh = new IO::File $filename, O_RDWR|O_CREAT|O_EXCL;
+    my $fh = new IO::File $filename, O_RDWR | O_CREAT | O_EXCL;
     die "cant create file $filename - $!" if !defined $fh;
 
     #my $data = "$filename\n" x 30;
 
     (print $fh $data) || die "write $filename failed\n";
-    close ($fh);
+    close($fh);
 
     #system("cat $filename");
     #system("df -h /etc/pve");

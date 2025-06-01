@@ -15,14 +15,14 @@ sub safe_mkdir {
 sub create_file {
     my ($filename) = shift;
 
-    my $fh = new IO::File $filename, O_RDWR|O_CREAT|O_EXCL;
+    my $fh = new IO::File $filename, O_RDWR | O_CREAT | O_EXCL;
     die "cant create file $filename - $!" if !defined $fh;
 
     #my $data = "$filename\n" x 30;
     my $data = "0" x 2048;
 
     (print $fh $data) || die "write $filename failed\n";
-    close ($fh);
+    close($fh);
 
     #system("cat $filename");
     #system("df -h /etc/pve");
@@ -39,6 +39,6 @@ for (my $i = 0; $i < 100; $i++) {
     safe_mkdir "$testdir/$i";
 
     for (my $j = 0; $j < 90; $j++) {
-	create_file("$testdir/$i/test$j.dat");
+        create_file("$testdir/$i/test$j.dat");
     }
 }
