@@ -504,7 +504,7 @@ static char *create_dot_version_cb(cfs_plug_t *plug) {
     char *data = NULL;
 
     if (cfs_create_version_msg(outbuf) == 0) {
-        data = g_string_free_and_steal(outbuf);
+        data = g_string_free(outbuf, FALSE);
     } else {
         g_string_free(outbuf, TRUE);
     }
@@ -517,7 +517,7 @@ static char *create_dot_members_cb(cfs_plug_t *plug) {
     char *data = NULL;
 
     if (cfs_create_memberlist_msg(outbuf) == 0) {
-        data = g_string_free_and_steal(outbuf);
+        data = g_string_free(outbuf, FALSE);
     } else {
         g_string_free(outbuf, TRUE);
     }
@@ -530,7 +530,7 @@ static char *create_dot_vmlist_cb(cfs_plug_t *plug) {
     char *data = NULL;
 
     if (cfs_create_vmlist_msg(outbuf) == 0) {
-        data = g_string_free_and_steal(outbuf);
+        data = g_string_free(outbuf, FALSE);
     } else {
         g_string_free(outbuf, TRUE);
     }
@@ -543,7 +543,7 @@ static char *create_dot_rrd_cb(cfs_plug_t *plug) {
 
     cfs_rrd_dump(outbuf);
 
-    return g_string_free_and_steal(outbuf);
+    return g_string_free(outbuf, FALSE);
 }
 
 static char *create_dot_clusterlog_cb(cfs_plug_t *plug) {
@@ -551,7 +551,7 @@ static char *create_dot_clusterlog_cb(cfs_plug_t *plug) {
 
     cfs_cluster_log_dump(outbuf, NULL, 50);
 
-    return g_string_free_and_steal(outbuf);
+    return g_string_free(outbuf, FALSE);
 }
 
 static char *read_debug_setting_cb(cfs_plug_t *plug) {
