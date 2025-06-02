@@ -1,3 +1,13 @@
+pve-cluster (8.1.1) bookworm; urgency=medium
+
+  * pvecm: increase certificate generation timeout to cope with slow/old
+    hardware (#5510).
+
+  * datacenter config: document that the migration network currently affects
+    replication traffic.
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 02 Jun 2025 14:50:34 +0200
+
 pve-cluster (8.1.0) bookworm; urgency=medium
 
   * notify: add helper for querying common template data
