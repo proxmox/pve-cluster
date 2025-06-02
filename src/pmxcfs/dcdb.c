@@ -662,7 +662,7 @@ dcdb_process_state_update(
 			localsi->idx = idx[i];
 	}
 	cfs_message("synced members: %s", synced_member_ids->str);
-	g_string_free(synced_member_ids, 1);
+	g_string_free(synced_member_ids, TRUE);
 
 	/* send update */
 	if (dfsm_nodeid_is_local(dfsm, syncinfo->nodes[leader].nodeid, syncinfo->nodes[leader].pid)) {

@@ -1158,7 +1158,7 @@ dfsm_cpg_confchg_callback(
 	if ((dfsm->we_are_member || mode != DFSM_MODE_START))
 		cfs_dom_message(dfsm->log_domain, "members: %s",  member_ids->str);
 
-	g_string_free(member_ids, 1);
+	g_string_free(member_ids, TRUE);
 
 	dfsm->lowest_nodeid = lowest_nodeid;
 

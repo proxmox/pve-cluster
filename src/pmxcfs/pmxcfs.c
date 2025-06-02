@@ -532,8 +532,7 @@ create_dot_version_cb(cfs_plug_t *plug)
 	char *data = NULL;
 
 	if (cfs_create_version_msg(outbuf) == 0) {
-		data = outbuf->str;
-		g_string_free(outbuf, FALSE);
+		data = g_string_free_and_steal(outbuf);
 	} else {
 		g_string_free(outbuf, TRUE);
 	}
@@ -548,8 +547,7 @@ create_dot_members_cb(cfs_plug_t *plug)
 	char *data = NULL;
 
 	if (cfs_create_memberlist_msg(outbuf) == 0) {
-		data = outbuf->str;
-		g_string_free(outbuf, FALSE);
+		data = g_string_free_and_steal(outbuf);
 	} else {
 		g_string_free(outbuf, TRUE);
 	}
@@ -564,8 +562,7 @@ create_dot_vmlist_cb(cfs_plug_t *plug)
 	char *data = NULL;
 
 	if (cfs_create_vmlist_msg(outbuf) == 0) {
-		data = outbuf->str;
-		g_string_free(outbuf, FALSE);
+		data = g_string_free_and_steal(outbuf);
 	} else {
 		g_string_free(outbuf, TRUE);
 	}
@@ -579,10 +576,8 @@ create_dot_rrd_cb(cfs_plug_t *plug)
 	GString *outbuf = g_string_new(NULL);
 
 	cfs_rrd_dump(outbuf);
-	char *data = outbuf->str;
-	g_string_free(outbuf, FALSE);
 
-	return data;
+	return g_string_free_and_steal(outbuf);
 }
 
 static char *
@@ -591,10 +586,8 @@ create_dot_clusterlog_cb(cfs_plug_t *plug)
 	GString *outbuf = g_string_new(NULL);
 
 	cfs_cluster_log_dump(outbuf, NULL, 50);
-	char *data = outbuf->str;
-	g_string_free(outbuf, FALSE);
 
-	return data;
+	return g_string_free_and_steal(outbuf);
 }
 
 static char *
