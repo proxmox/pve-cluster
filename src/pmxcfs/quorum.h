@@ -27,7 +27,6 @@
 
 cfs_service_t *service_quorum_new(void);
 
-void service_quorum_destroy(
-	cfs_service_t *service);
+void service_quorum_destroy(cfs_service_t *service);
 
 #endif /* _PVE_QUORUM_H_ */

@@ -19,46 +19,47 @@
 */
 
 #define _XOPEN_SOURCE /* glibc2 needs this */
-#include <time.h> /* for strptime */
+#include <time.h>     /* for strptime */
 
+#include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <glib.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <glib.h>
-#include <sys/types.h>
-#include <sys/syslog.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
 #include <string.h>
-#include <ctype.h>
+#include <sys/stat.h>
+#include <sys/syslog.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "cfs-utils.h"
 #include "logger.h"
 
 cfs_t cfs = {
-        .debug = 0,
-	.nodename = "testnode",
+    .debug = 0,
+    .nodename = "testnode",
 };
 
+int main(void) {
 
-int
-main(void)
-{
-
-	uint32_t pid = getpid();
+    uint32_t pid = getpid();
 
 #if 1
-	clusterlog_t *cl3 = clusterlog_new();
+    clusterlog_t *cl3 = clusterlog_new();
 
-	clog_entry_t *entry = (clog_entry_t *)alloca(CLOG_MAX_ENTRY_SIZE);
-	clog_pack(entry, cfs.nodename, "root", "cluster", pid, time(NULL), LOG_INFO, "starting cluster log");
-	clusterlog_insert(cl3, entry);
+    clog_entry_t *entry = (clog_entry_t *)alloca(CLOG_MAX_ENTRY_SIZE);
+    clog_pack(
+        entry, cfs.nodename, "root", "cluster", pid, time(NULL), LOG_INFO, "starting cluster log"
+    );
+    clusterlog_insert(cl3, entry);
 
-	for (int i = 0; i < 5000; i++) {
-		clusterlog_add(cl3, "user1", "TESTDOMAIN1", pid, LOG_INFO, 
-			       "test user1 ä message asdasd d dsgfdfgdgdg dgg dgdg %d", i);
-	}
+    for (int i = 0; i < 5000; i++) {
+        clusterlog_add(
+            cl3, "user1", "TESTDOMAIN1", pid, LOG_INFO,
+            "test user1 ä message asdasd d dsgfdfgdgdg dgg dgdg %d", i
+        );
+    }
 
 #if 0
 	for (int i = 0; i < 5000; i++) {
@@ -69,22 +70,21 @@ main(void)
 	}
 #endif
 
-	//clog_dump(cl3->base);
+    // clog_dump(cl3->base);
 
-	clusterlog_destroy(cl3);
+    clusterlog_destroy(cl3);
 
-	exit(0);
+    exit(0);
 
 #endif
 
+    clusterlog_t *cl1 = clusterlog_new();
 
-	clusterlog_t *cl1 = clusterlog_new();
-
-	for (int i = 0; i < 5; i++) {
-		clusterlog_add(cl1, "user1", "TESTDOMAIN1", pid, LOG_INFO, 
-			       "test user1 message asdasd %d", i);		
-	}
-	
+    for (int i = 0; i < 5; i++) {
+        clusterlog_add(
+            cl1, "user1", "TESTDOMAIN1", pid, LOG_INFO, "test user1 message asdasd %d", i
+        );
+    }
 
 #if 0
 	for (int i = 0; i < 5; i++) {
@@ -93,13 +93,14 @@ main(void)
 	}
 #endif
 
-	clusterlog_t *cl2 = clusterlog_new();
+    clusterlog_t *cl2 = clusterlog_new();
 
 #if 1
-	for (int i = 0; i < 5; i++) {
-		clusterlog_add(cl2, "user3", "TESTDOMAIN2", pid, LOG_INFO, 
-			       "test user3 message asdasd %d", i);	
-	}
+    for (int i = 0; i < 5; i++) {
+        clusterlog_add(
+            cl2, "user3", "TESTDOMAIN2", pid, LOG_INFO, "test user3 message asdasd %d", i
+        );
+    }
 #endif
 
 #if 0

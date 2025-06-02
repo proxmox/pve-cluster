@@ -23,70 +23,49 @@
 
 #define FUSE_USE_VERSION 26
 
-#include <glib.h>
 #include <fuse.h>
+#include <glib.h>
 #include <qb/qbdefs.h>
-#include <qb/qbutil.h>
 #include <qb/qbloop.h>
+#include <qb/qbutil.h>
 
 typedef struct cfs_loop cfs_loop_t;
 
 typedef struct cfs_service cfs_service_t;
 
-typedef int (*cfs_service_initialize_fn_t)(
-	cfs_service_t *service, 
-	gpointer context);
+typedef int (*cfs_service_initialize_fn_t)(cfs_service_t *service, gpointer context);
 
-typedef	gboolean (*cfs_service_finalize_fn_t)(
-	cfs_service_t *service, 
-	gpointer context);
+typedef gboolean (*cfs_service_finalize_fn_t)(cfs_service_t *service, gpointer context);
 
-typedef gboolean (*cfs_service_dispatch_fn_t)(
-	cfs_service_t *service, 
-	gpointer context);
+typedef gboolean (*cfs_service_dispatch_fn_t)(cfs_service_t *service, gpointer context);
 
-typedef void (*cfs_service_timer_fn_t)(
-	cfs_service_t *service, 
-	gpointer context);
+typedef void (*cfs_service_timer_fn_t)(cfs_service_t *service, gpointer context);
 
 typedef struct {
-	cfs_service_initialize_fn_t cfs_service_initialize_fn;
-	cfs_service_finalize_fn_t cfs_service_finalize_fn;
-	cfs_service_dispatch_fn_t cfs_service_dispatch_fn;
-	cfs_service_timer_fn_t cfs_service_timer_fn;
+    cfs_service_initialize_fn_t cfs_service_initialize_fn;
+    cfs_service_finalize_fn_t cfs_service_finalize_fn;
+    cfs_service_dispatch_fn_t cfs_service_dispatch_fn;
+    cfs_service_timer_fn_t cfs_service_timer_fn;
 } cfs_service_callbacks_t;
 
-cfs_service_t *cfs_service_new(
-	cfs_service_callbacks_t *callbacks,
-	const char *log_domain,
-	gpointer context);
+cfs_service_t *
+cfs_service_new(cfs_service_callbacks_t *callbacks, const char *log_domain, gpointer context);
 
-gpointer cfs_service_get_context(
-	cfs_service_t *service);
+gpointer cfs_service_get_context(cfs_service_t *service);
 
-gboolean cfs_service_set_timer(
-	cfs_service_t *service,
-	time_t period);
+gboolean cfs_service_set_timer(cfs_service_t *service, time_t period);
 
-void cfs_service_set_restartable(
-	cfs_service_t *service,
-	gboolean restartable);
+void cfs_service_set_restartable(cfs_service_t *service, gboolean restartable);
 
 cfs_loop_t *cfs_loop_new(struct fuse *fuse);
 
-void cfs_loop_destroy(
-	cfs_loop_t *loop);
+void cfs_loop_destroy(cfs_loop_t *loop);
 
-gboolean cfs_loop_add_service(
-	cfs_loop_t *loop,
-	cfs_service_t *service,
-	enum qb_loop_priority priority);
+gboolean
+cfs_loop_add_service(cfs_loop_t *loop, cfs_service_t *service, enum qb_loop_priority priority);
 
-gboolean cfs_loop_start_worker(
-	cfs_loop_t *loop);
+gboolean cfs_loop_start_worker(cfs_loop_t *loop);
 
-void cfs_loop_stop_worker(
-	cfs_loop_t *loop);
-
+void cfs_loop_stop_worker(cfs_loop_t *loop);
 
 #endif /* _PVE_LOOP_H_ */

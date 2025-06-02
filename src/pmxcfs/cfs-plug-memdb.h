@@ -21,23 +21,19 @@
 #ifndef _PVE_CFS_PLUG_MEMDB_H_
 #define _PVE_CFS_PLUG_MEMDB_H_
 
-#include <unistd.h>
-#include <fcntl.h>
 #include "cfs-plug.h"
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "dfsm.h"
 #include "memdb.h"
 
-
 typedef struct {
-	cfs_plug_t plug;
-	memdb_t *memdb;
-	dfsm_t *dfsm;
+    cfs_plug_t plug;
+    memdb_t *memdb;
+    dfsm_t *dfsm;
 } cfs_plug_memdb_t;
 
-cfs_plug_memdb_t *cfs_plug_memdb_new(
-	const char *name, 
-	memdb_t *memdb, 
-	dfsm_t *dfsm);
+cfs_plug_memdb_t *cfs_plug_memdb_new(const char *name, memdb_t *memdb, dfsm_t *dfsm);
 
 #endif /* _PVE_CFS_PLUG_MEMDB_H_ */

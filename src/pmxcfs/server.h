@@ -21,9 +21,7 @@
 #ifndef _PVE_IPCS_H_
 #define _PVE_IPCS_H_
 
-
 gboolean server_start(memdb_t *memdb);
 void server_stop(void);
-
 
 #endif /* _PVE_IPCS_H_ */

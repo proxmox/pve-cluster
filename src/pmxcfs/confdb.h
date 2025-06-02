@@ -27,7 +27,6 @@
 
 cfs_service_t *service_confdb_new(void);
 
-void service_confdb_destroy(
-	cfs_service_t *service);
+void service_confdb_destroy(cfs_service_t *service);
 
 #endif /* _PVE_CONFDB_H_ */

@@ -24,11 +24,11 @@
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
 
-#include <stdlib.h>
+#include <glib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <glib.h>
 
 #include <corosync/quorum.h>
 
@@ -37,183 +37,173 @@
 #include "status.h"
 
 typedef struct {
-	quorum_handle_t handle;
+    quorum_handle_t handle;
 } qs_private_t;
 
 static void quorum_notification_fn(
-	quorum_handle_t handle,
-	uint32_t quorate,
-	uint64_t ring_id,
-	uint32_t view_list_entries,
-	uint32_t *view_list)
-{
-	cs_error_t result;
+    quorum_handle_t handle,
+    uint32_t quorate,
+    uint64_t ring_id,
+    uint32_t view_list_entries,
+    uint32_t *view_list
+) {
+    cs_error_t result;
 
-	cfs_debug("quorum notification called, quorate = %d, "
-		  "number of nodes = %d", quorate, view_list_entries);
+    cfs_debug(
+        "quorum notification called, quorate = %d, "
+        "number of nodes = %d",
+        quorate, view_list_entries
+    );
 
-	qs_private_t *private = NULL;
+    qs_private_t *private = NULL;
 
-	result = quorum_context_get(handle, (gconstpointer *)&private);
-	if (result != CS_OK || !private) {
-		cfs_critical("quorum_context_get error: %d (%p)", result, (void *) private);
-		return;
-	}
+    result = quorum_context_get(handle, (gconstpointer *)&private);
+    if (result != CS_OK || !private) {
+        cfs_critical("quorum_context_get error: %d (%p)", result, (void *)private);
+        return;
+    }
 
-	cfs_set_quorate(quorate, FALSE);
+    cfs_set_quorate(quorate, FALSE);
 }
 
 static quorum_callbacks_t quorum_callbacks = {
-	.quorum_notify_fn = quorum_notification_fn,
+    .quorum_notify_fn = quorum_notification_fn,
 };
 
-static gboolean service_quorum_finalize(
-	cfs_service_t *service,
-	gpointer context)
-{
-	g_return_val_if_fail(service != NULL, FALSE);
-	g_return_val_if_fail(context != NULL, FALSE);
+static gboolean service_quorum_finalize(cfs_service_t *service, gpointer context) {
+    g_return_val_if_fail(service != NULL, FALSE);
+    g_return_val_if_fail(context != NULL, FALSE);
 
-	qs_private_t *private = (qs_private_t *)context;
-	quorum_handle_t handle = private->handle;
+    qs_private_t *private = (qs_private_t *)context;
+    quorum_handle_t handle = private->handle;
 
-	cs_error_t result;
+    cs_error_t result;
 
-	cfs_set_quorate(0, TRUE);
+    cfs_set_quorate(0, TRUE);
 
-	result = quorum_finalize(handle);
-	private->handle = 0;
-	if (result != CS_OK) {
-		cfs_critical("quorum_finalize failed: %d", result);
-		return FALSE;
-	}
+    result = quorum_finalize(handle);
+    private->handle = 0;
+    if (result != CS_OK) {
+        cfs_critical("quorum_finalize failed: %d", result);
+        return FALSE;
+    }
 
-	return TRUE;
+    return TRUE;
 }
 
-static int service_quorum_initialize(
-	cfs_service_t *service,
-	gpointer context)
-{
-	g_return_val_if_fail(service != NULL, FALSE);
-	g_return_val_if_fail(context != NULL, FALSE);
+static int service_quorum_initialize(cfs_service_t *service, gpointer context) {
+    g_return_val_if_fail(service != NULL, FALSE);
+    g_return_val_if_fail(context != NULL, FALSE);
 
-	qs_private_t *private = (qs_private_t *)context;
+    qs_private_t *private = (qs_private_t *)context;
 
-	quorum_handle_t handle = private->handle;
-	cs_error_t result;
+    quorum_handle_t handle = private->handle;
+    cs_error_t result;
 
-	if (!private->handle) {
-            
-                uint32_t quorum_type;
-            
-                result = quorum_initialize(&handle, &quorum_callbacks, &quorum_type);
-                if (result != CS_OK) {
-                        cfs_critical("quorum_initialize failed: %d", result);
-			goto err_reset_handle;
-		}
+    if (!private->handle) {
 
-		if (quorum_type != QUORUM_SET) {
-			cfs_critical("quorum_initialize returned wrong quorum_type: %d", quorum_type);
-			goto err_finalize;
-		}
+        uint32_t quorum_type;
 
-		result = quorum_context_set(handle, private);
-		if (result != CS_OK) {
-			cfs_critical("quorum_context_set failed: %d", result);
-			goto err_finalize;
-		}
+        result = quorum_initialize(&handle, &quorum_callbacks, &quorum_type);
+        if (result != CS_OK) {
+            cfs_critical("quorum_initialize failed: %d", result);
+            goto err_reset_handle;
+        }
 
-		private->handle = handle;
-	}
-	
+        if (quorum_type != QUORUM_SET) {
+            cfs_critical("quorum_initialize returned wrong quorum_type: %d", quorum_type);
+            goto err_finalize;
+        }
 
-	result = quorum_trackstart(handle, CS_TRACK_CHANGES);
-	if (result == CS_ERR_LIBRARY || result == CS_ERR_BAD_HANDLE) {
-		cfs_critical("quorum_trackstart failed: %d - closing handle", result);
-		goto err_finalize;
-	} else if (result != CS_OK) {
-		cfs_critical("quorum_trackstart failed: %d - trying again", result);
-		return -1;
-	}
-	
-	int quorum_fd = -1;
-	if ((result = quorum_fd_get(handle, &quorum_fd)) != CS_OK) {
-		cfs_critical("quorum_fd_get failed %d - trying again", result);
-		return -1;
-	}
+        result = quorum_context_set(handle, private);
+        if (result != CS_OK) {
+            cfs_critical("quorum_context_set failed: %d", result);
+            goto err_finalize;
+        }
 
-	return quorum_fd;
+        private->handle = handle;
+    }
 
- err_finalize:
-	cfs_set_quorate(0, FALSE);
-	quorum_finalize(handle);
- err_reset_handle:
-	private->handle = 0;
-	return -1;
+    result = quorum_trackstart(handle, CS_TRACK_CHANGES);
+    if (result == CS_ERR_LIBRARY || result == CS_ERR_BAD_HANDLE) {
+        cfs_critical("quorum_trackstart failed: %d - closing handle", result);
+        goto err_finalize;
+    } else if (result != CS_OK) {
+        cfs_critical("quorum_trackstart failed: %d - trying again", result);
+        return -1;
+    }
+
+    int quorum_fd = -1;
+    if ((result = quorum_fd_get(handle, &quorum_fd)) != CS_OK) {
+        cfs_critical("quorum_fd_get failed %d - trying again", result);
+        return -1;
+    }
+
+    return quorum_fd;
+
+err_finalize:
+    cfs_set_quorate(0, FALSE);
+    quorum_finalize(handle);
+err_reset_handle:
+    private
+    ->handle = 0;
+    return -1;
 }
 
-static gboolean service_quorum_dispatch(
-	cfs_service_t *service,
-	gpointer context)
-{
-	g_return_val_if_fail(service != NULL, FALSE);
-	g_return_val_if_fail(context != NULL, FALSE);
+static gboolean service_quorum_dispatch(cfs_service_t *service, gpointer context) {
+    g_return_val_if_fail(service != NULL, FALSE);
+    g_return_val_if_fail(context != NULL, FALSE);
 
-	qs_private_t *private = (qs_private_t *)context;
-	quorum_handle_t handle =  private->handle;
+    qs_private_t *private = (qs_private_t *)context;
+    quorum_handle_t handle = private->handle;
 
-	cs_error_t result;
+    cs_error_t result;
 
-	int retries = 0;
+    int retries = 0;
 loop:
-	result = quorum_dispatch(handle, CS_DISPATCH_ALL);
-	if (result == CS_ERR_TRY_AGAIN) {
-		usleep(100000);
-		++retries;
-		if ((retries % 100) == 0)
-			cfs_message("quorum_dispatch retry %d", retries);
-		goto loop;
-	}
+    result = quorum_dispatch(handle, CS_DISPATCH_ALL);
+    if (result == CS_ERR_TRY_AGAIN) {
+        usleep(100000);
+        ++retries;
+        if ((retries % 100) == 0)
+            cfs_message("quorum_dispatch retry %d", retries);
+        goto loop;
+    }
 
+    if (result == CS_OK || result == CS_ERR_TRY_AGAIN)
+        return TRUE;
 
-	if (result == CS_OK || result == CS_ERR_TRY_AGAIN)
-		return TRUE;
+    cfs_critical("quorum_dispatch failed: %d", result);
 
-	cfs_critical("quorum_dispatch failed: %d", result);
-
-	cfs_set_quorate(0, FALSE);
-	quorum_finalize(handle);
-	private->handle = 0;
-	return FALSE;
+    cfs_set_quorate(0, FALSE);
+    quorum_finalize(handle);
+    private->handle = 0;
+    return FALSE;
 }
 
 static cfs_service_callbacks_t cfs_quorum_callbacks = {
-	.cfs_service_initialize_fn =  service_quorum_initialize,
-	.cfs_service_finalize_fn = service_quorum_finalize,
-	.cfs_service_dispatch_fn = service_quorum_dispatch,
+    .cfs_service_initialize_fn = service_quorum_initialize,
+    .cfs_service_finalize_fn = service_quorum_finalize,
+    .cfs_service_dispatch_fn = service_quorum_dispatch,
 };
 
-cfs_service_t *service_quorum_new(void)
-{
-	cfs_service_t *service;
+cfs_service_t *service_quorum_new(void) {
+    cfs_service_t *service;
 
-	qs_private_t *private = g_new0(qs_private_t, 1);
-	if (!private)
-		return NULL;
+    qs_private_t *private = g_new0(qs_private_t, 1);
+    if (!private)
+        return NULL;
 
-	service = cfs_service_new(&cfs_quorum_callbacks, G_LOG_DOMAIN, private); 
+    service = cfs_service_new(&cfs_quorum_callbacks, G_LOG_DOMAIN, private);
 
-	return service;
+    return service;
 }
 
-void service_quorum_destroy(cfs_service_t *service) 
-{
-	g_return_if_fail(service != NULL);
+void service_quorum_destroy(cfs_service_t *service) {
+    g_return_if_fail(service != NULL);
 
-	qs_private_t *private = 
-		(qs_private_t *)cfs_service_get_context(service);
+    qs_private_t *private = (qs_private_t *)cfs_service_get_context(service);
 
-	g_free(private);
-	g_free(service);
+    g_free(private);
+    g_free(service);
 }

@@ -24,28 +24,28 @@
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
 
-#include <stdint.h>
 #include <errno.h>
+#include <stdint.h>
 #include <string.h>
 #include <sys/syslog.h>
 #include <sys/uio.h>
 
 #include <qb/qbdefs.h>
-#include <qb/qbutil.h>
-#include <qb/qbloop.h>
 #include <qb/qbipcs.h>
+#include <qb/qbloop.h>
+#include <qb/qbutil.h>
 
 #include <glib.h>
 
-#include "cfs-utils.h"
 #include "cfs-ipc-ops.h"
-#include "status.h"
-#include "memdb.h"
+#include "cfs-utils.h"
 #include "logger.h"
+#include "memdb.h"
+#include "status.h"
 
 static GThread *worker;
 static qb_loop_t *loop;
-static qb_ipcs_service_t* s1;
+static qb_ipcs_service_t *s1;
 static GString *outbuf;
 static memdb_t *memdb;
 
@@ -55,609 +55,573 @@ static GCond server_started_cond;
 static GCond server_stopped_cond;
 static GMutex server_started_mutex;
 
-
 typedef struct {
-	struct qb_ipc_request_header req_header;
-	char name[256];
+    struct qb_ipc_request_header req_header;
+    char name[256];
 } cfs_status_update_request_header_t;
 
 typedef struct {
-	struct qb_ipc_request_header req_header;
-	char name[256];
-	char nodename[256];
+    struct qb_ipc_request_header req_header;
+    char name[256];
+    char nodename[256];
 } cfs_status_get_request_header_t;
 
 typedef struct {
-	struct qb_ipc_request_header req_header;
-	uint8_t priority;
-	uint8_t ident_len;
-	uint8_t tag_len;
-	char data[];
+    struct qb_ipc_request_header req_header;
+    uint8_t priority;
+    uint8_t ident_len;
+    uint8_t tag_len;
+    char data[];
 } cfs_log_msg_request_header_t;
 
 typedef struct {
-	struct qb_ipc_request_header req_header;
-	uint32_t max_entries;
-	uint32_t res1;
-	uint32_t res2;
-	uint32_t res3;
+    struct qb_ipc_request_header req_header;
+    uint32_t max_entries;
+    uint32_t res1;
+    uint32_t res2;
+    uint32_t res3;
 } cfs_log_get_request_header_t;
 
 typedef struct {
-	struct qb_ipc_request_header req_header;
-	uint32_t vmid;
-	char property[];
+    struct qb_ipc_request_header req_header;
+    uint32_t vmid;
+    char property[];
 } cfs_guest_config_propery_get_request_header_t;
 
 typedef struct {
-	struct qb_ipc_request_header req_header;
-	uint32_t vmid;
-	uint8_t num_props;
-	char props[]; /* list of \0 terminated properties */
+    struct qb_ipc_request_header req_header;
+    uint32_t vmid;
+    uint8_t num_props;
+    char props[]; /* list of \0 terminated properties */
 } cfs_guest_config_properties_get_request_header_t;
 
 typedef struct {
-	struct qb_ipc_request_header req_header;
-	char token[];
+    struct qb_ipc_request_header req_header;
+    char token[];
 } cfs_verify_token_request_header_t;
 
 struct s1_context {
-	int32_t client_pid;
-	uid_t uid;
-	gid_t gid;	
-	gboolean read_only;
+    int32_t client_pid;
+    uid_t uid;
+    gid_t gid;
+    gboolean read_only;
 };
- 
-static int32_t s1_connection_accept_fn(
-	qb_ipcs_connection_t *c, 
-	uid_t uid, 
-	gid_t gid)
-{
-	if ((uid == 0 && gid == 0) || (gid == cfs.gid)) {
-		cfs_debug("authenticated connection %d/%d", uid, gid);
-		struct s1_context *ctx = g_new0(struct s1_context, 1);
-		ctx->uid = uid;
-		ctx->gid = gid;
-		ctx->read_only = (gid == cfs.gid);
 
-		struct qb_ipcs_connection_stats stats;
-		qb_ipcs_connection_stats_get(c, &stats, QB_FALSE);
-		ctx->client_pid = stats.client_pid;
+static int32_t s1_connection_accept_fn(qb_ipcs_connection_t *c, uid_t uid, gid_t gid) {
+    if ((uid == 0 && gid == 0) || (gid == cfs.gid)) {
+        cfs_debug("authenticated connection %d/%d", uid, gid);
+        struct s1_context *ctx = g_new0(struct s1_context, 1);
+        ctx->uid = uid;
+        ctx->gid = gid;
+        ctx->read_only = (gid == cfs.gid);
 
-		qb_ipcs_context_set(c, ctx);
-		return 0;
-	}
-	cfs_critical("connection from bad user %d! - rejected", uid);
-	return 1;
+        struct qb_ipcs_connection_stats stats;
+        qb_ipcs_connection_stats_get(c, &stats, QB_FALSE);
+        ctx->client_pid = stats.client_pid;
+
+        qb_ipcs_context_set(c, ctx);
+        return 0;
+    }
+    cfs_critical("connection from bad user %d! - rejected", uid);
+    return 1;
 }
 
-static void s1_connection_created_fn(
-	qb_ipcs_connection_t *c)
-{
-	struct qb_ipcs_stats srv_stats;
+static void s1_connection_created_fn(qb_ipcs_connection_t *c) {
+    struct qb_ipcs_stats srv_stats;
 
-	qb_ipcs_stats_get(s1, &srv_stats, QB_FALSE);
+    qb_ipcs_stats_get(s1, &srv_stats, QB_FALSE);
 
-	cfs_debug("Connection created > active:%d > closed:%d",
-		    srv_stats.active_connections,
-		    srv_stats.closed_connections);
+    cfs_debug(
+        "Connection created > active:%d > closed:%d", srv_stats.active_connections,
+        srv_stats.closed_connections
+    );
 }
 
-static void s1_connection_destroyed_fn(
-	qb_ipcs_connection_t *c)
-{
-	cfs_debug("connection about to be freed");
-	
-	gpointer ctx;
-	if ((ctx = qb_ipcs_context_get(c)))
-		g_free(ctx);
+static void s1_connection_destroyed_fn(qb_ipcs_connection_t *c) {
+    cfs_debug("connection about to be freed");
 
+    gpointer ctx;
+    if ((ctx = qb_ipcs_context_get(c)))
+        g_free(ctx);
 }
 
-static int32_t s1_connection_closed_fn(
-	qb_ipcs_connection_t *c)
-{
-	struct qb_ipcs_connection_stats stats;
+static int32_t s1_connection_closed_fn(qb_ipcs_connection_t *c) {
+    struct qb_ipcs_connection_stats stats;
 
-	qb_ipcs_connection_stats_get(c, &stats, QB_FALSE);
+    qb_ipcs_connection_stats_get(c, &stats, QB_FALSE);
 
-	cfs_debug("Connection to pid:%d destroyed", stats.client_pid);
+    cfs_debug("Connection to pid:%d destroyed", stats.client_pid);
 
-	return 0;
+    return 0;
 }
 
-static int32_t s1_msg_process_fn(
-	qb_ipcs_connection_t *c,
-	void *data,
-	size_t size)
-{
-	struct qb_ipc_request_header *req_pt = 
-		(struct qb_ipc_request_header *)data;
+static int32_t s1_msg_process_fn(qb_ipcs_connection_t *c, void *data, size_t size) {
+    struct qb_ipc_request_header *req_pt = (struct qb_ipc_request_header *)data;
 
-	struct s1_context *ctx = (struct s1_context *)qb_ipcs_context_get(c);
+    struct s1_context *ctx = (struct s1_context *)qb_ipcs_context_get(c);
 
-	if (!ctx) {
-		cfs_critical("qb_ipcs_context_get failed");
-		qb_ipcs_disconnect(c);
-		return 0;
-	}
+    if (!ctx) {
+        cfs_critical("qb_ipcs_context_get failed");
+        qb_ipcs_disconnect(c);
+        return 0;
+    }
 
-	int32_t request_id __attribute__ ((aligned(8))) = req_pt->id;
-	int32_t request_size __attribute__ ((aligned(8))) = req_pt->size;
-	cfs_debug("process msg:%d, size:%d", request_id, request_size);
+    int32_t request_id __attribute__((aligned(8))) = req_pt->id;
+    int32_t request_size __attribute__((aligned(8))) = req_pt->size;
+    cfs_debug("process msg:%d, size:%d", request_id, request_size);
 
-	char *resp = NULL;
+    char *resp = NULL;
 
-	g_string_truncate(outbuf, 0);
+    g_string_truncate(outbuf, 0);
 
-	int32_t result = -ECHRNG;
-	if (request_id == CFS_IPC_GET_FS_VERSION) {
+    int32_t result = -ECHRNG;
+    if (request_id == CFS_IPC_GET_FS_VERSION) {
 
-		if (request_size != sizeof(struct qb_ipc_request_header)) {
-			result = -EINVAL;
-		} else {
-			result = cfs_create_version_msg(outbuf);
-		}
+        if (request_size != sizeof(struct qb_ipc_request_header)) {
+            result = -EINVAL;
+        } else {
+            result = cfs_create_version_msg(outbuf);
+        }
 
-	} else if (request_id == CFS_IPC_GET_CLUSTER_INFO) {
+    } else if (request_id == CFS_IPC_GET_CLUSTER_INFO) {
 
-		if (request_size != sizeof(struct qb_ipc_request_header)) {
-			result = -EINVAL;
-		} else {
-			result = cfs_create_memberlist_msg(outbuf);
-		}
+        if (request_size != sizeof(struct qb_ipc_request_header)) {
+            result = -EINVAL;
+        } else {
+            result = cfs_create_memberlist_msg(outbuf);
+        }
 
-	} else if (request_id == CFS_IPC_GET_GUEST_LIST) {
-		
-		if (request_size != sizeof(struct qb_ipc_request_header)) {
-			result = -EINVAL;
-		} else {
-			result = cfs_create_vmlist_msg(outbuf);
-		}
-	} else if (request_id == CFS_IPC_SET_STATUS) {
+    } else if (request_id == CFS_IPC_GET_GUEST_LIST) {
 
-		cfs_status_update_request_header_t *rh = 
-			(cfs_status_update_request_header_t *)data;
+        if (request_size != sizeof(struct qb_ipc_request_header)) {
+            result = -EINVAL;
+        } else {
+            result = cfs_create_vmlist_msg(outbuf);
+        }
+    } else if (request_id == CFS_IPC_SET_STATUS) {
 
-		int datasize = request_size - sizeof(cfs_status_update_request_header_t);
+        cfs_status_update_request_header_t *rh = (cfs_status_update_request_header_t *)data;
 
-		if (ctx->read_only) {
-			result = -EPERM;
-		} else if (datasize < 0) {
-			result = -EINVAL;
-		} else {	
-			/* make sure name is 0 terminated */
-			rh->name[sizeof(rh->name) - 1] = 0;
+        int datasize = request_size - sizeof(cfs_status_update_request_header_t);
 
-			char *dataptr = (char*) data + sizeof(cfs_status_update_request_header_t);
+        if (ctx->read_only) {
+            result = -EPERM;
+        } else if (datasize < 0) {
+            result = -EINVAL;
+        } else {
+            /* make sure name is 0 terminated */
+            rh->name[sizeof(rh->name) - 1] = 0;
 
-			result = cfs_status_set(rh->name, dataptr, datasize);
-		}
-	} else if (request_id == CFS_IPC_GET_STATUS) {
+            char *dataptr = (char *)data + sizeof(cfs_status_update_request_header_t);
 
-		cfs_status_get_request_header_t *rh =
-			(cfs_status_get_request_header_t *)data;
+            result = cfs_status_set(rh->name, dataptr, datasize);
+        }
+    } else if (request_id == CFS_IPC_GET_STATUS) {
 
-		int datasize = request_size - sizeof(cfs_status_get_request_header_t);
+        cfs_status_get_request_header_t *rh = (cfs_status_get_request_header_t *)data;
 
-		if (datasize < 0) {
-			result = -EINVAL;
-		} else {	
-			/* make sure all names are 0 terminated */
-			rh->name[sizeof(rh->name) - 1] = 0;
-			rh->nodename[sizeof(rh->nodename) - 1] = 0;
+        int datasize = request_size - sizeof(cfs_status_get_request_header_t);
 
-			result = cfs_create_status_msg(outbuf, rh->nodename, rh->name);
-		}
-	} else if (request_id == CFS_IPC_GET_CONFIG) {
+        if (datasize < 0) {
+            result = -EINVAL;
+        } else {
+            /* make sure all names are 0 terminated */
+            rh->name[sizeof(rh->name) - 1] = 0;
+            rh->nodename[sizeof(rh->nodename) - 1] = 0;
 
-		int pathlen = request_size - sizeof(struct qb_ipc_request_header);
+            result = cfs_create_status_msg(outbuf, rh->nodename, rh->name);
+        }
+    } else if (request_id == CFS_IPC_GET_CONFIG) {
 
-		if (pathlen <= 0) {
-			result = -EINVAL;
-		} else {
-			/* make sure path is 0 terminated */
-			((char *)data)[request_size - 1] = 0;
-			char *path = (char*) data + sizeof(struct qb_ipc_request_header);
+        int pathlen = request_size - sizeof(struct qb_ipc_request_header);
 
-			if (ctx->read_only &&  path_is_private(path)) {
-				result = -EPERM;
-			} else {
-				gpointer tmp = NULL;
-				result = memdb_read(memdb, path, &tmp);
-				if (result > 0) {
-					g_string_append_len(outbuf, tmp, result);
-					g_free(tmp);
-				}
-			}
-		}			
-	} else if (request_id == CFS_IPC_LOG_CLUSTER_MSG) {
+        if (pathlen <= 0) {
+            result = -EINVAL;
+        } else {
+            /* make sure path is 0 terminated */
+            ((char *)data)[request_size - 1] = 0;
+            char *path = (char *)data + sizeof(struct qb_ipc_request_header);
 
-		cfs_log_msg_request_header_t *rh = 
-			(cfs_log_msg_request_header_t *)data;
+            if (ctx->read_only && path_is_private(path)) {
+                result = -EPERM;
+            } else {
+                gpointer tmp = NULL;
+                result = memdb_read(memdb, path, &tmp);
+                if (result > 0) {
+                    g_string_append_len(outbuf, tmp, result);
+                    g_free(tmp);
+                }
+            }
+        }
+    } else if (request_id == CFS_IPC_LOG_CLUSTER_MSG) {
 
-		int datasize = request_size - G_STRUCT_OFFSET(cfs_log_msg_request_header_t, data);
-		int msg_len = datasize - rh->ident_len - rh->tag_len;
+        cfs_log_msg_request_header_t *rh = (cfs_log_msg_request_header_t *)data;
 
-		if (ctx->read_only) {
-			result = -EPERM;
-		} else if (msg_len  < 1) {
-			result = -EINVAL;
-		} else {
-			char *msg = rh->data;
-			if ((msg[rh->ident_len - 1] == 0) &&
-			    (msg[rh->ident_len + rh->tag_len - 1] == 0) &&
-			    (((char *)data)[request_size] == 0)) {
+        int datasize = request_size - G_STRUCT_OFFSET(cfs_log_msg_request_header_t, data);
+        int msg_len = datasize - rh->ident_len - rh->tag_len;
 
-				char *ident = msg;
-				char *tag = msg + rh->ident_len;
-				msg = msg + rh->ident_len + rh->tag_len;
+        if (ctx->read_only) {
+            result = -EPERM;
+        } else if (msg_len < 1) {
+            result = -EINVAL;
+        } else {
+            char *msg = rh->data;
+            if ((msg[rh->ident_len - 1] == 0) && (msg[rh->ident_len + rh->tag_len - 1] == 0) &&
+                (((char *)data)[request_size] == 0)) {
 
-				time_t ctime = time(NULL);
-				clog_entry_t *entry = (clog_entry_t *)alloca(CLOG_MAX_ENTRY_SIZE);
-				if (clog_pack(entry, cfs.nodename, ident, tag, ctx->client_pid,
-					      ctime, rh->priority, msg)) {
-					cfs_cluster_log(entry);
-				}
+                char *ident = msg;
+                char *tag = msg + rh->ident_len;
+                msg = msg + rh->ident_len + rh->tag_len;
 
-				result = 0;
+                time_t ctime = time(NULL);
+                clog_entry_t *entry = (clog_entry_t *)alloca(CLOG_MAX_ENTRY_SIZE);
+                if (clog_pack(
+                        entry, cfs.nodename, ident, tag, ctx->client_pid, ctime, rh->priority, msg
+                    )) {
+                    cfs_cluster_log(entry);
+                }
 
-			} else {
-				result = -EINVAL;
-			}
-		}
-	} else if (request_id == CFS_IPC_GET_CLUSTER_LOG) {
+                result = 0;
 
-		cfs_log_get_request_header_t *rh = 
-			(cfs_log_get_request_header_t *)data;
+            } else {
+                result = -EINVAL;
+            }
+        }
+    } else if (request_id == CFS_IPC_GET_CLUSTER_LOG) {
 
-		int userlen = request_size - sizeof(cfs_log_get_request_header_t);
+        cfs_log_get_request_header_t *rh = (cfs_log_get_request_header_t *)data;
 
-		if (userlen <= 0) {
-			result = -EINVAL;
-		} else {
-			/* make sure user string is 0 terminated */
-			((char *)data)[request_size - 1] = 0;
-			char *user = (char*) data + sizeof(cfs_log_get_request_header_t);
+        int userlen = request_size - sizeof(cfs_log_get_request_header_t);
 
-			uint32_t max = rh->max_entries ?  rh->max_entries : 50;
-			cfs_cluster_log_dump(outbuf, user, max);
-			result = 0;
-		}
-	} else if (request_id == CFS_IPC_GET_RRD_DUMP) {
-	
-		if (request_size != sizeof(struct qb_ipc_request_header)) {
-			result = -EINVAL;
-		} else {
-			cfs_rrd_dump(outbuf);
-			result = 0;
-		}
-	} else if (request_id == CFS_IPC_GET_GUEST_CONFIG_PROPERTY) {
+        if (userlen <= 0) {
+            result = -EINVAL;
+        } else {
+            /* make sure user string is 0 terminated */
+            ((char *)data)[request_size - 1] = 0;
+            char *user = (char *)data + sizeof(cfs_log_get_request_header_t);
 
-		cfs_guest_config_propery_get_request_header_t *rh =
-			(cfs_guest_config_propery_get_request_header_t *) data;
+            uint32_t max = rh->max_entries ? rh->max_entries : 50;
+            cfs_cluster_log_dump(outbuf, user, max);
+            result = 0;
+        }
+    } else if (request_id == CFS_IPC_GET_RRD_DUMP) {
 
-		int proplen = request_size - G_STRUCT_OFFSET(cfs_guest_config_propery_get_request_header_t, property);
+        if (request_size != sizeof(struct qb_ipc_request_header)) {
+            result = -EINVAL;
+        } else {
+            cfs_rrd_dump(outbuf);
+            result = 0;
+        }
+    } else if (request_id == CFS_IPC_GET_GUEST_CONFIG_PROPERTY) {
 
-		result = 0;
-		if (rh->vmid < 100 && rh->vmid != 0) {
-			cfs_debug("vmid out of range %u", rh->vmid);
-			result = -EINVAL;
-		} else if (rh->vmid >= 100 && !vmlist_vm_exists(rh->vmid)) {
-			result = -ENOENT;
-		} else if (proplen <= 0) {
-			cfs_debug("proplen <= 0, %d", proplen);
-			result = -EINVAL;
-		} else {
-			((char *)data)[request_size - 1] = 0; // ensure property is 0 terminated
+        cfs_guest_config_propery_get_request_header_t *rh =
+            (cfs_guest_config_propery_get_request_header_t *)data;
 
-			cfs_debug("cfs_get_guest_config_property: basic valid checked, do request");
+        int proplen =
+            request_size - G_STRUCT_OFFSET(cfs_guest_config_propery_get_request_header_t, property);
 
-			result = cfs_create_guest_conf_property_msg(outbuf, memdb, rh->property, rh->vmid);
-		}
-	} else if (request_id == CFS_IPC_GET_GUEST_CONFIG_PROPERTIES) {
+        result = 0;
+        if (rh->vmid < 100 && rh->vmid != 0) {
+            cfs_debug("vmid out of range %u", rh->vmid);
+            result = -EINVAL;
+        } else if (rh->vmid >= 100 && !vmlist_vm_exists(rh->vmid)) {
+            result = -ENOENT;
+        } else if (proplen <= 0) {
+            cfs_debug("proplen <= 0, %d", proplen);
+            result = -EINVAL;
+        } else {
+            ((char *)data)[request_size - 1] = 0; // ensure property is 0 terminated
 
-		cfs_guest_config_properties_get_request_header_t *rh =
-			(cfs_guest_config_properties_get_request_header_t *) data;
+            cfs_debug("cfs_get_guest_config_property: basic valid checked, do request");
 
-		size_t remaining = request_size - G_STRUCT_OFFSET(cfs_guest_config_properties_get_request_header_t, props);
+            result = cfs_create_guest_conf_property_msg(outbuf, memdb, rh->property, rh->vmid);
+        }
+    } else if (request_id == CFS_IPC_GET_GUEST_CONFIG_PROPERTIES) {
 
-		result = 0;
-		if (rh->vmid < 100 && rh->vmid != 0) {
-			cfs_debug("vmid out of range %u", rh->vmid);
-			result = -EINVAL;
-		} else if (rh->vmid >= 100 && !vmlist_vm_exists(rh->vmid)) {
-			result = -ENOENT;
-		} else if (rh->num_props == 0) {
-			cfs_debug("num_props == 0");
-			result = -EINVAL;
-		} else if (remaining <= 1) {
-			cfs_debug("property length <= 1, %ld", remaining);
-			result = -EINVAL;
-		} else {
-			const char **properties = malloc(sizeof(char*) * rh->num_props);
-			char *current = (rh->props);
-			for (uint8_t i = 0; i < rh->num_props; i++) {
-			    size_t proplen = strnlen(current, remaining);
-			    if (proplen == 0) {
-				cfs_debug("property length 0");
-				result = -EINVAL;
-				break;
-			    }
-			    if (proplen == remaining || current[proplen] != '\0') {
-				cfs_debug("property not \\0 terminated");
-				result = -EINVAL;
-				break;
-			    }
-			    if (current[0] < 'a' || current[0] > 'z') {
-				cfs_debug("property does not start with [a-z]");
-				result = -EINVAL;
-				break;
-			    }
-			    properties[i] = current;
-			    remaining -= (proplen + 1);
-			    current += proplen + 1;
-			}
+        cfs_guest_config_properties_get_request_header_t *rh =
+            (cfs_guest_config_properties_get_request_header_t *)data;
 
-			if (remaining != 0) {
-			    cfs_debug("leftover data after parsing %u properties", rh->num_props);
-			    result = -EINVAL;
-			}
+        size_t remaining =
+            request_size - G_STRUCT_OFFSET(cfs_guest_config_properties_get_request_header_t, props);
 
-			if (result == 0) {
-			    cfs_debug("cfs_get_guest_config_properties: basic validity checked, do request");
-			    result = cfs_create_guest_conf_properties_msg(outbuf, memdb, properties, rh->num_props, rh->vmid);
-			}
+        result = 0;
+        if (rh->vmid < 100 && rh->vmid != 0) {
+            cfs_debug("vmid out of range %u", rh->vmid);
+            result = -EINVAL;
+        } else if (rh->vmid >= 100 && !vmlist_vm_exists(rh->vmid)) {
+            result = -ENOENT;
+        } else if (rh->num_props == 0) {
+            cfs_debug("num_props == 0");
+            result = -EINVAL;
+        } else if (remaining <= 1) {
+            cfs_debug("property length <= 1, %ld", remaining);
+            result = -EINVAL;
+        } else {
+            const char **properties = malloc(sizeof(char *) * rh->num_props);
+            char *current = (rh->props);
+            for (uint8_t i = 0; i < rh->num_props; i++) {
+                size_t proplen = strnlen(current, remaining);
+                if (proplen == 0) {
+                    cfs_debug("property length 0");
+                    result = -EINVAL;
+                    break;
+                }
+                if (proplen == remaining || current[proplen] != '\0') {
+                    cfs_debug("property not \\0 terminated");
+                    result = -EINVAL;
+                    break;
+                }
+                if (current[0] < 'a' || current[0] > 'z') {
+                    cfs_debug("property does not start with [a-z]");
+                    result = -EINVAL;
+                    break;
+                }
+                properties[i] = current;
+                remaining -= (proplen + 1);
+                current += proplen + 1;
+            }
 
-			free(properties);
-		}
-	} else if (request_id == CFS_IPC_VERIFY_TOKEN) {
+            if (remaining != 0) {
+                cfs_debug("leftover data after parsing %u properties", rh->num_props);
+                result = -EINVAL;
+            }
 
-		cfs_verify_token_request_header_t *rh = (cfs_verify_token_request_header_t *) data;
-		int tokenlen = request_size - G_STRUCT_OFFSET(cfs_verify_token_request_header_t, token) - 1;
+            if (result == 0) {
+                cfs_debug("cfs_get_guest_config_properties: basic validity checked, do request");
+                result = cfs_create_guest_conf_properties_msg(
+                    outbuf, memdb, properties, rh->num_props, rh->vmid
+                );
+            }
 
-		if (tokenlen <= 0) {
-			cfs_debug("tokenlen <= 0, %d", tokenlen);
-			result = -EINVAL;
-		} else if (memchr(rh->token, '\n', tokenlen) != NULL) {
-			cfs_debug("token contains newline");
-			result = -EINVAL;
-		} else if (rh->token[tokenlen] != '\0') {
-			cfs_debug("token not NULL-terminated");
-			result = -EINVAL;
-		} else if (strnlen(rh->token, tokenlen) != tokenlen) {
-			cfs_debug("token contains NULL-byte");
-			result = -EINVAL;
-		} else {
-			cfs_debug("cfs_verify_token: basic validity checked, reading token.cfg");
-			gpointer tmp = NULL;
-			int bytes_read = memdb_read(memdb, "priv/token.cfg", &tmp);
-			size_t remaining = bytes_read > 0 ? bytes_read : 0;
-			if (tmp != NULL && remaining >= tokenlen) {
-				const char *line = (char *) tmp;
-				const char *next_line;
-				const char *const end = line + remaining;
-				size_t linelen;
+            free(properties);
+        }
+    } else if (request_id == CFS_IPC_VERIFY_TOKEN) {
 
-				while (line != NULL) {
-					next_line = memchr(line, '\n', remaining);
-					linelen = next_line == NULL ? remaining : next_line - line;
-					if (linelen == tokenlen && strncmp(line, rh->token, linelen) == 0) {
-						result = 0;
-						break;
-					}
-					line = next_line;
-					if (line != NULL) {
-						line += 1;
-						remaining = end - line;
-					}
-				}
-				if (line == NULL) {
-					result = -ENOENT;
-				}
-				g_free(tmp);
-			} else {
-				cfs_debug("token: token.cfg does not exist - ENOENT");
-				result = -ENOENT;
-			}
-		}
-	}
+        cfs_verify_token_request_header_t *rh = (cfs_verify_token_request_header_t *)data;
+        int tokenlen = request_size - G_STRUCT_OFFSET(cfs_verify_token_request_header_t, token) - 1;
 
-	cfs_debug("process result %d", result);
+        if (tokenlen <= 0) {
+            cfs_debug("tokenlen <= 0, %d", tokenlen);
+            result = -EINVAL;
+        } else if (memchr(rh->token, '\n', tokenlen) != NULL) {
+            cfs_debug("token contains newline");
+            result = -EINVAL;
+        } else if (rh->token[tokenlen] != '\0') {
+            cfs_debug("token not NULL-terminated");
+            result = -EINVAL;
+        } else if (strnlen(rh->token, tokenlen) != tokenlen) {
+            cfs_debug("token contains NULL-byte");
+            result = -EINVAL;
+        } else {
+            cfs_debug("cfs_verify_token: basic validity checked, reading token.cfg");
+            gpointer tmp = NULL;
+            int bytes_read = memdb_read(memdb, "priv/token.cfg", &tmp);
+            size_t remaining = bytes_read > 0 ? bytes_read : 0;
+            if (tmp != NULL && remaining >= tokenlen) {
+                const char *line = (char *)tmp;
+                const char *next_line;
+                const char *const end = line + remaining;
+                size_t linelen;
 
-	if (result >= 0) {
-		resp = outbuf->str;
-		result = 0;
-	}
+                while (line != NULL) {
+                    next_line = memchr(line, '\n', remaining);
+                    linelen = next_line == NULL ? remaining : next_line - line;
+                    if (linelen == tokenlen && strncmp(line, rh->token, linelen) == 0) {
+                        result = 0;
+                        break;
+                    }
+                    line = next_line;
+                    if (line != NULL) {
+                        line += 1;
+                        remaining = end - line;
+                    }
+                }
+                if (line == NULL) {
+                    result = -ENOENT;
+                }
+                g_free(tmp);
+            } else {
+                cfs_debug("token: token.cfg does not exist - ENOENT");
+                result = -ENOENT;
+            }
+        }
+    }
 
-	int iov_len = 2;
-	struct iovec iov[iov_len];
-	struct qb_ipc_response_header res_header;
+    cfs_debug("process result %d", result);
 
-	int resp_data_len = resp ? outbuf->len : 0;
+    if (result >= 0) {
+        resp = outbuf->str;
+        result = 0;
+    }
 
-	res_header.id = request_id;
-	res_header.size = sizeof(res_header) + resp_data_len;
-	res_header.error = result;
+    int iov_len = 2;
+    struct iovec iov[iov_len];
+    struct qb_ipc_response_header res_header;
 
-	iov[0].iov_base = (char *)&res_header;
-	iov[0].iov_len = sizeof(res_header);
-	iov[1].iov_base = resp;
-	iov[1].iov_len = resp_data_len;
+    int resp_data_len = resp ? outbuf->len : 0;
 
-	ssize_t res = qb_ipcs_response_sendv(c, iov, iov_len);
-	if (res < 0) {
-		cfs_critical("qb_ipcs_response_send: %s", strerror(errno));
-		qb_ipcs_disconnect(c);
-	}
+    res_header.id = request_id;
+    res_header.size = sizeof(res_header) + resp_data_len;
+    res_header.error = result;
 
-	return 0;
+    iov[0].iov_base = (char *)&res_header;
+    iov[0].iov_len = sizeof(res_header);
+    iov[1].iov_base = resp;
+    iov[1].iov_len = resp_data_len;
+
+    ssize_t res = qb_ipcs_response_sendv(c, iov, iov_len);
+    if (res < 0) {
+        cfs_critical("qb_ipcs_response_send: %s", strerror(errno));
+        qb_ipcs_disconnect(c);
+    }
+
+    return 0;
 }
 
-static int32_t my_job_add(
-	enum qb_loop_priority p, 
-	void *data, 
-	qb_loop_job_dispatch_fn fn)
-{
-	return qb_loop_job_add(loop, p, data, fn);
+static int32_t my_job_add(enum qb_loop_priority p, void *data, qb_loop_job_dispatch_fn fn) {
+    return qb_loop_job_add(loop, p, data, fn);
 }
 
 static int32_t my_dispatch_add(
-	enum qb_loop_priority p, 
-	int32_t fd, 
-	int32_t evts,
-	void *data, 
-	qb_ipcs_dispatch_fn_t fn)
-{
-	return qb_loop_poll_add(loop, p, fd, evts, data, fn);
+    enum qb_loop_priority p, int32_t fd, int32_t evts, void *data, qb_ipcs_dispatch_fn_t fn
+) {
+    return qb_loop_poll_add(loop, p, fd, evts, data, fn);
 }
 
 static int32_t my_dispatch_mod(
-	enum qb_loop_priority p, 
-	int32_t fd, 
-	int32_t evts,
-	void *data, 
-	qb_ipcs_dispatch_fn_t fn)
-{
-	return qb_loop_poll_mod(loop, p, fd, evts, data, fn);
+    enum qb_loop_priority p, int32_t fd, int32_t evts, void *data, qb_ipcs_dispatch_fn_t fn
+) {
+    return qb_loop_poll_mod(loop, p, fd, evts, data, fn);
 }
 
-static int32_t my_dispatch_del(
-	int32_t fd)
-{
-	return qb_loop_poll_del(loop, fd);
-}
+static int32_t my_dispatch_del(int32_t fd) { return qb_loop_poll_del(loop, fd); }
 
 static struct qb_ipcs_service_handlers service_handlers = {
-	.connection_accept = s1_connection_accept_fn,
-	.connection_created = s1_connection_created_fn,
-	.msg_process = s1_msg_process_fn,
-	.connection_destroyed = s1_connection_destroyed_fn,
-	.connection_closed = s1_connection_closed_fn,
+    .connection_accept = s1_connection_accept_fn,
+    .connection_created = s1_connection_created_fn,
+    .msg_process = s1_msg_process_fn,
+    .connection_destroyed = s1_connection_destroyed_fn,
+    .connection_closed = s1_connection_closed_fn,
 };
 
 static struct qb_ipcs_poll_handlers poll_handlers = {
-	.job_add = my_job_add,
-	.dispatch_add = my_dispatch_add,
-	.dispatch_mod = my_dispatch_mod,
-	.dispatch_del = my_dispatch_del,
+    .job_add = my_job_add,
+    .dispatch_add = my_dispatch_add,
+    .dispatch_mod = my_dispatch_mod,
+    .dispatch_del = my_dispatch_del,
 };
 
-static void timer_job(void *data)
-{
-	gboolean terminate = FALSE;
+static void timer_job(void *data) {
+    gboolean terminate = FALSE;
 
-	g_mutex_lock (&server_started_mutex);
+    g_mutex_lock(&server_started_mutex);
 
-	if (terminate_server) {
-		cfs_debug ("got terminate request");
+    if (terminate_server) {
+        cfs_debug("got terminate request");
 
-		if (loop)
-			qb_loop_stop (loop);
-		
-		if (s1) {
-			qb_ipcs_destroy (s1);
-			s1 = 0;
-		}
-		server_started = 0;
+        if (loop)
+            qb_loop_stop(loop);
 
-		g_cond_signal (&server_stopped_cond);
-		
-		terminate = TRUE;
-	} else if (!server_started) {
-		server_started = 1;
-		g_cond_signal (&server_started_cond);
-	}
-	
-	g_mutex_unlock (&server_started_mutex);
+        if (s1) {
+            qb_ipcs_destroy(s1);
+            s1 = 0;
+        }
+        server_started = 0;
 
-	if (terminate)
-		return;
-			       
-	qb_loop_timer_handle th;
-	qb_loop_timer_add(loop, QB_LOOP_LOW, 1000000000, NULL, timer_job, &th);
+        g_cond_signal(&server_stopped_cond);
+
+        terminate = TRUE;
+    } else if (!server_started) {
+        server_started = 1;
+        g_cond_signal(&server_started_cond);
+    }
+
+    g_mutex_unlock(&server_started_mutex);
+
+    if (terminate)
+        return;
+
+    qb_loop_timer_handle th;
+    qb_loop_timer_add(loop, QB_LOOP_LOW, 1000000000, NULL, timer_job, &th);
 }
 
-static gpointer worker_thread(gpointer data)
-{
-	g_return_val_if_fail(loop != NULL, NULL);
+static gpointer worker_thread(gpointer data) {
+    g_return_val_if_fail(loop != NULL, NULL);
 
-	cfs_debug("start event loop");
+    cfs_debug("start event loop");
 
-	qb_ipcs_run(s1);
+    qb_ipcs_run(s1);
 
-	qb_loop_timer_handle th;
-	qb_loop_timer_add(loop, QB_LOOP_LOW, 1000, NULL, timer_job, &th);
+    qb_loop_timer_handle th;
+    qb_loop_timer_add(loop, QB_LOOP_LOW, 1000, NULL, timer_job, &th);
 
-	qb_loop_run(loop);
+    qb_loop_run(loop);
 
-	cfs_debug("event loop finished - exit worker thread");
-	
-	return NULL;
+    cfs_debug("event loop finished - exit worker thread");
+
+    return NULL;
 }
 
-gboolean server_start(memdb_t *db)
-{
-	g_return_val_if_fail(loop == NULL, FALSE);
-	g_return_val_if_fail(worker == NULL, FALSE);
-	g_return_val_if_fail(db != NULL, FALSE);
+gboolean server_start(memdb_t *db) {
+    g_return_val_if_fail(loop == NULL, FALSE);
+    g_return_val_if_fail(worker == NULL, FALSE);
+    g_return_val_if_fail(db != NULL, FALSE);
 
-	terminate_server = 0;
-	server_started = 0;
-	
-	memdb = db;
+    terminate_server = 0;
+    server_started = 0;
 
-	outbuf = g_string_sized_new(8192*8);
+    memdb = db;
 
-	if (!(loop = qb_loop_create())) {
-		cfs_critical("cant create event loop");
-		return FALSE;
-	}
-	
-	s1 = qb_ipcs_create("pve2", 1, QB_IPC_SHM, &service_handlers);
-	if (s1 == 0) {
-		cfs_critical("qb_ipcs_create failed: %s", strerror(errno));
-		return FALSE;
-	}
-	qb_ipcs_poll_handlers_set(s1, &poll_handlers);
+    outbuf = g_string_sized_new(8192 * 8);
 
-	worker = g_thread_new ("server", worker_thread, NULL);
+    if (!(loop = qb_loop_create())) {
+        cfs_critical("cant create event loop");
+        return FALSE;
+    }
 
-	g_mutex_lock (&server_started_mutex);
-	while (!server_started)
-		g_cond_wait (&server_started_cond, &server_started_mutex);
-	g_mutex_unlock (&server_started_mutex);
-	
-	cfs_debug("server started");
-	
-	return TRUE;
+    s1 = qb_ipcs_create("pve2", 1, QB_IPC_SHM, &service_handlers);
+    if (s1 == 0) {
+        cfs_critical("qb_ipcs_create failed: %s", strerror(errno));
+        return FALSE;
+    }
+    qb_ipcs_poll_handlers_set(s1, &poll_handlers);
+
+    worker = g_thread_new("server", worker_thread, NULL);
+
+    g_mutex_lock(&server_started_mutex);
+    while (!server_started)
+        g_cond_wait(&server_started_cond, &server_started_mutex);
+    g_mutex_unlock(&server_started_mutex);
+
+    cfs_debug("server started");
+
+    return TRUE;
 }
 
-void server_stop(void)
-{
-	cfs_debug("server stop");
+void server_stop(void) {
+    cfs_debug("server stop");
 
-	g_mutex_lock (&server_started_mutex);
-	terminate_server = 1;
-	while (server_started)
-		g_cond_wait (&server_stopped_cond, &server_started_mutex);
-	g_mutex_unlock (&server_started_mutex);
+    g_mutex_lock(&server_started_mutex);
+    terminate_server = 1;
+    while (server_started)
+        g_cond_wait(&server_stopped_cond, &server_started_mutex);
+    g_mutex_unlock(&server_started_mutex);
 
-	if (worker) {
-		g_thread_join(worker);
-		worker = NULL;
-	}
-	
-	cfs_debug("worker thread finished");
+    if (worker) {
+        g_thread_join(worker);
+        worker = NULL;
+    }
 
-	if (loop) {
-		qb_loop_destroy(loop);
+    cfs_debug("worker thread finished");
 
-		loop = NULL;
-	}
+    if (loop) {
+        qb_loop_destroy(loop);
 
-	if (outbuf) {
-		g_string_free(outbuf, TRUE);
-		outbuf = NULL;
-	}
+        loop = NULL;
+    }
+
+    if (outbuf) {
+        g_string_free(outbuf, TRUE);
+        outbuf = NULL;
+    }
 }

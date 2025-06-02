@@ -32,138 +32,75 @@
 #define VMTYPE_OPENVZ 2
 #define VMTYPE_LXC 3
 
-#define CFS_MAX_STATUS_SIZE (32*1024)
+#define CFS_MAX_STATUS_SIZE (32 * 1024)
 
 typedef struct cfs_clnode cfs_clnode_t;
 typedef struct cfs_clinfo cfs_clinfo_t;
 
-void 
-cfs_status_init(void);
+void cfs_status_init(void);
 
-void 
-cfs_status_cleanup(void);
+void cfs_status_cleanup(void);
 
-dfsm_t *
-cfs_status_dfsm_new(void);
+dfsm_t *cfs_status_dfsm_new(void);
 
-void
-cfs_cluster_log(clog_entry_t *entry);
+void cfs_cluster_log(clog_entry_t *entry);
 
-void 
-cfs_cluster_log_dump(
-	GString *str, 
-	const char *user, 
-	guint max_entries);
+void cfs_cluster_log_dump(GString *str, const char *user, guint max_entries);
 
-void
-cfs_rrd_dump(GString *str); 
+void cfs_rrd_dump(GString *str);
 
-int
-cfs_status_set(
-	const char *key,
-	gpointer data,
-	size_t len);
+int cfs_status_set(const char *key, gpointer data, size_t len);
 
-void 
-cfs_status_set_clinfo(
-	cfs_clinfo_t *clinfo);
+void cfs_status_set_clinfo(cfs_clinfo_t *clinfo);
 
-void 
-cfs_status_set_vmlist(
-	GHashTable *vmlist);
+void cfs_status_set_vmlist(GHashTable *vmlist);
 
-cfs_clnode_t *
-cfs_clnode_new(
-	const char *name, 
-	uint32_t nodeid, 
-	uint32_t votes);
+cfs_clnode_t *cfs_clnode_new(const char *name, uint32_t nodeid, uint32_t votes);
 
-void 
-cfs_clnode_destroy(
-	cfs_clnode_t *clnode);
+void cfs_clnode_destroy(cfs_clnode_t *clnode);
 
-cfs_clinfo_t *
-cfs_clinfo_new(
-	const char *cluster_name, 
-	uint32_t cman_version);
+cfs_clinfo_t *cfs_clinfo_new(const char *cluster_name, uint32_t cman_version);
 
-gboolean 
-cfs_clinfo_destroy(
-	cfs_clinfo_t *clinfo);
+gboolean cfs_clinfo_destroy(cfs_clinfo_t *clinfo);
 
-gboolean 
-cfs_clinfo_add_node(
-	cfs_clinfo_t *clinfo,
-	cfs_clnode_t *clnode);
+gboolean cfs_clinfo_add_node(cfs_clinfo_t *clinfo, cfs_clnode_t *clnode);
 
-void 
-cfs_set_quorate(
-	uint32_t quorate, 
-	gboolean quiet);
+void cfs_set_quorate(uint32_t quorate, gboolean quiet);
 
-gboolean
-cfs_is_quorate(void);
+gboolean cfs_is_quorate(void);
 
-GHashTable *
-vmlist_hash_new(void);
+GHashTable *vmlist_hash_new(void);
 
-gboolean 
-vmlist_hash_insert_vm(
-	GHashTable *vmlist,
-	int vmtype, 
-	guint32 vmid, 
-	const char *nodename,
-	gboolean replace);
+gboolean vmlist_hash_insert_vm(
+    GHashTable *vmlist, int vmtype, guint32 vmid, const char *nodename, gboolean replace
+);
 
-void 
-vmlist_register_vm(
-	int vmtype, 
-	guint32 vmid, 
-	const char *nodename);
+void vmlist_register_vm(int vmtype, guint32 vmid, const char *nodename);
 
-void
-vmlist_delete_vm(
-	guint32 vmid);
+void vmlist_delete_vm(guint32 vmid);
 
-gboolean
-vmlist_vm_exists(
-	guint32 vmid);
+gboolean vmlist_vm_exists(guint32 vmid);
 
-gboolean
-vmlist_different_vm_exists(
-	int vmtype,
-	guint32 vmid,
-	const char *nodename);
+gboolean vmlist_different_vm_exists(int vmtype, guint32 vmid, const char *nodename);
 
-void 
-record_memdb_change(const char *path);
+void record_memdb_change(const char *path);
 
-void 
-record_memdb_reload(void);
+void record_memdb_reload(void);
 
+int cfs_create_status_msg(GString *str, const char *nodename, const char *key);
 
-int
-cfs_create_status_msg(
-	GString *str,
-	const char *nodename,
-	const char *key);
+int cfs_create_version_msg(GString *str);
 
-int
-cfs_create_version_msg(
-	GString *str);
+int cfs_create_vmlist_msg(GString *str);
 
-int
-cfs_create_vmlist_msg(
-	GString *str);
+int cfs_create_memberlist_msg(GString *str);
 
-int
-cfs_create_memberlist_msg(
-	GString *str);
+int cfs_create_guest_conf_property_msg(
+    GString *str, memdb_t *memdb, const char *prop, uint32_t vmid
+);
 
-int
-cfs_create_guest_conf_property_msg(GString *str, memdb_t *memdb, const char *prop, uint32_t vmid);
-
-int
-cfs_create_guest_conf_properties_msg(GString *str, memdb_t *memdb, const char **props, uint8_t num_props, uint32_t vmid);
+int cfs_create_guest_conf_properties_msg(
+    GString *str, memdb_t *memdb, const char **props, uint8_t num_props, uint32_t vmid
+);
 
 #endif /* _PVE_STATUS_H_ */

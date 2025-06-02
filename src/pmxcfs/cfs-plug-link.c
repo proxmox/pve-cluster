@@ -22,117 +22,110 @@
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <glib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/file.h>
-#include <fcntl.h>
-#include <errno.h>
 #include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <glib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/file.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#include "cfs-utils.h"
 #include "cfs-plug.h"
+#include "cfs-utils.h"
 #include "status.h"
 
 static struct cfs_operations cfs_ops;
 
-static cfs_plug_t *cfs_plug_link_lookup_plug(cfs_plug_t *plug, char **path)
-{
-	g_return_val_if_fail(plug != NULL, NULL);
-	g_return_val_if_fail(plug->ops == &cfs_ops, NULL);
+static cfs_plug_t *cfs_plug_link_lookup_plug(cfs_plug_t *plug, char **path) {
+    g_return_val_if_fail(plug != NULL, NULL);
+    g_return_val_if_fail(plug->ops == &cfs_ops, NULL);
 
-	return (!*path || !(*path)[0]) ? plug : NULL;
+    return (!*path || !(*path)[0]) ? plug : NULL;
 }
 
-static int cfs_plug_link_getattr(cfs_plug_t *plug, const char *path, struct stat *stbuf)
-{
-	g_return_val_if_fail(plug != NULL, PARAM_CHECK_ERRNO);
-	g_return_val_if_fail(plug->ops == &cfs_ops, PARAM_CHECK_ERRNO);
-	g_return_val_if_fail(path != NULL, PARAM_CHECK_ERRNO);
-	g_return_val_if_fail(stbuf != NULL, PARAM_CHECK_ERRNO);
+static int cfs_plug_link_getattr(cfs_plug_t *plug, const char *path, struct stat *stbuf) {
+    g_return_val_if_fail(plug != NULL, PARAM_CHECK_ERRNO);
+    g_return_val_if_fail(plug->ops == &cfs_ops, PARAM_CHECK_ERRNO);
+    g_return_val_if_fail(path != NULL, PARAM_CHECK_ERRNO);
+    g_return_val_if_fail(stbuf != NULL, PARAM_CHECK_ERRNO);
 
-	cfs_debug("enter cfs_plug_link_getattr %s", path);
+    cfs_debug("enter cfs_plug_link_getattr %s", path);
 
-	memset(stbuf, 0, sizeof(struct stat));
+    memset(stbuf, 0, sizeof(struct stat));
 
-	if (cfs_is_quorate()) {
-		stbuf->st_mode = S_IFLNK | 0777;
-	} else {
-		stbuf->st_mode = S_IFLNK | 0555;
-	}
+    if (cfs_is_quorate()) {
+        stbuf->st_mode = S_IFLNK | 0777;
+    } else {
+        stbuf->st_mode = S_IFLNK | 0555;
+    }
 
-	stbuf->st_nlink = 1;
+    stbuf->st_nlink = 1;
 
-	return 0;
+    return 0;
 }
 
-static int cfs_plug_link_readlink(cfs_plug_t *plug, const char *path, char *buf, size_t max)
-{
-	g_return_val_if_fail(plug != NULL, PARAM_CHECK_ERRNO);
-	g_return_val_if_fail(plug->ops == &cfs_ops, PARAM_CHECK_ERRNO);
-	g_return_val_if_fail(path != NULL, PARAM_CHECK_ERRNO);
-	g_return_val_if_fail(buf != NULL, PARAM_CHECK_ERRNO);
+static int cfs_plug_link_readlink(cfs_plug_t *plug, const char *path, char *buf, size_t max) {
+    g_return_val_if_fail(plug != NULL, PARAM_CHECK_ERRNO);
+    g_return_val_if_fail(plug->ops == &cfs_ops, PARAM_CHECK_ERRNO);
+    g_return_val_if_fail(path != NULL, PARAM_CHECK_ERRNO);
+    g_return_val_if_fail(buf != NULL, PARAM_CHECK_ERRNO);
 
-	cfs_debug("enter cfs_plug_link_readlink %s", path);
+    cfs_debug("enter cfs_plug_link_readlink %s", path);
 
-	int ret = -EACCES;
+    int ret = -EACCES;
 
-	cfs_plug_link_t *lnk = (cfs_plug_link_t *)plug;
+    cfs_plug_link_t *lnk = (cfs_plug_link_t *)plug;
 
-	if (!lnk->symlink)
-		goto ret;
+    if (!lnk->symlink)
+        goto ret;
 
-	strncpy(buf, lnk->symlink, max);
-	if (max > 0)
-		buf[max - 1]= '\0';
-	ret = 0;
+    strncpy(buf, lnk->symlink, max);
+    if (max > 0)
+        buf[max - 1] = '\0';
+    ret = 0;
 
 ret:
-	return ret;
+    return ret;
 }
 
-static void cfs_plug_link_destroy(cfs_plug_t *plug)
-{
-	g_return_if_fail(plug != NULL);
-	g_return_if_fail(plug->ops == &cfs_ops);
+static void cfs_plug_link_destroy(cfs_plug_t *plug) {
+    g_return_if_fail(plug != NULL);
+    g_return_if_fail(plug->ops == &cfs_ops);
 
-	cfs_plug_link_t *lnk = (cfs_plug_link_t *)plug;
+    cfs_plug_link_t *lnk = (cfs_plug_link_t *)plug;
 
-	cfs_debug("enter cfs_plug_link_destroy %s", plug->name);
+    cfs_debug("enter cfs_plug_link_destroy %s", plug->name);
 
-	g_free(plug->name);
+    g_free(plug->name);
 
-	g_free(lnk->symlink);
+    g_free(lnk->symlink);
 
-	g_free(plug);
+    g_free(plug);
 }
 
 static struct cfs_operations cfs_ops = {
-	.getattr = cfs_plug_link_getattr,
-	.readlink = cfs_plug_link_readlink,
+    .getattr = cfs_plug_link_getattr,
+    .readlink = cfs_plug_link_readlink,
 };
 
+cfs_plug_link_t *cfs_plug_link_new(const char *name, const char *symlink) {
+    g_return_val_if_fail(name != NULL, NULL);
+    g_return_val_if_fail(symlink != NULL, NULL);
 
-cfs_plug_link_t *cfs_plug_link_new(const char *name, const char *symlink)
-{
-	g_return_val_if_fail(name != NULL, NULL);
-	g_return_val_if_fail(symlink != NULL, NULL);
+    cfs_plug_link_t *lnk = g_new0(cfs_plug_link_t, 1);
 
-	cfs_plug_link_t *lnk = g_new0(cfs_plug_link_t, 1);
+    lnk->plug.ops = &cfs_ops;
 
-	lnk->plug.ops = &cfs_ops;
+    lnk->plug.lookup_plug = cfs_plug_link_lookup_plug;
+    lnk->plug.destroy_plug = cfs_plug_link_destroy;
 
-	lnk->plug.lookup_plug = cfs_plug_link_lookup_plug;
-	lnk->plug.destroy_plug = cfs_plug_link_destroy;
+    lnk->plug.name = g_strdup(name);
 
-	lnk->plug.name = g_strdup(name);
+    lnk->symlink = g_strdup(symlink);
 
-	lnk->symlink = g_strdup(symlink);
-
-	return lnk;
+    return lnk;
 }
-
