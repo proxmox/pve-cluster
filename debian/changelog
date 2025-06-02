@@ -1,3 +1,9 @@
+pve-cluster (9.0.0) trixie; urgency=medium
+
+  * re-build for Debian 13 "Trixie" based Proxmox releases.
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 02 Jun 2025 20:54:19 +0200
+
 pve-cluster (8.1.0) bookworm; urgency=medium
 
   * notify: add helper for querying common template data
