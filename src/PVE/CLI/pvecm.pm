@@ -652,7 +652,7 @@ __PACKAGE__->register_method({
         # (uninterruptible D state) we could fail the whole service, rendering the API guaranteed
         # inaccessible. Let's rather fail small(er) as the API could still work without this..
         my ($_res, $got_timeout) = PVE::Tools::run_fork_with_timeout(
-            80,
+            80, # cope with slow HW with headroom for manager service 90s start timeout (bz#5510)
             sub {
                 PVE::Cluster::Setup::generate_local_files();
 
