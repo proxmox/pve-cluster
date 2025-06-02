@@ -51,6 +51,11 @@ install: pmxcfs create_pmxcfs_db pmxcfs.8
 	install -D -m 0755 create_pmxcfs_db $(DESTDIR)/usr/bin/create_pmxcfs_db
 	install -D pmxcfs.8 $(DESTDIR)/usr/share/man/man8/pmxcfs.8
 
+.PHONY: tidy format
+tidy: format
+format:
+	git ls-files ':/src/pmxcfs/*.[ch]' | xargs -n2 -P0 -- clang-format -i
+
 .PHONY: check
 check: check_memdb
 	./check_memdb
