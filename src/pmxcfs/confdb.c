@@ -69,8 +69,9 @@ static cs_error_t cmap_read_clusternodes(cmap_handle_t handle, cfs_clinfo_t *cli
     while ((result = cmap_iter_next(handle, iter, key_name, &value_len, &type)) == CS_OK) {
         int id;
         char subkey[CMAP_KEYNAME_MAXLEN + 1];
-        if (sscanf(key_name, "nodelist.node.%d.%s", &id, subkey) != 2)
+        if (sscanf(key_name, "nodelist.node.%d.%s", &id, subkey) != 2) {
             continue;
+        }
 
         if (id != last_id) {
             if (name && nodeid) {
@@ -285,8 +286,9 @@ loop:
     if (result == CS_ERR_TRY_AGAIN) {
         usleep(100000);
         ++retries;
-        if ((retries % 100) == 0)
+        if ((retries % 100) == 0) {
             cfs_message("cmap_dispatch retry %d", retries);
+        }
         goto loop;
     }
 
@@ -297,8 +299,9 @@ loop:
 
             private->changes = FALSE;
 
-            if (result == CS_OK)
+            if (result == CS_OK) {
                 return TRUE;
+            }
         }
     } else {
         cfs_critical("cmap_dispatch failed: %d", result);
@@ -319,8 +322,9 @@ cfs_service_t *service_confdb_new(void) {
     cfs_service_t *service;
 
     cs_private_t *private = g_new0(cs_private_t, 1);
-    if (!private)
+    if (!private) {
         return NULL;
+    }
 
     service = cfs_service_new(&cfs_confdb_callbacks, G_LOG_DOMAIN, private);
 

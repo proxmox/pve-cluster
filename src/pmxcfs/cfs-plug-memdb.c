@@ -44,8 +44,9 @@ static struct cfs_operations cfs_ops;
 
 // FIXME: remove openvz stuff for 7.x
 static gboolean name_is_openvz_script(const char *name, guint32 *vmid_ret) {
-    if (!name)
+    if (!name) {
         return FALSE;
+    }
 
     guint32 vmid = 0;
     char *end = NULL;
@@ -53,33 +54,40 @@ static gboolean name_is_openvz_script(const char *name, guint32 *vmid_ret) {
     if (name[0] == 'v' && name[1] == 'p' && name[2] == 's') {
         end = (char *)name + 3;
     } else {
-        if (name[0] < '1' || name[0] > '9')
+        if (name[0] < '1' || name[0] > '9') {
             return FALSE;
+        }
 
         vmid = strtoul(name, &end, 10);
     }
 
-    if (!end || end[0] != '.')
+    if (!end || end[0] != '.') {
         return FALSE;
+    }
 
     end++;
 
     gboolean res = FALSE;
 
-    if (end[0] == 'm' && strcmp(end, "mount") == 0)
+    if (end[0] == 'm' && strcmp(end, "mount") == 0) {
         res = TRUE;
+    }
 
-    if (end[0] == 'u' && strcmp(end, "umount") == 0)
+    if (end[0] == 'u' && strcmp(end, "umount") == 0) {
         res = TRUE;
+    }
 
-    if (end[0] == 's' && (strcmp(end, "start") == 0 || strcmp(end, "stop") == 0))
+    if (end[0] == 's' && (strcmp(end, "start") == 0 || strcmp(end, "stop") == 0)) {
         res = TRUE;
+    }
 
-    if (end[0] == 'p' && (strcmp(end, "premount") == 0 || strcmp(end, "postumount") == 0))
+    if (end[0] == 'p' && (strcmp(end, "premount") == 0 || strcmp(end, "postumount") == 0)) {
         res = TRUE;
+    }
 
-    if (res && vmid_ret)
+    if (res && vmid_ret) {
         *vmid_ret = vmid;
+    }
 
     return res;
 }
@@ -184,8 +192,9 @@ static int cfs_plug_memdb_open(cfs_plug_t *plug, const char *path, struct fuse_f
 
     if ((te = memdb_getattr(mdb->memdb, path))) {
         memdb_tree_entry_free(te);
-    } else
+    } else {
         return -ENOENT;
+    }
 
     return 0;
 }
@@ -211,19 +220,22 @@ static int cfs_plug_memdb_read(
     cfs_plug_memdb_t *mdb = (cfs_plug_memdb_t *)plug;
 
     len = memdb_read(mdb->memdb, path, &data);
-    if (len < 0)
+    if (len < 0) {
         return len;
+    }
 
     if (offset < len) {
-        if (offset + size > len)
+        if (offset + size > len) {
             size = len - offset;
+        }
         memcpy(buf, (uint8_t *)data + offset, size);
     } else {
         size = 0;
     }
 
-    if (data)
+    if (data) {
         g_free(data);
+    }
 
     return size;
 }
@@ -401,8 +413,9 @@ static int cfs_plug_memdb_utimens(cfs_plug_t *plug, const char *path, const stru
     }
 
     if (mdb->dfsm) {
-        if (unlock_req && memdb_tree_entry_csum(te, csum))
+        if (unlock_req && memdb_tree_entry_csum(te, csum)) {
             dcdb_send_unlock(mdb->dfsm, path, csum, TRUE);
+        }
 
         res = dcdb_send_fuse_message(
             mdb->dfsm, DCDB_MESSAGE_CFS_MTIME, path, NULL, NULL, 0, mtime, 0

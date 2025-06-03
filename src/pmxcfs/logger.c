@@ -162,19 +162,22 @@ void clog_dump_json(clog_base_t *clog, GString *str, const char *ident, guint ma
         }
         cpos = cur->prev;
 
-        if (count >= max_entries)
+        if (count >= max_entries) {
             break;
+        }
 
-        if (ident_digest && ident_digest != cur->ident_digest)
+        if (ident_digest && ident_digest != cur->ident_digest) {
             continue;
+        }
 
         char *node = cur->data;
         char *ident = node + cur->node_len;
         char *tag = ident + cur->ident_len;
         char *msg = tag + cur->tag_len;
 
-        if (count)
+        if (count) {
             g_string_append_printf(str, ",\n");
+        }
 
         g_string_append_printf(
             str,
@@ -187,8 +190,9 @@ void clog_dump_json(clog_base_t *clog, GString *str, const char *ident, guint ma
         count++;
     }
 
-    if (count)
+    if (count) {
         g_string_append_printf(str, "\n");
+    }
 
     g_string_append_printf(str, "]\n");
     g_string_append_printf(str, "}\n");
@@ -208,8 +212,9 @@ void clog_copy(clog_base_t *clog, const clog_entry_t *entry) {
     uint32_t size = clog_entry_size(entry);
 
     clog_entry_t *new;
-    if ((new = clog_alloc_entry(clog, size)))
+    if ((new = clog_alloc_entry(clog, size))) {
         memcpy((char *)new + 8, (char *)entry + 8, size - 8);
+    }
 }
 
 uint32_t clog_pack(
@@ -275,8 +280,9 @@ uint32_t clog_pack(
 clog_base_t *clog_new(uint32_t size) {
     g_return_val_if_fail(sizeof(clog_base_t) == 8, NULL);
 
-    if (!size)
+    if (!size) {
         size = CLOG_DEFAULT_SIZE;
+    }
 
     g_return_val_if_fail(size >= (CLOG_MAX_ENTRY_SIZE * 10), NULL);
 
@@ -292,11 +298,13 @@ static gint clog_entry_sort_fn(gconstpointer v1, gconstpointer v2, gpointer user
     clog_entry_t *entry1 = (clog_entry_t *)v1;
     clog_entry_t *entry2 = (clog_entry_t *)v2;
 
-    if (entry1->time != entry2->time)
+    if (entry1->time != entry2->time) {
         return entry1->time - entry2->time;
+    }
 
-    if (entry1->node_digest != entry2->node_digest)
+    if (entry1->node_digest != entry2->node_digest) {
         return entry1->node_digest - entry2->node_digest;
+    }
 
     return entry1->uid - entry2->uid;
 }
@@ -315,8 +323,9 @@ clog_base_t *clog_sort(clog_base_t *clog) {
     g_return_val_if_fail(clog->cpos != 0, NULL);
 
     clog_base_t *res = clog_new(clog->size);
-    if (!res)
+    if (!res) {
         return NULL;
+    }
 
     GTree *tree = g_tree_new_with_data(clog_entry_sort_fn, NULL);
     if (!tree) {
@@ -356,8 +365,9 @@ static gboolean dedup_lookup(GHashTable *dedup, const clog_entry_t *entry) {
 
     dedup_entry_t *dd = g_hash_table_lookup(dedup, &entry->node_digest);
     if (!dd) {
-        if (!(dd = g_new0(dedup_entry_t, 1)))
+        if (!(dd = g_new0(dedup_entry_t, 1))) {
             return FALSE;
+        }
 
         dd->node_digest = entry->node_digest;
         dd->time = entry->time;
@@ -403,8 +413,9 @@ clog_base_t *clusterlog_merge(clusterlog_t *cl, clog_base_t **clog, int count, i
     uint32_t maxsize = 0;
 
     GHashTable *dedup;
-    if (!(dedup = g_hash_table_new_full(g_int64_hash, g_int64_equal, NULL, g_free)))
+    if (!(dedup = g_hash_table_new_full(g_int64_hash, g_int64_equal, NULL, g_free))) {
         return NULL;
+    }
 
     GTree *tree = g_tree_new_with_data(clog_entry_sort_fn, NULL);
     if (!tree) {
@@ -422,8 +433,9 @@ clog_base_t *clusterlog_merge(clusterlog_t *cl, clog_base_t **clog, int count, i
     g_mutex_lock(&cl->mutex);
 
     for (int i = 0; i < count; i++) {
-        if (i == local_index)
+        if (i == local_index) {
             clog[i] = cl->base;
+        }
 
         if (!clog[i]) {
             cfs_critical("log pointer is NULL!");
@@ -431,8 +443,9 @@ clog_base_t *clusterlog_merge(clusterlog_t *cl, clog_base_t **clog, int count, i
             continue;
         }
         cpos[i] = clog[i]->cpos;
-        if (clog[i]->size > maxsize)
+        if (clog[i]->size > maxsize) {
             maxsize = clog[i]->size;
+        }
     }
 
     size_t logsize = 0;
@@ -446,8 +459,9 @@ clog_base_t *clusterlog_merge(clusterlog_t *cl, clog_base_t **clog, int count, i
 
         /* select entry wit latest time */
         for (int i = 0; i < count; i++) {
-            if (!cpos[i])
+            if (!cpos[i]) {
                 continue;
+            }
             clog_entry_t *cur = (clog_entry_t *)((char *)clog[i] + cpos[i]);
             if (cur->time > last) {
                 last = cur->time;
@@ -455,8 +469,9 @@ clog_base_t *clusterlog_merge(clusterlog_t *cl, clog_base_t **clog, int count, i
             }
         }
 
-        if (found < 0)
+        if (found < 0) {
             break;
+        }
 
         clog_entry_t *cur = (clog_entry_t *)((char *)clog[found] + cpos[found]);
 
@@ -464,8 +479,9 @@ clog_base_t *clusterlog_merge(clusterlog_t *cl, clog_base_t **clog, int count, i
             g_tree_insert(tree, cur, cur);
             dedup_lookup(dedup, cur); /* just to record versions */
             logsize += cur->next - cpos[found];
-            if (logsize >= maxsize)
+            if (logsize >= maxsize) {
                 break;
+            }
         }
 
         // no previous entry or wrap-around into already overwritten entry
@@ -500,27 +516,32 @@ void clusterlog_destroy(clusterlog_t *cl) {
 
     g_mutex_clear(&cl->mutex);
 
-    if (cl->base)
+    if (cl->base) {
         g_free(cl->base);
+    }
 
-    if (cl->dedup)
+    if (cl->dedup) {
         g_hash_table_destroy(cl->dedup);
+    }
 
     g_free(cl);
 }
 
 clusterlog_t *clusterlog_new(void) {
     clusterlog_t *cl = g_new0(clusterlog_t, 1);
-    if (!cl)
+    if (!cl) {
         return NULL;
+    }
 
     g_mutex_init(&cl->mutex);
 
-    if (!(cl->base = clog_new(0)))
+    if (!(cl->base = clog_new(0))) {
         goto fail;
+    }
 
-    if (!(cl->dedup = g_hash_table_new_full(g_int64_hash, g_int64_equal, NULL, g_free)))
+    if (!(cl->dedup = g_hash_table_new_full(g_int64_hash, g_int64_equal, NULL, g_free))) {
         goto fail;
+    }
 
     return cl;
 
@@ -586,8 +607,9 @@ void clusterlog_add(
     uint32_t size = clog_pack(entry, cfs.nodename, ident, tag, pid, ctime, priority, msg);
     g_free(msg);
 
-    if (!size)
+    if (!size) {
         return;
+    }
 
     clusterlog_insert(cl, entry);
 }

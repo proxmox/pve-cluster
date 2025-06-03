@@ -250,8 +250,9 @@ int bdb_backend_write(
     }
 
     if (delete_inode != 0) {
-        if ((rc = bdb_backend_delete_inode(bdb, delete_inode)) != SQLITE_OK)
+        if ((rc = bdb_backend_delete_inode(bdb, delete_inode)) != SQLITE_OK) {
             goto rollback;
+        }
     }
 
     if (inode != 0) {
@@ -261,8 +262,9 @@ int bdb_backend_write(
         rc = backend_write_inode(
             bdb->db, stmt, inode, parent, version, writer, mtime, size, type, name, value
         );
-        if (rc != SQLITE_OK)
+        if (rc != SQLITE_OK) {
             goto rollback;
+        }
 
         if (sqlite3_changes(bdb->db) != 1) {
             cfs_critical("no such inode %016" PRIX64, inode);
@@ -275,8 +277,9 @@ int bdb_backend_write(
         NULL
     );
 
-    if (rc != SQLITE_OK)
+    if (rc != SQLITE_OK) {
         goto rollback;
+    }
 
     if (need_txn) {
         rc = sqlite3_step(bdb->stmt_commit);
@@ -291,8 +294,9 @@ int bdb_backend_write(
 
 rollback:
 
-    if (!need_txn)
+    if (!need_txn) {
         return rc;
+    }
 
     int rbrc = sqlite3_step(bdb->stmt_rollback);
     sqlite3_reset(bdb->stmt_rollback);
@@ -342,8 +346,9 @@ bdb_backend_load_index(db_backend_t *bdb, memdb_tree_entry_t *root, GHashTable *
         te->size = size;
 
         if (te->type == DT_REG) {
-            if (size > 0)
+            if (size > 0) {
                 te->data.value = g_memdup2(value, size);
+            }
         } else if (te->type == DT_DIR) {
             if (size) {
                 cfs_critical("directory inode contains data (inode = %016" PRIX64 ")", te->inode);
@@ -506,22 +511,25 @@ gboolean bdb_backend_commit_update(
         while (j < slave->size && (slave_inode = slave->entries[j].inode) <= inode) {
 
             if (slave_inode < inode) {
-                if (bdb_backend_delete_inode(bdb, slave_inode) != SQLITE_OK)
+                if (bdb_backend_delete_inode(bdb, slave_inode) != SQLITE_OK) {
                     goto abort;
+                }
 
                 cfs_debug("deleted inode %016" PRIX64, slave_inode);
             }
             j++;
         }
-        if (j >= slave->size)
+        if (j >= slave->size) {
             break;
+        }
     }
 
     while (j < slave->size) {
         guint64 slave_inode = slave->entries[j].inode;
 
-        if (bdb_backend_delete_inode(bdb, slave_inode) != SQLITE_OK)
+        if (bdb_backend_delete_inode(bdb, slave_inode) != SQLITE_OK) {
             goto abort;
+        }
 
         cfs_debug("deleted inode %016" PRIX64, slave_inode);
 
@@ -558,8 +566,9 @@ gboolean bdb_backend_commit_update(
 
     g_hash_table_replace(index, &root->inode, root);
 
-    if (!bdb_backend_load_index(bdb, root, index))
+    if (!bdb_backend_load_index(bdb, root, index)) {
         goto abort;
+    }
 
     if (!memdb->root->version) {
         cfs_critical("new index has version 0 - internal error");
@@ -611,8 +620,9 @@ gboolean bdb_backend_commit_update(
 ret:
     g_mutex_unlock(&memdb->mutex);
 
-    if (index)
+    if (index) {
         g_hash_table_destroy(index);
+    }
 
     cfs_debug("leave bdb_backend_commit_update (%d)", result);
 
@@ -624,8 +634,9 @@ abort:
 
     rc = sqlite3_step(bdb->stmt_rollback);
     sqlite3_reset(bdb->stmt_rollback);
-    if (rc != SQLITE_DONE)
+    if (rc != SQLITE_DONE) {
         cfs_critical("rollback transaction failed: %s\n", sqlite3_errmsg(bdb->db));
+    }
 
     result = FALSE;
 
@@ -666,8 +677,9 @@ db_backend_t *bdb_backend_open(const char *filename, memdb_tree_entry_t *root, G
 
     sqlite3_initialize();
 
-    if (!(bdb->db = bdb_create(filename)))
+    if (!(bdb->db = bdb_create(filename))) {
         goto fail;
+    }
 
     // tell the query planner that the prepared statement will be retained for a long time and
     // probably reused many times
@@ -714,8 +726,9 @@ db_backend_t *bdb_backend_open(const char *filename, memdb_tree_entry_t *root, G
         goto fail;
     }
 
-    if (!bdb_backend_load_index(bdb, root, index))
+    if (!bdb_backend_load_index(bdb, root, index)) {
         goto fail;
+    }
 
     if (!root->version) {
         root->version++;
@@ -723,8 +736,9 @@ db_backend_t *bdb_backend_open(const char *filename, memdb_tree_entry_t *root, G
         guint32 mtime = time(NULL);
 
         if (bdb_backend_write(bdb, 0, 0, root->version, 0, mtime, 0, DT_REG, NULL, NULL, 0) !=
-            SQLITE_OK)
+            SQLITE_OK) {
             goto fail;
+        }
     }
 
     return bdb;

@@ -135,8 +135,9 @@ void cfs_log(
         break;
     case G_LOG_LEVEL_DEBUG:
         level = LOG_DEBUG;
-        if (!cfs.debug)
+        if (!cfs.debug) {
             return;
+        }
         break;
     default:
         level = LOG_INFO;
@@ -195,8 +196,9 @@ gboolean full_write(int fd, const char *buf, size_t len) {
             n = write(fd, buf, len);
         } while (n < 0 && errno == EINTR);
 
-        if (n < 0)
+        if (n < 0) {
             break;
+        }
 
         buf += n;
         len -= n;
@@ -263,16 +265,18 @@ fail:
 }
 
 gboolean path_is_private(const char *path) {
-    while (*path == '/')
+    while (*path == '/') {
         path++;
+    }
 
     if ((strncmp(path, "priv", 4) == 0) && (path[4] == 0 || path[4] == '/')) {
         return TRUE;
     } else {
         if (strncmp(path, "nodes/", 6) == 0) {
             const char *tmp = path + 6;
-            while (*tmp && *tmp != '/')
+            while (*tmp && *tmp != '/') {
                 tmp++;
+            }
             if (*tmp == '/' && (strncmp(tmp, "/priv", 5) == 0) && (tmp[5] == 0 || tmp[5] == '/')) {
                 return TRUE;
             }
@@ -282,13 +286,15 @@ gboolean path_is_private(const char *path) {
 }
 
 gboolean path_is_lxc_conf(const char *path) {
-    while (*path == '/')
+    while (*path == '/') {
         path++;
+    }
 
     if (strncmp(path, "nodes/", 6) == 0) {
         const char *tmp = path + 6;
-        while (*tmp && *tmp != '/')
+        while (*tmp && *tmp != '/') {
             tmp++;
+        }
         if (*tmp == '/' && (strncmp(tmp, "/lxc", 4) == 0) && (tmp[4] == 0 || tmp[4] == '/')) {
             return TRUE;
         }
@@ -298,8 +304,9 @@ gboolean path_is_lxc_conf(const char *path) {
 }
 
 gboolean path_is_lockdir(const char *path) {
-    while (*path == '/')
+    while (*path == '/') {
         path++;
+    }
 
     return (strncmp(path, "priv/lock/", 10) == 0) && path[10];
 }

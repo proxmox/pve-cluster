@@ -61,8 +61,9 @@ void dcdb_send_unlock(dfsm_t *dfsm, const char *path, const guchar csum[32], gbo
     iov[1].iov_base = (char *)path;
     iov[1].iov_len = strlen(path) + 1;
 
-    if (!cfs_is_quorate())
+    if (!cfs_is_quorate()) {
         return;
+    }
 
     dcdb_message_t msg_type = request ? DCDB_MESSAGE_CFS_UNLOCK_REQUEST : DCDB_MESSAGE_CFS_UNLOCK;
 
@@ -140,11 +141,13 @@ int dcdb_send_fuse_message(
     memset(&rc, 0, sizeof(rc));
     rc.result = -EBUSY;
 
-    if (!cfs_is_quorate())
+    if (!cfs_is_quorate()) {
         return -EACCES;
+    }
 
-    if (dfsm_send_message_sync(dfsm, msg_type, iov, 8, &rc))
+    if (dfsm_send_message_sync(dfsm, msg_type, iov, 8, &rc)) {
         return rc.result;
+    }
 
     return -EACCES;
 }
@@ -269,8 +272,9 @@ static gboolean dcdb_send_update_inode(dfsm_t *dfsm, memdb_tree_entry_t *te) {
         len++;
     }
 
-    if (dfsm_send_update(dfsm, iov, len) != CS_OK)
+    if (dfsm_send_update(dfsm, iov, len) != CS_OK) {
         return FALSE;
+    }
 
     return TRUE;
 }
@@ -332,8 +336,9 @@ memdb_tree_entry_t *dcdb_parse_update_inode(const void *msg, size_t msg_len) {
     }
 
     memdb_tree_entry_t *te = memdb_tree_entry_new(name);
-    if (!te)
+    if (!te) {
         return NULL;
+    }
 
     te->parent = parent;
     te->version = version;
@@ -361,8 +366,9 @@ void dcdb_sync_corosync_conf(memdb_t *memdb, gboolean notify_corosync) {
     gpointer data = NULL;
 
     len = memdb_read(memdb, "corosync.conf", &data);
-    if (len <= 0)
+    if (len <= 0) {
         return;
+    }
 
     guint64 new_version = cluster_config_version(data, len);
     if (!new_version) {
@@ -383,21 +389,24 @@ void dcdb_sync_corosync_conf(memdb_t *memdb, gboolean notify_corosync) {
         }
         g_error_free(err);
     } else {
-        if (old_length)
+        if (old_length) {
             old_version = cluster_config_version(old_data, old_length);
+        }
     }
 
     /* test if something changed - return if no changes */
-    if (data && old_data && (old_length == len) && !memcmp(data, old_data, len))
+    if (data && old_data && (old_length == len) && !memcmp(data, old_data, len)) {
         goto ret;
+    }
 
     if (new_version < old_version) {
         cfs_critical("local corosync.conf is newer");
         goto ret;
     }
 
-    if (!atomic_write_file(HOST_CLUSTER_CONF_FN, data, len, 0644, 0))
+    if (!atomic_write_file(HOST_CLUSTER_CONF_FN, data, len, 0644, 0)) {
         goto ret;
+    }
 
     cfs_message(
         "wrote new corosync config '%s' (version = %" G_GUINT64_FORMAT ")", HOST_CLUSTER_CONF_FN,
@@ -422,11 +431,13 @@ void dcdb_sync_corosync_conf(memdb_t *memdb, gboolean notify_corosync) {
 
 ret:
 
-    if (data)
+    if (data) {
         g_free(data);
+    }
 
-    if (old_data)
+    if (old_data) {
         g_free(old_data);
+    }
 }
 
 static gpointer dcdb_get_state(dfsm_t *dfsm, gpointer data, unsigned int *res_len) {
@@ -493,30 +504,34 @@ static gboolean dcdb_create_and_send_updates(
     gboolean res = FALSE;
 
     GHashTable *updates = g_hash_table_new(g_int64_hash, g_int64_equal);
-    if (!updates)
+    if (!updates) {
         goto ret;
+    }
 
     g_mutex_lock(&memdb->mutex);
 
     for (int n = 0; n < node_count; n++) {
         memdb_index_t *slave = idx[n];
 
-        if (slave == master)
+        if (slave == master) {
             continue;
+        }
 
         int j = 0;
 
         for (int i = 0; i < master->size; i++) {
             guint64 inode = master->entries[i].inode;
-            while (j < slave->size && slave->entries[j].inode < inode)
+            while (j < slave->size && slave->entries[j].inode < inode) {
                 j++;
+            }
 
             if (memcmp(&slave->entries[j], &master->entries[i], sizeof(memdb_index_extry_t)) == 0) {
                 continue;
             }
 
-            if (g_hash_table_lookup(updates, &inode))
+            if (g_hash_table_lookup(updates, &inode)) {
                 continue;
+            }
 
             cfs_debug("found different inode %d %016" PRIX64, i, (uint64_t)inode);
 
@@ -567,8 +582,9 @@ static gboolean dcdb_create_and_send_updates(
     res = TRUE;
 
 ret:
-    if (updates)
+    if (updates) {
         g_hash_table_destroy(updates);
+    }
 
     cfs_debug("leave %s (%d)", __func__, res);
 
@@ -585,8 +601,9 @@ static int dcdb_process_state_update(dfsm_t *dfsm, gpointer data, dfsm_sync_info
     cfs_debug("enter %s", __func__);
 
     dcdb_sync_info_t *localsi = g_new0(dcdb_sync_info_t, 1);
-    if (!localsi)
+    if (!localsi) {
         return -1;
+    }
 
     syncinfo->data = localsi;
 
@@ -636,16 +653,18 @@ static int dcdb_process_state_update(dfsm_t *dfsm, gpointer data, dfsm_sync_info
                 g_string_append_printf(synced_member_ids, ", %d/%d", ni->nodeid, ni->pid);
             }
         }
-        if (dfsm_nodeid_is_local(dfsm, ni->nodeid, ni->pid))
+        if (dfsm_nodeid_is_local(dfsm, ni->nodeid, ni->pid)) {
             localsi->idx = idx[i];
+        }
     }
     cfs_message("synced members: %s", synced_member_ids->str);
     g_string_free(synced_member_ids, TRUE);
 
     /* send update */
     if (dfsm_nodeid_is_local(dfsm, syncinfo->nodes[leader].nodeid, syncinfo->nodes[leader].pid)) {
-        if (!dcdb_create_and_send_updates(dfsm, memdb, leaderidx, syncinfo->node_count, idx))
+        if (!dcdb_create_and_send_updates(dfsm, memdb, leaderidx, syncinfo->node_count, idx)) {
             return -1;
+        }
     }
 
     return 0;
@@ -670,8 +689,9 @@ static int dcdb_process_update(
 
     memdb_tree_entry_t *te;
 
-    if (!(te = dcdb_parse_update_inode(msg, msg_len)))
+    if (!(te = dcdb_parse_update_inode(msg, msg_len))) {
         return -1;
+    }
 
     cfs_debug("received inode update %016" PRIX64 " from node %d", (uint64_t)te->inode, nodeid);
 
@@ -698,8 +718,9 @@ static int dcdb_commit(dfsm_t *dfsm, gpointer data, dfsm_sync_info_t *syncinfo) 
 
     cfs_message("update complete - trying to commit (got %u inode updates)", count);
 
-    if (!bdb_backend_commit_update(memdb, localsi->master, localsi->idx, localsi->updates))
+    if (!bdb_backend_commit_update(memdb, localsi->master, localsi->idx, localsi->updates)) {
         return -1;
+    }
 
     dcdb_sync_corosync_conf(memdb, FALSE);
 
@@ -771,8 +792,9 @@ static int dcdb_deliver(
 
     int msg_result = -ENOTSUP;
 
-    if (!DCDB_VALID_MESSAGE_TYPE(msg_type))
+    if (!DCDB_VALID_MESSAGE_TYPE(msg_type)) {
         goto unknown;
+    }
 
     cfs_debug("process message %u (length = %zd)", msg_type, msg_len);
 
@@ -789,8 +811,9 @@ static int dcdb_deliver(
     if (msg_type == DCDB_MESSAGE_CFS_UNLOCK_REQUEST || msg_type == DCDB_MESSAGE_CFS_UNLOCK) {
         msg_result = 0; /* ignored anyways */
 
-        if (!dcdb_parse_unlock_request(msg, msg_len, &path, &csum))
+        if (!dcdb_parse_unlock_request(msg, msg_len, &path, &csum)) {
             goto leave;
+        }
 
         guchar cur_csum[32];
         memdb_tree_entry_t *te = memdb_getattr(memdb, path);
@@ -818,52 +841,61 @@ static int dcdb_deliver(
 
     } else if (msg_type == DCDB_MESSAGE_CFS_WRITE) {
 
-        if (!dcdb_parse_fuse_message(msg, msg_len, &path, &to, &buf, &size, &offset, &flags))
+        if (!dcdb_parse_fuse_message(msg, msg_len, &path, &to, &buf, &size, &offset, &flags)) {
             goto leave;
+        }
 
         msg_result = memdb_write(memdb, path, nodeid, msg_time, buf, size, offset, flags);
 
-        if ((msg_result >= 0) && !strcmp(path, "corosync.conf"))
+        if ((msg_result >= 0) && !strcmp(path, "corosync.conf")) {
             dcdb_sync_corosync_conf(memdb, dfsm_nodeid_is_local(dfsm, nodeid, pid));
+        }
 
     } else if (msg_type == DCDB_MESSAGE_CFS_CREATE) {
 
-        if (!dcdb_parse_fuse_message(msg, msg_len, &path, &to, &buf, &size, &offset, &flags))
+        if (!dcdb_parse_fuse_message(msg, msg_len, &path, &to, &buf, &size, &offset, &flags)) {
             goto leave;
+        }
 
         msg_result = memdb_create(memdb, path, nodeid, msg_time);
 
-        if ((msg_result >= 0) && !strcmp(path, "corosync.conf"))
+        if ((msg_result >= 0) && !strcmp(path, "corosync.conf")) {
             dcdb_sync_corosync_conf(memdb, dfsm_nodeid_is_local(dfsm, nodeid, pid));
+        }
 
     } else if (msg_type == DCDB_MESSAGE_CFS_MKDIR) {
 
-        if (!dcdb_parse_fuse_message(msg, msg_len, &path, &to, &buf, &size, &offset, &flags))
+        if (!dcdb_parse_fuse_message(msg, msg_len, &path, &to, &buf, &size, &offset, &flags)) {
             goto leave;
+        }
 
         msg_result = memdb_mkdir(memdb, path, nodeid, msg_time);
 
     } else if (msg_type == DCDB_MESSAGE_CFS_DELETE) {
 
-        if (!dcdb_parse_fuse_message(msg, msg_len, &path, &to, &buf, &size, &offset, &flags))
+        if (!dcdb_parse_fuse_message(msg, msg_len, &path, &to, &buf, &size, &offset, &flags)) {
             goto leave;
+        }
 
         msg_result = memdb_delete(memdb, path, nodeid, msg_time);
 
     } else if (msg_type == DCDB_MESSAGE_CFS_RENAME) {
 
-        if (!dcdb_parse_fuse_message(msg, msg_len, &path, &to, &buf, &size, &offset, &flags))
+        if (!dcdb_parse_fuse_message(msg, msg_len, &path, &to, &buf, &size, &offset, &flags)) {
             goto leave;
+        }
 
         msg_result = memdb_rename(memdb, path, to, nodeid, msg_time);
 
-        if ((msg_result >= 0) && !strcmp(to, "corosync.conf"))
+        if ((msg_result >= 0) && !strcmp(to, "corosync.conf")) {
             dcdb_sync_corosync_conf(memdb, dfsm_nodeid_is_local(dfsm, nodeid, pid));
+        }
 
     } else if (msg_type == DCDB_MESSAGE_CFS_MTIME) {
 
-        if (!dcdb_parse_fuse_message(msg, msg_len, &path, &to, &buf, &size, &offset, &flags))
+        if (!dcdb_parse_fuse_message(msg, msg_len, &path, &to, &buf, &size, &offset, &flags)) {
             goto leave;
+        }
 
         /* Note: mtime is sent via offset field */
         msg_result = memdb_mtime(memdb, path, nodeid, offset);
