@@ -58,29 +58,32 @@ struct db_backend {
  * uses the internal ROWID. So only real interger are allowed, and
  * there is no need to add an additionl check
  */
-static const char *sql_create_db = "CREATE TABLE IF NOT EXISTS tree ("
-                                   "  inode INTEGER PRIMARY KEY NOT NULL,"
-                                   "  parent INTEGER NOT NULL CHECK(typeof(parent)=='integer'),"
-                                   "  version INTEGER NOT NULL CHECK(typeof(version)=='integer'),"
-                                   "  writer INTEGER NOT NULL CHECK(typeof(writer)=='integer'),"
-                                   "  mtime INTEGER NOT NULL CHECK(typeof(mtime)=='integer'),"
-                                   "  type INTEGER NOT NULL CHECK(typeof(type)=='integer'),"
-                                   "  name TEXT NOT NULL,"
-                                   "  data BLOB);";
+static const char *sql_create_db =
+    "CREATE TABLE IF NOT EXISTS tree ("
+    "  inode INTEGER PRIMARY KEY NOT NULL,"
+    "  parent INTEGER NOT NULL CHECK(typeof(parent)=='integer'),"
+    "  version INTEGER NOT NULL CHECK(typeof(version)=='integer'),"
+    "  writer INTEGER NOT NULL CHECK(typeof(writer)=='integer'),"
+    "  mtime INTEGER NOT NULL CHECK(typeof(mtime)=='integer'),"
+    "  type INTEGER NOT NULL CHECK(typeof(type)=='integer'),"
+    "  name TEXT NOT NULL,"
+    "  data BLOB);";
 
 static const char *sql_load_all =
     "SELECT inode, parent, version, writer, mtime, type, name, data FROM tree;";
 
-static char *sql_insert_entry = "INSERT INTO tree ("
-                                "inode, parent, version, writer, mtime, type, name, data) "
-                                "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);";
+static char *sql_insert_entry =
+    "INSERT INTO tree ("
+    "inode, parent, version, writer, mtime, type, name, data) "
+    "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);";
 
 static char *sql_update_entry =
     "UPDATE tree SET parent = ?2, version = ?3, writer = ?4, mtime = ?5, "
     "type = ?6, name = ?7, data = ?8 WHERE inode = ?1;";
 
-static char *sql_replace_entry = "REPLACE INTO tree (inode, parent, version, writer, mtime, type, "
-                                 "name, data) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);";
+static char *sql_replace_entry =
+    "REPLACE INTO tree (inode, parent, version, writer, mtime, type, "
+    "name, data) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);";
 
 static char *sql_delete_entry = "DELETE FROM tree WHERE inode = ?1;";
 
@@ -421,7 +424,8 @@ bdb_backend_load_index(db_backend_t *bdb, memdb_tree_entry_t *root, GHashTable *
                 cfs_critical(
                     "found entry with duplicate name '%s' - "
                     "A:(inode = 0x%016" PRIX64 ", parent = 0x%016" PRIX64 ", v./mtime = 0x%" PRIX64
-                    "/0x%" PRIi32 ")"
+                    "/0x%" PRIi32
+                    ")"
                     " vs. "
                     "B:(inode = 0x%016" PRIX64 ", parent = 0x%016" PRIX64 ", v./mtime = 0x%" PRIX64
                     "/0x%" PRIi32 ")",
