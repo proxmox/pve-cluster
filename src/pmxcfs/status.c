@@ -171,8 +171,9 @@ static gboolean g_int32_equal(gconstpointer v1, gconstpointer v2) {
 static void vminfo_free(vminfo_t *vminfo) {
     g_return_if_fail(vminfo != NULL);
 
-    if (vminfo->nodename)
+    if (vminfo->nodename) {
         g_free(vminfo->nodename);
+    }
 
     g_free(vminfo);
 }
@@ -202,8 +203,9 @@ int vminfo_to_path(vminfo_t *vminfo, GString *path) {
     g_return_val_if_fail(vminfo != NULL, -1);
     g_return_val_if_fail(path != NULL, -1);
 
-    if (!vminfo->nodename)
+    if (!vminfo->nodename) {
         return 0;
+    }
 
     const char *type = vminfo_type_to_path_type(vminfo);
     g_string_printf(path, "/nodes/%s/%s/%u.conf", vminfo->nodename, type, vminfo->vmid);
@@ -214,11 +216,13 @@ int vminfo_to_path(vminfo_t *vminfo, GString *path) {
 void cfs_clnode_destroy(cfs_clnode_t *clnode) {
     g_return_if_fail(clnode != NULL);
 
-    if (clnode->kvhash)
+    if (clnode->kvhash) {
         g_hash_table_destroy(clnode->kvhash);
+    }
 
-    if (clnode->name)
+    if (clnode->name) {
         g_free(clnode->name);
+    }
 
     g_free(clnode);
 }
@@ -227,8 +231,9 @@ cfs_clnode_t *cfs_clnode_new(const char *name, uint32_t nodeid, uint32_t votes) 
     g_return_val_if_fail(name != NULL, NULL);
 
     cfs_clnode_t *clnode = g_new0(cfs_clnode_t, 1);
-    if (!clnode)
+    if (!clnode) {
         return NULL;
+    }
 
     clnode->name = g_strdup(name);
     clnode->nodeid = nodeid;
@@ -240,14 +245,17 @@ cfs_clnode_t *cfs_clnode_new(const char *name, uint32_t nodeid, uint32_t votes) 
 gboolean cfs_clinfo_destroy(cfs_clinfo_t *clinfo) {
     g_return_val_if_fail(clinfo != NULL, FALSE);
 
-    if (clinfo->cluster_name)
+    if (clinfo->cluster_name) {
         g_free(clinfo->cluster_name);
+    }
 
-    if (clinfo->nodes_byname)
+    if (clinfo->nodes_byname) {
         g_hash_table_destroy(clinfo->nodes_byname);
+    }
 
-    if (clinfo->nodes_byid)
+    if (clinfo->nodes_byid) {
         g_hash_table_destroy(clinfo->nodes_byid);
+    }
 
     g_free(clinfo);
 
@@ -258,19 +266,22 @@ cfs_clinfo_t *cfs_clinfo_new(const char *cluster_name, uint32_t cman_version) {
     g_return_val_if_fail(cluster_name != NULL, NULL);
 
     cfs_clinfo_t *clinfo = g_new0(cfs_clinfo_t, 1);
-    if (!clinfo)
+    if (!clinfo) {
         return NULL;
+    }
 
     clinfo->cluster_name = g_strdup(cluster_name);
     clinfo->cman_version = cman_version;
 
     if (!(clinfo->nodes_byid = g_hash_table_new_full(
               g_int32_hash, g_int32_equal, NULL, (GDestroyNotify)cfs_clnode_destroy
-          )))
+          ))) {
         goto fail;
+    }
 
-    if (!(clinfo->nodes_byname = g_hash_table_new(g_str_hash, g_str_equal)))
+    if (!(clinfo->nodes_byname = g_hash_table_new(g_str_hash, g_str_equal))) {
         goto fail;
+    }
 
     return clinfo;
 
@@ -301,8 +312,9 @@ int cfs_create_memberlist_msg(GString *str) {
 
     cfs_clinfo_t *clinfo = cfs_status.clinfo;
 
-    if (clinfo && clinfo->nodes_byid)
+    if (clinfo && clinfo->nodes_byid) {
         nodecount = g_hash_table_size(clinfo->nodes_byid);
+    }
 
     if (nodecount) {
         g_string_append_printf(str, "\"nodename\": \"%s\",\n", cfs.nodename);
@@ -328,8 +340,9 @@ int cfs_create_memberlist_msg(GString *str) {
         int i = 0;
         while (g_hash_table_iter_next(&iter, &key, &value)) {
             cfs_clnode_t *node = (cfs_clnode_t *)value;
-            if (i)
+            if (i) {
                 g_string_append_printf(str, ",\n");
+            }
             i++;
 
             g_string_append_printf(
@@ -395,8 +408,9 @@ void cfs_cluster_log(clog_entry_t *entry) {
         iov[0].iov_base = (char *)entry;
         iov[0].iov_len = clog_entry_size(entry);
 
-        if (dfsm_is_initialized(cfs_status.kvstore))
+        if (dfsm_is_initialized(cfs_status.kvstore)) {
             dfsm_send_message(cfs_status.kvstore, KVSTORE_MESSAGE_LOG, iov, 1);
+        }
     }
 }
 
@@ -461,8 +475,9 @@ void cfs_status_cleanup(void) {
         cfs_status.iphash = NULL;
     }
 
-    if (cfs_status.clusterlog)
+    if (cfs_status.clusterlog) {
         clusterlog_destroy(cfs_status.clusterlog);
+    }
 
     g_mutex_unlock(&mutex);
 }
@@ -502,8 +517,9 @@ void cfs_status_set_clinfo(cfs_clinfo_t *clinfo) {
         }
     }
 
-    if (old)
+    if (old) {
         cfs_clinfo_destroy(old);
+    }
 
     g_mutex_unlock(&mutex);
 }
@@ -524,8 +540,9 @@ static void dump_kvstore_versions(GString *str, GHashTable *kvhash, const char *
     int i = 0;
     while (g_hash_table_iter_next(&iter, &key, &value)) {
         kventry_t *entry = (kventry_t *)value;
-        if (i)
+        if (i) {
             g_string_append_printf(str, ",\n");
+        }
         i++;
         g_string_append_printf(str, "\"%s\": %u", entry->key, entry->version);
     }
@@ -567,8 +584,9 @@ int cfs_create_version_msg(GString *str) {
 
         while (g_hash_table_iter_next(&iter, &key, &value)) {
             cfs_clnode_t *node = (cfs_clnode_t *)value;
-            if (!node->kvhash)
+            if (!node->kvhash) {
                 continue;
+            }
             g_string_append_printf(str, ",\n");
             dump_kvstore_versions(str, node->kvhash, node->name);
         }
@@ -644,8 +662,9 @@ gboolean vmlist_different_vm_exists(int vmtype, guint32 vmid, const char *nodena
 
     vminfo_t *vminfo;
     if ((vminfo = (vminfo_t *)g_hash_table_lookup(cfs_status.vmlist, &vmid))) {
-        if (!(vminfo->vmtype == vmtype && strcmp(vminfo->nodename, nodename) == 0))
+        if (!(vminfo->vmtype == vmtype && strcmp(vminfo->nodename, nodename) == 0)) {
             res = TRUE;
+        }
     }
     g_mutex_unlock(&mutex);
 
@@ -685,8 +704,9 @@ void cfs_status_set_vmlist(GHashTable *vmlist) {
 
     cfs_status.vmlist_version++;
 
-    if (cfs_status.vmlist)
+    if (cfs_status.vmlist) {
         g_hash_table_destroy(cfs_status.vmlist);
+    }
 
     cfs_status.vmlist = vmlist;
 
@@ -722,8 +742,9 @@ int cfs_create_vmlist_msg(GString *str) {
             vminfo_t *vminfo = (vminfo_t *)value;
             const char *type = vminfo_type_to_string(vminfo);
 
-            if (!first)
+            if (!first) {
                 g_string_append_printf(str, ",\n");
+            }
             first = 0;
 
             g_string_append_printf(
@@ -746,22 +767,26 @@ int cfs_create_vmlist_msg(GString *str) {
 // note: line[line_end] needs to be guaranteed a null byte
 char *
 _get_property_value_from_line(char *line, size_t line_len, const char *prop, size_t prop_len) {
-    if (line_len <= prop_len + 1)
+    if (line_len <= prop_len + 1) {
         return NULL;
+    }
 
     if (line[prop_len] == ':' && memcmp(line, prop, prop_len) == 0) { // found
         char *v_start = &line[prop_len + 1];
         char *v_end = &line[line_len - 1];
 
         // drop initial value whitespaces here already
-        while (v_start < v_end && *v_start && isspace(*v_start))
+        while (v_start < v_end && *v_start && isspace(*v_start)) {
             v_start++;
+        }
 
-        if (!*v_start)
+        if (!*v_start) {
             return NULL;
+        }
 
-        while (v_end > v_start && isspace(*v_end))
+        while (v_end > v_start && isspace(*v_end)) {
             v_end--;
+        }
         if (v_end < &line[line_len - 1]) {
             v_end[1] = '\0';
         }
@@ -811,15 +836,18 @@ void _get_property_values(
     *next_newline = '\0';
 
     while (line != NULL) {
-        if (!line[0])
+        if (!line[0]) {
             goto next;
+        }
 
         // snapshot or pending section start, but nothing found yet -> not found
-        if (line[0] == '[')
+        if (line[0] == '[') {
             return;
+        }
         // continue early if line does not begin with the min/max char of the properties
-        if (line[0] < min || line[0] > max)
+        if (line[0] < min || line[0] > max) {
             goto next;
+        }
 
         size_t line_len = next_newline - line;
         for (uint8_t i = 0; i < num_props; i++) {
@@ -940,22 +968,26 @@ int cfs_create_guest_conf_properties_msg(
 
     if (vmid >= 100) {
         vminfo_t *vminfo = (vminfo_t *)g_hash_table_lookup(cfs_status.vmlist, &vmid);
-        if (vminfo == NULL)
+        if (vminfo == NULL) {
             goto enoent;
+        }
 
-        if (!vminfo_to_path(vminfo, path))
+        if (!vminfo_to_path(vminfo, path)) {
             goto err;
+        }
 
         // use memdb_read_nolock because lock is handled here
         int size = memdb_read_nolock(memdb, path->str, &tmp);
-        if (tmp == NULL)
+        if (tmp == NULL) {
             goto err;
+        }
 
         // conf needs to be newline terminated
         if (((char *)tmp)[size - 1] != '\n') {
             gpointer new = realloc(tmp, size + 1);
-            if (new == NULL)
+            if (new == NULL) {
                 goto err;
+            }
             tmp = new;
             ((char *)tmp)[size++] = '\n';
         }
@@ -969,21 +1001,24 @@ int cfs_create_guest_conf_properties_msg(
         while (g_hash_table_iter_next(&iter, &key, &value)) {
             vminfo_t *vminfo = (vminfo_t *)value;
 
-            if (!vminfo_to_path(vminfo, path))
+            if (!vminfo_to_path(vminfo, path)) {
                 goto err;
+            }
 
             g_free(tmp); // no-op if already null
             tmp = NULL;
             // use memdb_read_nolock because lock is handled here
             int size = memdb_read_nolock(memdb, path->str, &tmp);
-            if (tmp == NULL)
+            if (tmp == NULL) {
                 continue;
+            }
 
             // conf needs to be newline terminated
             if (((char *)tmp)[size - 1] != '\n') {
                 gpointer new = realloc(tmp, size + 1);
-                if (new == NULL)
+                if (new == NULL) {
                     continue;
+                }
                 tmp = new;
                 ((char *)tmp)[size++] = '\n';
             }
@@ -1153,8 +1188,9 @@ static void create_rrd_file(const char *filename, int argcount, const char *rrdd
 static inline const char *rrd_skip_data(const char *data, int count) {
     int found = 0;
     while (*data && found < count) {
-        if (*data++ == ':')
+        if (*data++ == ':') {
             found++;
+        }
     }
     return data;
 }
@@ -1168,8 +1204,9 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
     static const char *rrdcsock = "unix:/var/run/rrdcached.sock";
 
     int use_daemon = 1;
-    if (rrdc_connect(rrdcsock) != 0)
+    if (rrdc_connect(rrdcsock) != 0) {
         use_daemon = 0;
+    }
 
     char *filename = NULL;
 
@@ -1180,11 +1217,13 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
 
         skip = 2;
 
-        if (strchr(node, '/') != NULL)
+        if (strchr(node, '/') != NULL) {
             goto keyerror;
+        }
 
-        if (strlen(node) < 1)
+        if (strlen(node) < 1) {
             goto keyerror;
+        }
 
         filename = g_strdup_printf(RRDDIR "/%s", key);
 
@@ -1206,11 +1245,13 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
             skip = 4;
         }
 
-        if (strchr(vmid, '/') != NULL)
+        if (strchr(vmid, '/') != NULL) {
             goto keyerror;
+        }
 
-        if (strlen(vmid) < 1)
+        if (strlen(vmid) < 1) {
             goto keyerror;
+        }
 
         filename = g_strdup_printf(RRDDIR "/%s/%s", "pve2-vm", vmid);
 
@@ -1225,19 +1266,23 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
         const char *node = key + 13;
 
         const char *storage = node;
-        while (*storage && *storage != '/')
+        while (*storage && *storage != '/') {
             storage++;
+        }
 
-        if (*storage != '/' || ((storage - node) < 1))
+        if (*storage != '/' || ((storage - node) < 1)) {
             goto keyerror;
+        }
 
         storage++;
 
-        if (strchr(storage, '/') != NULL)
+        if (strchr(storage, '/') != NULL) {
             goto keyerror;
+        }
 
-        if (strlen(storage) < 1)
+        if (strlen(storage) < 1) {
             goto keyerror;
+        }
 
         filename = g_strdup_printf(RRDDIR "/%s", key);
 
@@ -1280,8 +1325,9 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
     }
 
 ret:
-    if (filename)
+    if (filename) {
         g_free(filename);
+    }
 
     return;
 
@@ -1338,8 +1384,9 @@ void cfs_rrd_dump(GString *str) {
     g_string_append_c(str, 0); // never return undef
 
     rrd_dump_last = ctime;
-    if (rrd_dump_buf)
+    if (rrd_dump_buf) {
         g_free(rrd_dump_buf);
+    }
     rrd_dump_buf = g_strdup(str->str);
 
     g_mutex_unlock(&mutex);
@@ -1396,8 +1443,9 @@ rrdentry_hash_set(GHashTable *rrdhash, const char *key, const char *data, size_t
 }
 
 static int kvstore_send_update_message(dfsm_t *dfsm, const char *key, gpointer data, guint32 len) {
-    if (!dfsm_is_initialized(dfsm))
+    if (!dfsm_is_initialized(dfsm)) {
         return -EACCES;
+    }
 
     struct iovec iov[2];
 
@@ -1410,8 +1458,9 @@ static int kvstore_send_update_message(dfsm_t *dfsm, const char *key, gpointer d
     iov[1].iov_base = (char *)data;
     iov[1].iov_len = len;
 
-    if (dfsm_send_message(dfsm, KVSTORE_MESSAGE_UPDATE, iov, 2) == CS_OK)
+    if (dfsm_send_message(dfsm, KVSTORE_MESSAGE_UPDATE, iov, 2) == CS_OK) {
         return 0;
+    }
 
     return -EACCES;
 }
@@ -1477,12 +1526,15 @@ static gboolean kvstore_parse_update_message(
 
     /* test if key is null terminated */
     int i = 0;
-    for (i = 0; i < 256; i++)
-        if (((char *)msg)[i] == 0)
+    for (i = 0; i < 256; i++) {
+        if (((char *)msg)[i] == 0) {
             break;
+        }
+    }
 
-    if (i == 256)
+    if (i == 256) {
         return FALSE;
+    }
 
     *len = msg_len - 256;
     *key = msg;
@@ -1505,8 +1557,9 @@ int cfs_create_status_msg(GString *str, const char *nodename, const char *key) {
         kvhash = cfs_status.kvhash;
     } else if (cfs_status.clinfo && cfs_status.clinfo->nodes_byname) {
         cfs_clnode_t *clnode;
-        if ((clnode = g_hash_table_lookup(cfs_status.clinfo->nodes_byname, nodename)))
+        if ((clnode = g_hash_table_lookup(cfs_status.clinfo->nodes_byname, nodename))) {
             kvhash = clnode->kvhash;
+        }
     }
 
     kventry_t *entry;
@@ -1525,8 +1578,9 @@ int cfs_status_set(const char *key, gpointer data, size_t len) {
     g_return_val_if_fail(data != NULL, FALSE);
     g_return_val_if_fail(cfs_status.kvhash != NULL, FALSE);
 
-    if (len > CFS_MAX_STATUS_SIZE)
+    if (len > CFS_MAX_STATUS_SIZE) {
         return -EFBIG;
+    }
 
     g_mutex_lock(&mutex);
 
@@ -1541,8 +1595,9 @@ int cfs_status_set(const char *key, gpointer data, size_t len) {
     }
     g_mutex_unlock(&mutex);
 
-    if (cfs_status.kvstore)
+    if (cfs_status.kvstore) {
         kvstore_send_update_message(cfs_status.kvstore, key, data, len);
+    }
 
     return res ? 0 : -ENOMEM;
 }
@@ -1554,12 +1609,14 @@ gboolean cfs_kvstore_node_set(uint32_t nodeid, const char *key, gconstpointer da
 
     g_mutex_lock(&mutex);
 
-    if (!cfs_status.clinfo || !cfs_status.clinfo->nodes_byid)
+    if (!cfs_status.clinfo || !cfs_status.clinfo->nodes_byid) {
         goto ret; /* ignore */
+    }
 
     cfs_clnode_t *clnode = g_hash_table_lookup(cfs_status.clinfo->nodes_byid, &nodeid);
-    if (!clnode)
+    if (!clnode) {
         goto ret; /* ignore */
+    }
 
     cfs_debug("got node %d status update %s", nodeid, key);
 
@@ -1622,8 +1679,9 @@ static int dfsm_deliver(
     g_return_val_if_fail(res_ptr != NULL, -1);
 
     /* ignore message for ourself */
-    if (dfsm_nodeid_is_local(dfsm, nodeid, pid))
+    if (dfsm_nodeid_is_local(dfsm, nodeid, pid)) {
         goto ret;
+    }
 
     if (msg_type == KVSTORE_MESSAGE_UPDATE) {
         const char *key;
@@ -1727,8 +1785,9 @@ static int dfsm_process_state_update(dfsm_t *dfsm, gpointer data, dfsm_sync_info
         dfsm_node_info_t *ni = &syncinfo->nodes[i];
         ni->synced = 1;
 
-        if (syncinfo->local == ni)
+        if (syncinfo->local == ni) {
             local_index = i;
+        }
 
         clog_base_t *base = (clog_base_t *)ni->state;
         if (ni->state_len > 8 && ni->state_len == clog_size(base)) {
@@ -1759,8 +1818,9 @@ static void dfsm_synced(dfsm_t *dfsm) {
     g_return_if_fail(dfsm != NULL);
 
     char *ip = (char *)g_hash_table_lookup(cfs_status.iphash, cfs.nodename);
-    if (!ip)
+    if (!ip) {
         ip = cfs.ip;
+    }
 
     cfs_status_set("nodeip", ip, strlen(ip) + 1);
 }
@@ -1804,13 +1864,15 @@ void cfs_set_quorate(uint32_t quorate, gboolean quiet) {
     cfs_status.quorate = quorate;
 
     if (!prev_quorate && cfs_status.quorate) {
-        if (!quiet)
+        if (!quiet) {
             cfs_message("node has quorum");
+        }
     }
 
     if (prev_quorate && !cfs_status.quorate) {
-        if (!quiet)
+        if (!quiet) {
             cfs_message("node lost quorum");
+        }
     }
 
     g_mutex_unlock(&mutex);

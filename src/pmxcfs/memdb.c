@@ -75,17 +75,20 @@ memdb_tree_entry_t *memdb_tree_entry_copy(memdb_tree_entry_t *te, gboolean with_
 }
 
 void memdb_tree_entry_free(memdb_tree_entry_t *te) {
-    if (!te)
+    if (!te) {
         return;
+    }
 
     if (te->type == DT_REG) {
-        if (te->data.value)
+        if (te->data.value) {
             g_free(te->data.value);
+        }
     }
 
     if (te->type == DT_DIR) {
-        if (te->data.entries)
+        if (te->data.entries) {
             g_hash_table_destroy(te->data.entries);
+        }
     }
 
     g_free(te);
@@ -94,8 +97,9 @@ void memdb_tree_entry_free(memdb_tree_entry_t *te) {
 void memdb_lock_info_free(memdb_lock_info_t *li) {
     g_return_if_fail(li != NULL);
 
-    if (li->path)
+    if (li->path) {
         g_free(li->path);
+    }
 
     g_free(li);
 }
@@ -104,11 +108,13 @@ static gint memdb_tree_compare(gconstpointer v1, gconstpointer v2) {
     guint64 a = ((const memdb_tree_entry_t *)v1)->inode;
     guint64 b = ((const memdb_tree_entry_t *)v2)->inode;
 
-    if (a == b)
+    if (a == b) {
         return 0;
+    }
 
-    if (a > b)
+    if (a > b) {
         return 1;
+    }
 
     return -1;
 }
@@ -116,8 +122,9 @@ static gint memdb_tree_compare(gconstpointer v1, gconstpointer v2) {
 static void split_path(const char *path, char **dirname, char **basename) {
     char *dup = g_strdup(path);
     int len = strlen(dup) - 1;
-    while (len >= 0 && dup[len] == '/')
+    while (len >= 0 && dup[len] == '/') {
         dup[len--] = 0;
+    }
 
     char *dn = g_path_get_dirname(dup);
     char *bn = g_path_get_basename(dup);
@@ -152,8 +159,9 @@ memdb_lookup_path(memdb_t *memdb, const char *path, memdb_tree_entry_t **parent)
     memdb_tree_entry_t *cdir = memdb->root;
     *parent = NULL;
 
-    if (path[0] == 0 || ((path[0] == '.' || path[0] == '/') && path[1] == 0))
+    if (path[0] == 0 || ((path[0] == '.' || path[0] == '/') && path[1] == 0)) {
         return cdir;
+    }
 
     gchar **set = g_strsplit_set(path, "/", 0);
 
@@ -162,12 +170,14 @@ memdb_lookup_path(memdb_t *memdb, const char *path, memdb_tree_entry_t **parent)
 
     while ((name = set[i++])) {
 
-        if (name[0] == 0)
+        if (name[0] == 0) {
             continue;
+        }
 
         *parent = cdir;
-        if ((cdir = memdb_lookup_dir_entry(memdb, name, cdir)) == NULL)
+        if ((cdir = memdb_lookup_dir_entry(memdb, name, cdir)) == NULL) {
             break;
+        }
     }
 
     g_strfreev(set);
@@ -176,8 +186,9 @@ memdb_lookup_path(memdb_t *memdb, const char *path, memdb_tree_entry_t **parent)
 }
 
 static gboolean name_is_vm_config(const char *name, guint32 *vmid_ret) {
-    if (!name || name[0] < '1' || name[0] > '9')
+    if (!name || name[0] < '1' || name[0] > '9') {
         return FALSE;
+    }
 
     char *end = NULL;
 
@@ -186,11 +197,13 @@ static gboolean name_is_vm_config(const char *name, guint32 *vmid_ret) {
     unsigned long int vmid = strtoul(name, &end, 10);
 
     if (!end || end[0] != '.' || end[1] != 'c' || end[2] != 'o' || end[3] != 'n' || end[4] != 'f' ||
-        end[5] != 0 || errno != 0 || vmid > G_MAXUINT32)
+        end[5] != 0 || errno != 0 || vmid > G_MAXUINT32) {
         return FALSE;
+    }
 
-    if (vmid_ret)
+    if (vmid_ret) {
         *vmid_ret = (guint32)vmid;
+    }
 
     return TRUE;
 }
@@ -209,8 +222,9 @@ static gboolean valid_nodename(const char *nodename) {
     for (int i = 0; i < len; i++) {
         char c = nodename[i];
         if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
-            (i != 0 && i != (len - 1) && c == '-'))
+            (i != 0 && i != (len - 1) && c == '-')) {
             continue;
+        }
         return FALSE;
     }
 
@@ -218,11 +232,13 @@ static gboolean valid_nodename(const char *nodename) {
 }
 
 static char *dir_contain_vm_config(const char *dirname, int *vmtype_ret) {
-    if (!dirname)
+    if (!dirname) {
         return NULL;
+    }
 
-    if (strncmp(dirname, "nodes/", 6) != 0)
+    if (strncmp(dirname, "nodes/", 6) != 0) {
         return NULL;
+    }
 
     dirname += 6;
 
@@ -249,8 +265,9 @@ static char *dir_contain_vm_config(const char *dirname, int *vmtype_ret) {
 }
 
 static char *path_contain_vm_config(const char *path, int *vmtype_ret, guint32 *vmid_ret) {
-    if (!path)
+    if (!path) {
         return NULL;
+    }
 
     char *dirname = NULL;
     char *base = NULL;
@@ -258,8 +275,9 @@ static char *path_contain_vm_config(const char *path, int *vmtype_ret, guint32 *
 
     split_path(path, &dirname, &base);
 
-    if (name_is_vm_config(base, vmid_ret))
+    if (name_is_vm_config(base, vmid_ret)) {
         nodename = dir_contain_vm_config(dirname, vmtype_ret);
+    }
 
     g_free(dirname);
     g_free(base);
@@ -292,15 +310,18 @@ static gboolean vmlist_add_dir(
 
         memdb_tree_entry_t *node_te = (memdb_tree_entry_t *)value;
 
-        if (node_te->type != DT_REG)
+        if (node_te->type != DT_REG) {
             continue;
+        }
 
         guint32 vmid = 0;
-        if (!name_is_vm_config(node_te->name, &vmid))
+        if (!name_is_vm_config(node_te->name, &vmid)) {
             continue;
+        }
 
-        if (!vmlist_hash_insert_vm(vmlist, vmtype, vmid, nodename, FALSE))
+        if (!vmlist_hash_insert_vm(vmlist, vmtype, vmid, nodename, FALSE)) {
             ret = FALSE;
+        }
     }
 
     return ret;
@@ -322,8 +343,9 @@ gboolean memdb_lock_expired(memdb_t *memdb, const char *path, const guchar csum[
             g_critical("wrong lock csum - reset timeout");
             return FALSE;
         }
-        if ((ctime > li->ltime) && ((ctime - li->ltime) > CFS_LOCK_TIMEOUT))
+        if ((ctime > li->ltime) && ((ctime - li->ltime) > CFS_LOCK_TIMEOUT)) {
             return TRUE;
+        }
     } else {
         li = g_new0(memdb_lock_info_t, 1);
         li->path = g_strdup(path);
@@ -341,11 +363,13 @@ void memdb_update_locks(memdb_t *memdb) {
 
     memdb_tree_entry_t *te, *parent;
 
-    if (!(te = memdb_lookup_path(memdb, "priv/lock", &parent)))
+    if (!(te = memdb_lookup_path(memdb, "priv/lock", &parent))) {
         return;
+    }
 
-    if (te->type != DT_DIR)
+    if (te->type != DT_DIR) {
         return;
+    }
 
     GHashTable *old = memdb->locks;
     memdb->locks =
@@ -359,8 +383,9 @@ void memdb_update_locks(memdb_t *memdb) {
     while (g_hash_table_iter_next(&iter, &key, &value)) {
 
         memdb_tree_entry_t *lock_te = (memdb_tree_entry_t *)value;
-        if (lock_te->type != DT_DIR)
+        if (lock_te->type != DT_DIR) {
             continue;
+        }
 
         memdb_lock_info_t *li;
         li = g_new0(memdb_lock_info_t, 1);
@@ -382,8 +407,9 @@ void memdb_update_locks(memdb_t *memdb) {
         }
     }
 
-    if (old)
+    if (old) {
         g_hash_table_destroy(old);
+    }
 }
 
 gboolean memdb_recreate_vmlist(memdb_t *memdb) {
@@ -391,11 +417,13 @@ gboolean memdb_recreate_vmlist(memdb_t *memdb) {
 
     memdb_tree_entry_t *te, *parent;
 
-    if (!(te = memdb_lookup_path(memdb, "nodes", &parent)))
+    if (!(te = memdb_lookup_path(memdb, "nodes", &parent))) {
         return TRUE;
+    }
 
-    if (te->type != DT_DIR)
+    if (te->type != DT_DIR) {
         return TRUE;
+    }
 
     GHashTable *vmlist = vmlist_hash_new();
 
@@ -411,24 +439,29 @@ gboolean memdb_recreate_vmlist(memdb_t *memdb) {
     while (g_hash_table_iter_next(&iter, &key, &value)) {
 
         memdb_tree_entry_t *node_te = (memdb_tree_entry_t *)value;
-        if (node_te->type != DT_DIR)
+        if (node_te->type != DT_DIR) {
             continue;
+        }
 
-        if (!valid_nodename(node_te->name))
+        if (!valid_nodename(node_te->name)) {
             continue;
+        }
 
         if ((te = g_hash_table_lookup(node_te->data.entries, "qemu-server"))) {
-            if (!vmlist_add_dir(memdb, vmlist, node_te->name, VMTYPE_QEMU, te))
+            if (!vmlist_add_dir(memdb, vmlist, node_te->name, VMTYPE_QEMU, te)) {
                 ret = FALSE;
+            }
         }
         // FIXME: remove openvz stuff for 7.x
         if ((te = g_hash_table_lookup(node_te->data.entries, "openvz"))) {
-            if (!vmlist_add_dir(memdb, vmlist, node_te->name, VMTYPE_OPENVZ, te))
+            if (!vmlist_add_dir(memdb, vmlist, node_te->name, VMTYPE_OPENVZ, te)) {
                 ret = FALSE;
+            }
         }
         if ((te = g_hash_table_lookup(node_te->data.entries, "lxc"))) {
-            if (!vmlist_add_dir(memdb, vmlist, node_te->name, VMTYPE_LXC, te))
+            if (!vmlist_add_dir(memdb, vmlist, node_te->name, VMTYPE_LXC, te)) {
                 ret = FALSE;
+            }
         }
     }
 
@@ -484,17 +517,21 @@ void memdb_close(memdb_t *memdb) {
 
     g_mutex_lock(&memdb->mutex);
 
-    if (memdb->bdb)
+    if (memdb->bdb) {
         bdb_backend_close(memdb->bdb);
+    }
 
-    if (memdb->index)
+    if (memdb->index) {
         g_hash_table_destroy(memdb->index);
+    }
 
-    if (memdb->locks)
+    if (memdb->locks) {
         g_hash_table_destroy(memdb->locks);
+    }
 
-    if (memdb->dbfilename)
+    if (memdb->dbfilename) {
         g_free(memdb->dbfilename);
+    }
 
     memdb->index = NULL;
     memdb->bdb = NULL;
@@ -746,8 +783,9 @@ static int memdb_pwrite(
             memcpy(newdata, olddata, newsize);
         }
 
-        if (count && data)
+        if (count && data) {
             memcpy((uint8_t *)newdata + offset, data, count);
+        }
 
     } else {
 
@@ -782,8 +820,9 @@ static int memdb_pwrite(
         goto ret;
     }
 
-    if (nodename)
+    if (nodename) {
         vmlist_register_vm(vmtype, vmid, nodename);
+    }
 
     ret = count;
 
@@ -947,11 +986,13 @@ GList *memdb_readdir(memdb_t *memdb, const char *path) {
 
     g_mutex_lock(&memdb->mutex);
 
-    if (!(te = memdb_lookup_path(memdb, path, &parent)))
+    if (!(te = memdb_lookup_path(memdb, path, &parent))) {
         goto ret;
+    }
 
-    if (te->type != DT_DIR)
+    if (te->type != DT_DIR) {
         goto ret;
+    }
 
     GHashTable *ht = te->data.entries;
 
@@ -979,23 +1020,27 @@ void memdb_dirlist_free(GList *dirlist) {
     GList *l = dirlist;
 
     while (l) {
-        if (l->data)
+        if (l->data) {
             g_free(l->data);
+        }
 
         l = g_list_next(l);
     }
 
-    if (dirlist)
+    if (dirlist) {
         g_list_free(dirlist);
+    }
 }
 
 static int unlink_tree_entry(memdb_t *memdb, memdb_tree_entry_t *parent, memdb_tree_entry_t *te) {
     g_return_val_if_fail(parent != NULL, -EACCES);
     g_return_val_if_fail(parent->inode == te->parent, -EACCES);
 
-    if (te->type == DT_DIR)
-        if (g_hash_table_size(te->data.entries))
+    if (te->type == DT_DIR) {
+        if (g_hash_table_size(te->data.entries)) {
             return -ENOTEMPTY;
+        }
+    }
 
     if (!g_hash_table_steal(parent->data.entries, te->name)) {
         cfs_critical("internal error - can't delete entry");
@@ -1067,8 +1112,9 @@ int memdb_rename(memdb_t *memdb, const char *from, const char *to, guint32 write
 
     if ((to_te = memdb_lookup_path(memdb, to, &to_parent))) {
 
-        if ((ret = unlink_tree_entry(memdb, to_parent, to_te)) != 0)
+        if ((ret = unlink_tree_entry(memdb, to_parent, to_te)) != 0) {
             goto ret;
+        }
 
         base = strdup(to_te->name);
 
@@ -1099,8 +1145,9 @@ int memdb_rename(memdb_t *memdb, const char *from, const char *to, guint32 write
     /* NOTE: unlink_tree_entry() make sure that we can only
        rename emtpy directories */
 
-    if ((ret = unlink_tree_entry(memdb, from_parent, from_te)) != 0)
+    if ((ret = unlink_tree_entry(memdb, from_parent, from_te)) != 0) {
         goto ret;
+    }
 
     memdb->root->version++;
     memdb->root->mtime = mtime;
@@ -1132,11 +1179,13 @@ int memdb_rename(memdb_t *memdb, const char *from, const char *to, guint32 write
 
     if (new->type == DT_REG) {
 
-        if (from_node)
+        if (from_node) {
             vmlist_delete_vm(from_vmid);
+        }
 
-        if (nodename)
+        if (nodename) {
             vmlist_register_vm(vmtype, vmid, nodename);
+        }
 
     } else if (new->type == DT_DIR) {
         /* directories are alwayse empty (see unlink_tree_entry) */
@@ -1188,8 +1237,9 @@ int memdb_delete(memdb_t *memdb, const char *path, guint32 writer, guint32 mtime
 
     record_memdb_change(path);
 
-    if ((ret = unlink_tree_entry(memdb, parent, te)) != 0)
+    if ((ret = unlink_tree_entry(memdb, parent, te)) != 0) {
         goto ret;
+    }
 
     memdb->root->version++;
     memdb->root->mtime = mtime;
@@ -1351,8 +1401,9 @@ gboolean memdb_tree_entry_csum(memdb_tree_entry_t *te, guchar csum[32]) {
     g_checksum_update(sha256, (unsigned char *)&te->parent, sizeof(te->parent));
     g_checksum_update(sha256, (unsigned char *)te->name, strlen(te->name));
 
-    if (te->type == DT_REG && te->size)
+    if (te->type == DT_REG && te->size) {
         g_checksum_update(sha256, (unsigned char *)te->data.value, te->size);
+    }
 
     size_t csum_len = 32;
     g_checksum_get_digest(sha256, csum, &csum_len);
@@ -1385,8 +1436,9 @@ memdb_compute_checksum(GHashTable *index, memdb_tree_entry_t *root, guchar *csum
         g_checksum_update(sha256, (unsigned char *)&te->parent, sizeof(te->parent));
         g_checksum_update(sha256, (unsigned char *)te->name, strlen(te->name));
 
-        if (te->type == DT_REG && te->size)
+        if (te->type == DT_REG && te->size) {
             g_checksum_update(sha256, (unsigned char *)te->data.value, te->size);
+        }
 
         l = g_list_next(l);
     }
@@ -1434,8 +1486,9 @@ memdb_index_t *memdb_encode_index(GHashTable *index, memdb_tree_entry_t *root) {
     while (l) {
         memdb_tree_entry_t *te = (memdb_tree_entry_t *)l->data;
 
-        if (te->inode > idx->last_inode)
+        if (te->inode > idx->last_inode) {
             idx->last_inode = te->inode;
+        }
 
         idx->entries[ind].inode = te->inode;
 
@@ -1449,8 +1502,9 @@ memdb_index_t *memdb_encode_index(GHashTable *index, memdb_tree_entry_t *root) {
         g_checksum_update(sha256, (unsigned char *)&te->parent, sizeof(te->parent));
         g_checksum_update(sha256, (unsigned char *)te->name, strlen(te->name));
 
-        if (te->type == DT_REG && te->size)
+        if (te->type == DT_REG && te->size) {
             g_checksum_update(sha256, (unsigned char *)te->data.value, te->size);
+        }
 
         gsize len = 32;
         g_checksum_get_digest(sha256, (guint8 *)idx->entries[ind].digest, &len);

@@ -141,8 +141,9 @@ static void s1_connection_destroyed_fn(qb_ipcs_connection_t *c) {
     cfs_debug("connection about to be freed");
 
     gpointer ctx;
-    if ((ctx = qb_ipcs_context_get(c)))
+    if ((ctx = qb_ipcs_context_get(c))) {
         g_free(ctx);
+    }
 }
 
 static int32_t s1_connection_closed_fn(qb_ipcs_connection_t *c) {
@@ -519,8 +520,9 @@ static void timer_job(void *data) {
     if (terminate_server) {
         cfs_debug("got terminate request");
 
-        if (loop)
+        if (loop) {
             qb_loop_stop(loop);
+        }
 
         if (s1) {
             qb_ipcs_destroy(s1);
@@ -538,8 +540,9 @@ static void timer_job(void *data) {
 
     g_mutex_unlock(&server_started_mutex);
 
-    if (terminate)
+    if (terminate) {
         return;
+    }
 
     qb_loop_timer_handle th;
     qb_loop_timer_add(loop, QB_LOOP_LOW, 1000000000, NULL, timer_job, &th);
@@ -589,8 +592,9 @@ gboolean server_start(memdb_t *db) {
     worker = g_thread_new("server", worker_thread, NULL);
 
     g_mutex_lock(&server_started_mutex);
-    while (!server_started)
+    while (!server_started) {
         g_cond_wait(&server_started_cond, &server_started_mutex);
+    }
     g_mutex_unlock(&server_started_mutex);
 
     cfs_debug("server started");
@@ -603,8 +607,9 @@ void server_stop(void) {
 
     g_mutex_lock(&server_started_mutex);
     terminate_server = 1;
-    while (server_started)
+    while (server_started) {
         g_cond_wait(&server_stopped_cond, &server_started_mutex);
+    }
     g_mutex_unlock(&server_started_mutex);
 
     if (worker) {

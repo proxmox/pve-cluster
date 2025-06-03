@@ -93,13 +93,15 @@ cfs_service_new(cfs_service_callbacks_t *callbacks, const char *log_domain, gpoi
     g_return_val_if_fail(callbacks->cfs_service_dispatch_fn != NULL, NULL);
 
     cfs_service_t *service = g_new0(cfs_service_t, 1);
-    if (!service)
+    if (!service) {
         return NULL;
+    }
 
-    if (log_domain)
+    if (log_domain) {
         service->log_domain = log_domain;
-    else
+    } else {
         service->log_domain = G_LOG_DOMAIN;
+    }
 
     service->callbacks = callbacks;
 
@@ -131,11 +133,13 @@ cfs_loop_t *cfs_loop_new(struct fuse *fuse) {
 void cfs_loop_destroy(cfs_loop_t *loop) {
     g_return_if_fail(loop != NULL);
 
-    if (loop->qbloop)
+    if (loop->qbloop) {
         qb_loop_destroy(loop->qbloop);
+    }
 
-    if (loop->services)
+    if (loop->services) {
         g_list_free(loop->services);
+    }
 
     g_mutex_clear(&loop->server_started_mutex);
     g_cond_clear(&loop->server_started_cond);
@@ -166,8 +170,9 @@ static int32_t poll_dispatch_fn(int32_t fd, int32_t revents, void *data) {
         service->initialized = FALSE;
         service->errcount = 0;
 
-        if (!service->restartable)
+        if (!service->restartable) {
             service->callbacks->cfs_service_finalize_fn(service, service->context);
+        }
 
         return -1;
     }
@@ -198,16 +203,18 @@ static void service_timer_job(void *data) {
 
     g_mutex_unlock(&loop->server_started_mutex);
 
-    if (terminate)
+    if (terminate) {
         return;
+    }
 
     GList *l = loop->services;
     while (l) {
         cfs_service_t *service = (cfs_service_t *)l->data;
         l = g_list_next(l);
 
-        if (!service->initialized)
+        if (!service->initialized) {
             continue;
+        }
 
         time_t ctime = time(NULL);
         if (service->period && service->callbacks->cfs_service_timer_fn &&
@@ -232,8 +239,9 @@ static void service_start_job(void *data) {
     terminate = loop->stop_worker_flag;
     g_mutex_unlock(&loop->server_started_mutex);
 
-    if (terminate)
+    if (terminate) {
         return;
+    }
 
     GList *l = loop->services;
     time_t ctime = time(NULL);
@@ -262,8 +270,9 @@ static void service_start_job(void *data) {
                     service->callbacks->cfs_service_finalize_fn(service, service->context);
                 }
             } else {
-                if (!service->errcount)
+                if (!service->errcount) {
                     cfs_dom_critical(service->log_domain, "can't initialize service");
+                }
                 service->errcount++;
             }
         }
@@ -315,8 +324,9 @@ gboolean cfs_loop_start_worker(cfs_loop_t *loop) {
     loop->worker = g_thread_new("cfs_loop", cfs_loop_worker_thread, loop);
 
     g_mutex_lock(&loop->server_started_mutex);
-    while (!loop->server_started)
+    while (!loop->server_started) {
         g_cond_wait(&loop->server_started_cond, &loop->server_started_mutex);
+    }
     g_mutex_unlock(&loop->server_started_mutex);
 
     cfs_debug("worker started");
@@ -331,8 +341,9 @@ void cfs_loop_stop_worker(cfs_loop_t *loop) {
 
     g_mutex_lock(&loop->server_started_mutex);
     loop->stop_worker_flag = TRUE;
-    while (loop->server_started)
+    while (loop->server_started) {
         g_cond_wait(&loop->server_stopped_cond, &loop->server_started_mutex);
+    }
     g_mutex_unlock(&loop->server_started_mutex);
 
     if (loop->worker) {

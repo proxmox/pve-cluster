@@ -90,8 +90,9 @@ static cfs_plug_t *find_plug(const char *path, char **sub) {
     g_return_val_if_fail(root_plug != NULL, NULL);
     g_return_val_if_fail(path != NULL, NULL);
 
-    while (*path == '/')
+    while (*path == '/') {
         path++;
+    }
 
     cfs_debug("find_plug start %s", path);
 
@@ -102,8 +103,9 @@ static cfs_plug_t *find_plug(const char *path, char **sub) {
 
     cfs_debug("find_plug end %s = %p (%s)", path, (void *)plug, subpath);
 
-    if (subpath && subpath[0])
+    if (subpath && subpath[0]) {
         *sub = g_strdup(subpath);
+    }
 
     g_free(tmppath);
 
@@ -138,8 +140,9 @@ static int cfs_fuse_getattr(const char *path, struct stat *stbuf) {
 
     cfs_debug("leave cfs_fuse_getattr %s (%d)", path, ret);
 
-    if (subpath)
+    if (subpath) {
         g_free(subpath);
+    }
 
     return ret;
 }
@@ -157,16 +160,19 @@ static int cfs_fuse_readdir(
     char *subpath = NULL;
     cfs_plug_t *plug = find_plug(path, &subpath);
 
-    if (!plug)
+    if (!plug) {
         goto ret;
+    }
 
-    if (plug->ops && plug->ops->readdir)
+    if (plug->ops && plug->ops->readdir) {
         ret = plug->ops->readdir(plug, subpath ? subpath : "", buf, filler, 0, fi);
+    }
 ret:
     cfs_debug("leave cfs_fuse_readdir %s (%d)", path, ret);
 
-    if (subpath)
+    if (subpath) {
         g_free(subpath);
+    }
 
     return ret;
 }
@@ -177,13 +183,15 @@ static int cfs_fuse_chmod(const char *path, mode_t mode) {
     cfs_debug("enter cfs_fuse_chmod %s", path);
 
     mode_t allowed_mode = (S_IRUSR | S_IWUSR);
-    if (!path_is_private(path))
+    if (!path_is_private(path)) {
         allowed_mode |= (S_IRGRP);
+    }
 
     // allow only setting our supported modes (0600 for priv, 0640 for rest)
     // mode has additional bits set, which we ignore; see stat(2)
-    if ((mode & ALLPERMS) == allowed_mode)
+    if ((mode & ALLPERMS) == allowed_mode) {
         ret = 0;
+    }
 
     cfs_debug("leave cfs_fuse_chmod %s (%d) mode: %o", path, ret, (int)mode);
 
@@ -196,8 +204,9 @@ static int cfs_fuse_chown(const char *path, uid_t user, gid_t group) {
     cfs_debug("enter cfs_fuse_chown %s", path);
 
     // we get -1 if no change should be made
-    if ((user == 0 || user == -1) && (group == cfs.gid || group == -1))
+    if ((user == 0 || user == -1) && (group == cfs.gid || group == -1)) {
         ret = 0;
+    }
 
     cfs_debug("leave cfs_fuse_chown %s (%d) (uid: %d; gid: %d)", path, ret, user, group);
 
@@ -212,17 +221,20 @@ static int cfs_fuse_mkdir(const char *path, mode_t mode) {
     char *subpath = NULL;
     cfs_plug_t *plug = find_plug(path, &subpath);
 
-    if (!plug)
+    if (!plug) {
         goto ret;
+    }
 
-    if (subpath && plug->ops && plug->ops->mkdir)
+    if (subpath && plug->ops && plug->ops->mkdir) {
         ret = plug->ops->mkdir(plug, subpath, mode);
+    }
 
 ret:
     cfs_debug("leave cfs_fuse_mkdir %s (%d)", path, ret);
 
-    if (subpath)
+    if (subpath) {
         g_free(subpath);
+    }
 
     return ret;
 }
@@ -235,17 +247,20 @@ static int cfs_fuse_rmdir(const char *path) {
     char *subpath = NULL;
     cfs_plug_t *plug = find_plug(path, &subpath);
 
-    if (!plug)
+    if (!plug) {
         goto ret;
+    }
 
-    if (subpath && plug->ops && plug->ops->rmdir)
+    if (subpath && plug->ops && plug->ops->rmdir) {
         ret = plug->ops->rmdir(plug, subpath);
+    }
 
 ret:
     cfs_debug("leave cfs_fuse_rmdir %s (%d)", path, ret);
 
-    if (subpath)
+    if (subpath) {
         g_free(subpath);
+    }
 
     return ret;
 }
@@ -261,20 +276,24 @@ static int cfs_fuse_rename(const char *from, const char *to) {
     char *sub_to = NULL;
     cfs_plug_t *plug_to = find_plug(to, &sub_to);
 
-    if (!plug_from || !plug_to || plug_from != plug_to)
+    if (!plug_from || !plug_to || plug_from != plug_to) {
         goto ret;
+    }
 
-    if (plug_from->ops && plug_from->ops->rename && sub_from && sub_to)
+    if (plug_from->ops && plug_from->ops->rename && sub_from && sub_to) {
         ret = plug_from->ops->rename(plug_from, sub_from, sub_to);
+    }
 
 ret:
     cfs_debug("leave cfs_fuse_rename from %s to %s (%d)", from, to, ret);
 
-    if (sub_from)
+    if (sub_from) {
         g_free(sub_from);
+    }
 
-    if (sub_to)
+    if (sub_to) {
         g_free(sub_to);
+    }
 
     return ret;
 }
@@ -298,8 +317,9 @@ static int cfs_fuse_open(const char *path, struct fuse_file_info *fi) {
 
     cfs_debug("leave cfs_fuse_open %s (%d)", path, ret);
 
-    if (subpath)
+    if (subpath) {
         g_free(subpath);
+    }
 
     return ret;
 }
@@ -316,14 +336,16 @@ cfs_fuse_read(const char *path, char *buf, size_t size, off_t offset, struct fus
     cfs_plug_t *plug = find_plug(path, &subpath);
 
     if (plug && plug->ops) {
-        if ((subpath || !plug->ops->readdir) && plug->ops->read)
+        if ((subpath || !plug->ops->readdir) && plug->ops->read) {
             ret = plug->ops->read(plug, subpath ? subpath : "", buf, size, offset, fi);
+        }
     }
 
     cfs_debug("leave cfs_fuse_read %s (%d)", path, ret);
 
-    if (subpath)
+    if (subpath) {
         g_free(subpath);
+    }
 
     return ret;
 }
@@ -341,14 +363,16 @@ static int cfs_fuse_write(
     cfs_plug_t *plug = find_plug(path, &subpath);
 
     if (plug && plug->ops) {
-        if ((subpath || !plug->ops->readdir) && plug->ops->write)
+        if ((subpath || !plug->ops->readdir) && plug->ops->write) {
             ret = plug->ops->write(plug, subpath ? subpath : "", buf, size, offset, fi);
+        }
     }
 
     cfs_debug("leave cfs_fuse_write %s (%d)", path, ret);
 
-    if (subpath)
+    if (subpath) {
         g_free(subpath);
+    }
 
     return ret;
 }
@@ -362,14 +386,16 @@ static int cfs_fuse_truncate(const char *path, off_t size) {
     cfs_plug_t *plug = find_plug(path, &subpath);
 
     if (plug && plug->ops) {
-        if ((subpath || !plug->ops->readdir) && plug->ops->truncate)
+        if ((subpath || !plug->ops->readdir) && plug->ops->truncate) {
             ret = plug->ops->truncate(plug, subpath ? subpath : "", size);
+        }
     }
 
     cfs_debug("leave cfs_fuse_truncate %s (%d)", path, ret);
 
-    if (subpath)
+    if (subpath) {
         g_free(subpath);
+    }
 
     return ret;
 }
@@ -382,17 +408,20 @@ static int cfs_fuse_create(const char *path, mode_t mode, struct fuse_file_info 
     char *subpath = NULL;
     cfs_plug_t *plug = find_plug(path, &subpath);
 
-    if (!plug)
+    if (!plug) {
         goto ret;
+    }
 
-    if (subpath && plug->ops && plug->ops->create)
+    if (subpath && plug->ops && plug->ops->create) {
         ret = plug->ops->create(plug, subpath, mode, fi);
+    }
 
 ret:
     cfs_debug("leave cfs_fuse_create %s (%d)", path, ret);
 
-    if (subpath)
+    if (subpath) {
         g_free(subpath);
+    }
 
     return ret;
 }
@@ -405,17 +434,20 @@ static int cfs_fuse_unlink(const char *path) {
     char *subpath = NULL;
     cfs_plug_t *plug = find_plug(path, &subpath);
 
-    if (!plug)
+    if (!plug) {
         goto ret;
+    }
 
-    if (subpath && plug->ops && plug->ops->unlink)
+    if (subpath && plug->ops && plug->ops->unlink) {
         ret = plug->ops->unlink(plug, subpath);
+    }
 
 ret:
     cfs_debug("leave cfs_fuse_unlink %s (%d)", path, ret);
 
-    if (subpath)
+    if (subpath) {
         g_free(subpath);
+    }
 
     return ret;
 }
@@ -428,17 +460,20 @@ static int cfs_fuse_readlink(const char *path, char *buf, size_t max) {
     char *subpath = NULL;
     cfs_plug_t *plug = find_plug(path, &subpath);
 
-    if (!plug)
+    if (!plug) {
         goto ret;
+    }
 
-    if (plug->ops && plug->ops->readlink)
+    if (plug->ops && plug->ops->readlink) {
         ret = plug->ops->readlink(plug, subpath ? subpath : "", buf, max);
+    }
 
 ret:
     cfs_debug("leave cfs_fuse_readlink %s (%d)", path, ret);
 
-    if (subpath)
+    if (subpath) {
         g_free(subpath);
+    }
 
     return ret;
 }
@@ -451,17 +486,20 @@ static int cfs_fuse_utimens(const char *path, const struct timespec tv[2]) {
     char *subpath = NULL;
     cfs_plug_t *plug = find_plug(path, &subpath);
 
-    if (!plug)
+    if (!plug) {
         goto ret;
+    }
 
-    if (plug->ops && plug->ops->utimens)
+    if (plug->ops && plug->ops->utimens) {
         ret = plug->ops->utimens(plug, subpath ? subpath : "", tv);
+    }
 
 ret:
     cfs_debug("leave cfs_fuse_utimens %s (%d)", path, ret);
 
-    if (subpath)
+    if (subpath) {
         g_free(subpath);
+    }
 
     return ret;
 }
@@ -473,8 +511,9 @@ static int cfs_fuse_statfs(const char *path, struct statvfs *stbuf) {
 
     int ret = -EACCES;
 
-    if (root_plug && root_plug->ops && root_plug->ops->statfs)
+    if (root_plug && root_plug->ops && root_plug->ops->statfs) {
         ret = root_plug->ops->statfs(root_plug, "", stbuf);
+    }
 
     return ret;
 }
@@ -598,8 +637,9 @@ static void update_qb_log_settings(void) {
 static int write_debug_setting_cb(cfs_plug_t *plug, const char *buf, size_t size) {
     int res = -EIO;
 
-    if (size < 2)
+    if (size < 2) {
         return res;
+    }
 
     if (strncmp(buf, "0\n", 2) == 0) {
         if (cfs.debug) {
@@ -670,8 +710,9 @@ static char *lookup_node_ip(const char *nodename) {
     struct addrinfo ahints = {
         .ai_flags = AI_V4MAPPED | AI_ALL,
     };
-    if (getaddrinfo(nodename, NULL, &ahints, &ainfo))
+    if (getaddrinfo(nodename, NULL, &ahints, &ainfo)) {
         return NULL;
+    }
 
     char *res = NULL;
     for (struct addrinfo *addr = ainfo; addr != NULL; addr = addr->ai_next) {
@@ -778,8 +819,9 @@ int main(int argc, char *argv[]) {
     }
 
     char *dot = strchr(utsname.nodename, '.');
-    if (dot)
+    if (dot) {
         *dot = 0;
+    }
 
     cfs.nodename = g_strdup(utsname.nodename);
 
@@ -821,8 +863,9 @@ int main(int argc, char *argv[]) {
                 cfs_critical("unable to acquire pmxcfs lock: %s", strerror(errno));
                 goto err;
             }
-            if (i == 10)
+            if (i == 10) {
                 cfs_message("unable to acquire pmxcfs lock - trying again");
+            }
 
             sleep(1);
         }
@@ -861,16 +904,18 @@ int main(int argc, char *argv[]) {
             cfs_message("forcing local mode (although corosync.conf exists)");
             cfs_set_quorate(1, TRUE);
         } else {
-            if (!(dcdb = dcdb_new(memdb)))
+            if (!(dcdb = dcdb_new(memdb))) {
                 goto err;
+            }
             dcdb_sync_corosync_conf(memdb, 1);
         }
     } else {
         cfs_debug("using local mode (corosync.conf does not exist)");
         cfs_set_quorate(1, TRUE);
     }
-    if (conf_data)
+    if (conf_data) {
         g_free(conf_data);
+    }
 
     cfs_plug_memdb_t *config = cfs_plug_memdb_new("memdb", memdb, dcdb);
 
@@ -943,8 +988,9 @@ int main(int argc, char *argv[]) {
                 dup2(nullfd, 0);
                 dup2(nullfd, 1);
                 dup2(nullfd, 2);
-                if (nullfd > 2)
+                if (nullfd > 2) {
                     close(nullfd);
+                }
             }
 
             // do not print to the console after this point
@@ -1019,31 +1065,39 @@ int main(int argc, char *argv[]) {
 
     cfs_debug("worker finished");
 
-    if (service_dcdb)
+    if (service_dcdb) {
         service_dfsm_destroy(service_dcdb);
+    }
 
-    if (service_confdb)
+    if (service_confdb) {
         service_confdb_destroy(service_confdb);
+    }
 
-    if (service_quorum)
+    if (service_quorum) {
         service_quorum_destroy(service_quorum);
+    }
 
-    if (service_status)
+    if (service_status) {
         service_dfsm_destroy(service_status);
+    }
 
 ret:
 
-    if (status_fsm)
+    if (status_fsm) {
         dfsm_destroy(status_fsm);
+    }
 
-    if (dcdb)
+    if (dcdb) {
         dfsm_destroy(dcdb);
+    }
 
-    if (memdb)
+    if (memdb) {
         memdb_close(memdb);
+    }
 
-    if (wrote_pidfile)
+    if (wrote_pidfile) {
         unlink(CFS_PID_FN);
+    }
 
     cfs_message("exit proxmox configuration filesystem (%d)", ret);
 

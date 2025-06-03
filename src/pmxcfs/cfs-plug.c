@@ -50,8 +50,9 @@ static cfs_plug_t *cfs_plug_base_lookup_plug(cfs_plug_t *plug, char **path) {
 
     cfs_debug("cfs_plug_base_lookup_plug %s", *path);
 
-    if (!*path || !(*path)[0])
+    if (!*path || !(*path)[0]) {
         return plug;
+    }
 
     char *name = strsep(path, "/");
 
@@ -61,14 +62,16 @@ static cfs_plug_t *cfs_plug_base_lookup_plug(cfs_plug_t *plug, char **path) {
 
     if (!(sub = (cfs_plug_t *)g_hash_table_lookup(bplug->entries, name))) {
         /* revert strsep modification */
-        if (*path)
+        if (*path) {
             (*path)[-1] = '/';
+        }
         *path = name;
         return plug;
     }
 
-    if ((sub = sub->lookup_plug(sub, path)))
+    if ((sub = sub->lookup_plug(sub, path))) {
         return sub;
+    }
 
     *path = NULL;
     return NULL;
@@ -89,8 +92,9 @@ static int cfs_plug_base_getattr(cfs_plug_t *plug, const char *path, struct stat
     if (*path) {
         cfs_plug_t *base = ((cfs_plug_base_t *)plug)->base;
 
-        if (base && base->ops && base->ops->getattr)
+        if (base && base->ops && base->ops->getattr) {
             ret = base->ops->getattr(base, path, stbuf);
+        }
         goto ret;
     }
 
@@ -113,11 +117,13 @@ static int tmp_hash_filler(void *buf, const char *name, const struct stat *stbuf
 
     struct hash_filler *hf = (struct hash_filler *)buf;
 
-    if (hf->entries && g_hash_table_lookup(hf->entries, name))
+    if (hf->entries && g_hash_table_lookup(hf->entries, name)) {
         return 0;
+    }
 
-    if (name[0] == '.' && (name[1] == 0 || (name[1] == '.' && name[2] == 0)))
+    if (name[0] == '.' && (name[1] == 0 || (name[1] == '.' && name[2] == 0))) {
         return 0;
+    }
 
     hf->filler(hf->buf, name, stbuf, off);
 
@@ -166,8 +172,9 @@ static int cfs_plug_base_readdir(
     if (base && base->ops && base->ops->readdir) {
         struct hash_filler hf = {.buf = buf, .filler = filler, .entries = NULL};
 
-        if (!path[0])
+        if (!path[0]) {
             hf.entries = bplug->entries;
+        }
 
         ret = base->ops->readdir(base, path, &hf, tmp_hash_filler, 0, fi);
 
@@ -189,8 +196,9 @@ static int cfs_plug_base_mkdir(cfs_plug_t *plug, const char *path, mode_t mode) 
 
     cfs_plug_t *base = ((cfs_plug_base_t *)plug)->base;
 
-    if (*path && base && base->ops && base->ops->mkdir)
+    if (*path && base && base->ops && base->ops->mkdir) {
         ret = base->ops->mkdir(base, path, mode);
+    }
 
     return ret;
 }
@@ -206,8 +214,9 @@ static int cfs_plug_base_rmdir(cfs_plug_t *plug, const char *path) {
 
     cfs_plug_t *base = ((cfs_plug_base_t *)plug)->base;
 
-    if (*path && base && base->ops && base->ops->rmdir)
+    if (*path && base && base->ops && base->ops->rmdir) {
         ret = base->ops->rmdir(base, path);
+    }
 
     return ret;
 }
@@ -224,8 +233,9 @@ static int cfs_plug_base_rename(cfs_plug_t *plug, const char *from, const char *
 
     cfs_plug_t *base = ((cfs_plug_base_t *)plug)->base;
 
-    if (base && base->ops && base->ops->rename)
+    if (base && base->ops && base->ops->rename) {
         ret = base->ops->rename(base, from, to);
+    }
 
     return ret;
 }
@@ -242,8 +252,9 @@ static int cfs_plug_base_open(cfs_plug_t *plug, const char *path, struct fuse_fi
 
     cfs_plug_t *base = ((cfs_plug_base_t *)plug)->base;
 
-    if (base && base->ops && base->ops->open)
+    if (base && base->ops && base->ops->open) {
         ret = base->ops->open(base, path, fi);
+    }
 
     return ret;
 }
@@ -270,8 +281,9 @@ static int cfs_plug_base_read(
 
     cfs_plug_t *base = ((cfs_plug_base_t *)plug)->base;
 
-    if (base && base->ops && base->ops->read)
+    if (base && base->ops && base->ops->read) {
         ret = base->ops->read(base, path, buf, size, offset, fi);
+    }
 
     return ret;
 }
@@ -298,8 +310,9 @@ static int cfs_plug_base_write(
 
     cfs_plug_t *base = ((cfs_plug_base_t *)plug)->base;
 
-    if (base && base->ops && base->ops->write)
+    if (base && base->ops && base->ops->write) {
         ret = base->ops->write(base, path, buf, size, offset, fi);
+    }
 
     return ret;
 }
@@ -315,8 +328,9 @@ static int cfs_plug_base_truncate(cfs_plug_t *plug, const char *path, off_t size
 
     cfs_plug_t *base = ((cfs_plug_base_t *)plug)->base;
 
-    if (base && base->ops && base->ops->truncate)
+    if (base && base->ops && base->ops->truncate) {
         ret = base->ops->truncate(base, path, size);
+    }
 
     return ret;
 }
@@ -334,8 +348,9 @@ cfs_plug_base_create(cfs_plug_t *plug, const char *path, mode_t mode, struct fus
 
     cfs_plug_t *base = ((cfs_plug_base_t *)plug)->base;
 
-    if (base && base->ops && base->ops->create)
+    if (base && base->ops && base->ops->create) {
         ret = base->ops->create(base, path, mode, fi);
+    }
 
     return ret;
 }
@@ -351,8 +366,9 @@ static int cfs_plug_base_unlink(cfs_plug_t *plug, const char *path) {
 
     cfs_plug_t *base = ((cfs_plug_base_t *)plug)->base;
 
-    if (base && base->ops && base->ops->unlink)
+    if (base && base->ops && base->ops->unlink) {
         ret = base->ops->unlink(base, path);
+    }
 
     return ret;
 }
@@ -369,8 +385,9 @@ static int cfs_plug_base_readlink(cfs_plug_t *plug, const char *path, char *buf,
 
     cfs_plug_t *base = ((cfs_plug_base_t *)plug)->base;
 
-    if (base && base->ops && base->ops->readlink)
+    if (base && base->ops && base->ops->readlink) {
         ret = base->ops->readlink(base, path, buf, max);
+    }
 
     return ret;
 }
@@ -387,8 +404,9 @@ static int cfs_plug_base_utimens(cfs_plug_t *plug, const char *path, const struc
 
     cfs_plug_t *base = ((cfs_plug_base_t *)plug)->base;
 
-    if (base && base->ops && base->ops->utimens)
+    if (base && base->ops && base->ops->utimens) {
         ret = base->ops->utimens(base, path, tv);
+    }
 
     return ret;
 }
@@ -405,8 +423,9 @@ static int cfs_plug_base_statfs(cfs_plug_t *plug, const char *path, struct statv
 
     cfs_plug_t *base = ((cfs_plug_base_t *)plug)->base;
 
-    if (base && base->ops && base->ops->statfs)
+    if (base && base->ops && base->ops->statfs) {
         ret = base->ops->statfs(base, path, stbuf);
+    }
 
     return ret;
 }
@@ -414,8 +433,9 @@ static int cfs_plug_base_statfs(cfs_plug_t *plug, const char *path, struct statv
 static gboolean plug_remove_func(gpointer key, gpointer value, gpointer user_data) {
     cfs_plug_t *plug = (cfs_plug_t *)value;
 
-    if (plug && plug->destroy_plug)
+    if (plug && plug->destroy_plug) {
         plug->destroy_plug(plug);
+    }
 
     return TRUE;
 }
@@ -456,8 +476,9 @@ static void cfs_plug_base_start_workers(cfs_plug_t *plug) {
 
         cfs_plug_t *p = (cfs_plug_t *)value;
 
-        if (p->start_workers)
+        if (p->start_workers) {
             p->start_workers(p);
+        }
     }
 
     if (bplug->base && bplug->base->start_workers) {
@@ -483,8 +504,9 @@ static void cfs_plug_base_stop_workers(cfs_plug_t *plug) {
 
         cfs_plug_t *p = (cfs_plug_t *)value;
 
-        if (p->stop_workers)
+        if (p->stop_workers) {
             p->stop_workers(p);
+        }
     }
 }
 

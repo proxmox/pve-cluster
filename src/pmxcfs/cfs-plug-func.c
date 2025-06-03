@@ -54,8 +54,9 @@ static void cfs_plug_func_destroy(cfs_plug_t *plug) {
 
     cfs_debug("enter cfs_plug_func_destroy %s", plug->name);
 
-    if (fplug->data)
+    if (fplug->data) {
         g_free(fplug->data);
+    }
 
     g_free(plug->name);
 
@@ -75,8 +76,9 @@ static int cfs_plug_func_getattr(cfs_plug_t *plug, const char *path, struct stat
     memset(stbuf, 0, sizeof(struct stat));
 
     g_rw_lock_writer_lock(&fplug->data_rw_lock);
-    if (fplug->data)
+    if (fplug->data) {
         g_free(fplug->data);
+    }
 
     fplug->data = fplug->update_callback(plug);
 
@@ -120,8 +122,9 @@ static int cfs_plug_func_read(
     int len = strlen(data);
 
     if (offset < len) {
-        if (offset + size > len)
+        if (offset + size > len) {
             size = len - offset;
+        }
         memcpy(buf, data + offset, size);
     } else {
         size = 0;
@@ -150,8 +153,9 @@ static int cfs_plug_func_write(
 
     cfs_plug_func_t *fplug = (cfs_plug_func_t *)plug;
 
-    if (offset != 0 || !fplug->write_callback)
+    if (offset != 0 || !fplug->write_callback) {
         return -EIO;
+    }
 
     return fplug->write_callback(plug, buf, size);
 }
@@ -163,8 +167,9 @@ static int cfs_plug_func_truncate(cfs_plug_t *plug, const char *path, off_t size
 
     cfs_plug_func_t *fplug = (cfs_plug_func_t *)plug;
 
-    if (fplug->write_callback)
+    if (fplug->write_callback) {
         return 0;
+    }
 
     return -EIO;
 }
@@ -208,8 +213,9 @@ cfs_plug_func_t *cfs_plug_func_new(
 
     fplug->update_callback = update_callback;
     fplug->write_callback = write_callback;
-    if (!write_callback)
+    if (!write_callback) {
         mode = mode & ~0222;
+    }
 
     fplug->mode = S_IFREG | mode;
 

@@ -192,17 +192,21 @@ loop:
     if (retry && result == CS_ERR_TRY_AGAIN) {
         nanosleep(&tvreq, NULL);
         ++retries;
-        if ((retries % 10) == 0)
+        if ((retries % 10) == 0) {
             cfs_dom_message(dfsm->log_domain, "cpg_send_message retry %d", retries);
-        if (retries < 100)
+        }
+        if (retries < 100) {
             goto loop;
+        }
     }
 
-    if (retries)
+    if (retries) {
         cfs_dom_message(dfsm->log_domain, "cpg_send_message retried %d times", retries);
+    }
 
-    if (result != CS_OK && (!retry || result != CS_ERR_TRY_AGAIN))
+    if (result != CS_OK && (!retry || result != CS_ERR_TRY_AGAIN)) {
         cfs_dom_critical(dfsm->log_domain, "cpg_send_message failed: %d", result);
+    }
 
     return result;
 }
@@ -227,8 +231,9 @@ dfsm_send_state_message_full(dfsm_t *dfsm, uint16_t type, struct iovec *iov, uns
     real_iov[0].iov_base = (char *)&header;
     real_iov[0].iov_len = sizeof(header);
 
-    for (int i = 0; i < len; i++)
+    for (int i = 0; i < len; i++) {
         real_iov[i + 1] = iov[i];
+    }
 
     return dfsm_send_message_full(dfsm, real_iov, len + 1, 1);
 }
@@ -273,8 +278,9 @@ cs_error_t dfsm_send_message_sync(
     real_iov[0].iov_base = (char *)&header;
     real_iov[0].iov_len = sizeof(header);
 
-    for (int i = 0; i < len; i++)
+    for (int i = 0; i < len; i++) {
         real_iov[i + 1] = iov[i];
+    }
 
     cs_error_t result = dfsm_send_message_full(dfsm, real_iov, len + 1, 1);
 
@@ -294,8 +300,9 @@ cs_error_t dfsm_send_message_sync(
     if (rp) {
         g_mutex_lock(&dfsm->sync_mutex);
 
-        while (dfsm->msgcount_rcvd < msgcount)
+        while (dfsm->msgcount_rcvd < msgcount) {
             g_cond_wait(&dfsm->sync_cond, &dfsm->sync_mutex);
+        }
 
         g_hash_table_remove(dfsm->results, &rp->msgcount);
 
@@ -415,8 +422,9 @@ static gboolean dfsm_sync_info_equal(gconstpointer v1, gconstpointer v2) {
     dfsm_node_info_t *info1 = (dfsm_node_info_t *)v1;
     dfsm_node_info_t *info2 = (dfsm_node_info_t *)v2;
 
-    if (info1->nodeid == info2->nodeid && info1->pid == info2->pid)
+    if (info1->nodeid == info2->nodeid && info1->pid == info2->pid) {
         return TRUE;
+    }
 
     return FALSE;
 }
@@ -425,8 +433,9 @@ static int dfsm_sync_info_compare(gconstpointer v1, gconstpointer v2) {
     dfsm_node_info_t *info1 = (dfsm_node_info_t *)v1;
     dfsm_node_info_t *info2 = (dfsm_node_info_t *)v2;
 
-    if (info1->nodeid != info2->nodeid)
+    if (info1->nodeid != info2->nodeid) {
         return info1->nodeid - info2->nodeid;
+    }
 
     return info1->pid - info2->pid;
 }
@@ -447,8 +456,9 @@ static void dfsm_set_mode(dfsm_t *dfsm, dfsm_mode_t new_mode) {
     }
     g_mutex_unlock(&dfsm->mode_mutex);
 
-    if (!changed)
+    if (!changed) {
         return;
+    }
 
     if (new_mode == DFSM_MODE_START) {
         cfs_dom_message(dfsm->log_domain, "start cluster connection");
@@ -456,8 +466,9 @@ static void dfsm_set_mode(dfsm_t *dfsm, dfsm_mode_t new_mode) {
         cfs_dom_message(dfsm->log_domain, "starting data syncronisation");
     } else if (new_mode == DFSM_MODE_SYNCED) {
         cfs_dom_message(dfsm->log_domain, "all data is up to date");
-        if (dfsm->dfsm_callbacks->dfsm_synced_fn)
+        if (dfsm->dfsm_callbacks->dfsm_synced_fn) {
             dfsm->dfsm_callbacks->dfsm_synced_fn(dfsm);
+        }
     } else if (new_mode == DFSM_MODE_UPDATE) {
         cfs_dom_message(dfsm->log_domain, "waiting for updates from leader");
     } else if (new_mode == DFSM_MODE_LEAVE) {
@@ -516,8 +527,9 @@ static void dfsm_release_sync_resources(
 
         g_hash_table_remove_all(dfsm->members);
 
-        if (dfsm->sync_info)
+        if (dfsm->sync_info) {
             g_free(dfsm->sync_info);
+        }
 
         int size = sizeof(dfsm_sync_info_t) + member_list_entries * sizeof(dfsm_sync_info_t);
         dfsm_sync_info_t *sync_info = dfsm->sync_info = g_malloc0(size);
@@ -535,8 +547,9 @@ static void dfsm_release_sync_resources(
         for (int i = 0; i < member_list_entries; i++) {
             dfsm_node_info_t *info = &sync_info->nodes[i];
             g_hash_table_insert(dfsm->members, info, info);
-            if (info->nodeid == dfsm->nodeid && info->pid == dfsm->pid)
+            if (info->nodeid == dfsm->nodeid && info->pid == dfsm->pid) {
                 sync_info->local = info;
+            }
         }
     }
 }
@@ -611,8 +624,9 @@ static void dfsm_cpg_deliver_callback(
                 header->count, base_header->subtype, msg_len
             );
 
-            if (!dfsm_queue_add_message(dfsm, nodeid, pid, header->count, msg, msg_len))
+            if (!dfsm_queue_add_message(dfsm, nodeid, pid, header->count, msg, msg_len)) {
                 goto leave;
+            }
         } else {
 
             int msg_res = -1;
@@ -622,11 +636,13 @@ static void dfsm_cpg_deliver_callback(
                 msg_len - sizeof(dfsm_message_normal_header_t)
             );
 
-            if (nodeid == dfsm->nodeid && pid == dfsm->pid)
+            if (nodeid == dfsm->nodeid && pid == dfsm->pid) {
                 dfsm_record_local_result(dfsm, header->count, msg_res, res);
+            }
 
-            if (res < 0)
+            if (res < 0) {
                 goto leave;
+            }
         }
 
         return;
@@ -663,11 +679,13 @@ static void dfsm_cpg_deliver_callback(
     if (mode == DFSM_MODE_SYNCED) {
         if (base_header->type == DFSM_MESSAGE_UPDATE_COMPLETE) {
 
-            for (int i = 0; i < dfsm->sync_info->node_count; i++)
+            for (int i = 0; i < dfsm->sync_info->node_count; i++) {
                 dfsm->sync_info->nodes[i].synced = 1;
+            }
 
-            if (!dfsm_deliver_queue(dfsm))
+            if (!dfsm_deliver_queue(dfsm)) {
                 goto leave;
+            }
 
             return;
 
@@ -702,8 +720,9 @@ static void dfsm_cpg_deliver_callback(
                 dfsm->csum_id = csum_id;
 
                 if (nodeid == dfsm->nodeid && pid == dfsm->pid) {
-                    if (!dfsm_send_checksum(dfsm))
+                    if (!dfsm_send_checksum(dfsm)) {
                         goto leave;
+                    }
                 }
             }
 
@@ -787,11 +806,13 @@ static void dfsm_cpg_deliver_callback(
 
             result = dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_STATE, iov, 1);
 
-            if (state)
+            if (state) {
                 g_free(state);
+            }
 
-            if (result != CS_OK)
+            if (result != CS_OK) {
                 goto leave;
+            }
 
             return;
 
@@ -830,21 +851,24 @@ static void dfsm_cpg_deliver_callback(
                 int res = dfsm->dfsm_callbacks->dfsm_process_state_update_fn(
                     dfsm, dfsm->data, dfsm->sync_info
                 );
-                if (res < 0)
+                if (res < 0) {
                     goto leave;
+                }
 
                 if (dfsm->sync_info->local->synced) {
                     dfsm_set_mode(dfsm, DFSM_MODE_SYNCED);
                     dfsm_release_sync_resources(dfsm, NULL, 0);
 
-                    if (!dfsm_deliver_queue(dfsm))
+                    if (!dfsm_deliver_queue(dfsm)) {
                         goto leave;
+                    }
 
                 } else {
                     dfsm_set_mode(dfsm, DFSM_MODE_UPDATE);
 
-                    if (!dfsm_deliver_queue(dfsm))
+                    if (!dfsm_deliver_queue(dfsm)) {
                         goto leave;
+                    }
                 }
             }
 
@@ -859,8 +883,9 @@ static void dfsm_cpg_deliver_callback(
                 dfsm, dfsm->data, dfsm->sync_info, nodeid, pid, msg, msg_len
             );
 
-            if (res < 0)
+            if (res < 0) {
                 goto leave;
+            }
 
             return;
 
@@ -868,19 +893,23 @@ static void dfsm_cpg_deliver_callback(
 
             int res = dfsm->dfsm_callbacks->dfsm_commit_fn(dfsm, dfsm->data, dfsm->sync_info);
 
-            if (res < 0)
+            if (res < 0) {
                 goto leave;
+            }
 
-            for (int i = 0; i < dfsm->sync_info->node_count; i++)
+            for (int i = 0; i < dfsm->sync_info->node_count; i++) {
                 dfsm->sync_info->nodes[i].synced = 1;
+            }
 
             dfsm_set_mode(dfsm, DFSM_MODE_SYNCED);
 
-            if (!dfsm_deliver_sync_queue(dfsm))
+            if (!dfsm_deliver_sync_queue(dfsm)) {
                 goto leave;
+            }
 
-            if (!dfsm_deliver_queue(dfsm))
+            if (!dfsm_deliver_queue(dfsm)) {
                 goto leave;
+            }
 
             dfsm_release_sync_resources(dfsm, NULL, 0);
 
@@ -948,8 +977,9 @@ static gboolean dfsm_resend_queue(dfsm_t *dfsm) {
 static gboolean dfsm_deliver_sync_queue(dfsm_t *dfsm) {
     g_return_val_if_fail(dfsm != NULL, FALSE);
 
-    if (!dfsm->sync_queue)
+    if (!dfsm->sync_queue) {
         return TRUE;
+    }
 
     gboolean res = TRUE;
 
@@ -984,8 +1014,9 @@ static gboolean dfsm_deliver_queue(dfsm_t *dfsm) {
     g_return_val_if_fail(dfsm->msg_queue != NULL, FALSE);
 
     int qlen = g_sequence_get_length(dfsm->msg_queue);
-    if (!qlen)
+    if (!qlen) {
         return TRUE;
+    }
 
     GSequenceIter *iter = g_sequence_get_begin_iter(dfsm->msg_queue);
     GSequenceIter *end = g_sequence_get_end_iter(dfsm->msg_queue);
@@ -1084,15 +1115,18 @@ static void dfsm_cpg_confchg_callback(
             member_ids, i ? ", %d/%d" : "%d/%d", member_list[i].nodeid, member_list[i].pid
         );
 
-        if (lowest_nodeid == 0 || lowest_nodeid > member_list[i].nodeid)
+        if (lowest_nodeid == 0 || lowest_nodeid > member_list[i].nodeid) {
             lowest_nodeid = member_list[i].nodeid;
+        }
 
-        if (member_list[i].nodeid == dfsm->nodeid && member_list[i].pid == dfsm->pid)
+        if (member_list[i].nodeid == dfsm->nodeid && member_list[i].pid == dfsm->pid) {
             dfsm->we_are_member = 1;
+        }
     }
 
-    if ((dfsm->we_are_member || mode != DFSM_MODE_START))
+    if ((dfsm->we_are_member || mode != DFSM_MODE_START)) {
         cfs_dom_message(dfsm->log_domain, "members: %s", member_ids->str);
+    }
 
     g_string_free(member_ids, TRUE);
 
@@ -1138,12 +1172,14 @@ static void dfsm_cpg_confchg_callback(
     } else {
         dfsm_set_mode(dfsm, DFSM_MODE_SYNCED);
         dfsm->sync_info->local->synced = 1;
-        if (!dfsm_deliver_queue(dfsm))
+        if (!dfsm_deliver_queue(dfsm)) {
             goto leave;
+        }
     }
 
-    if (dfsm->dfsm_callbacks->dfsm_confchg_fn)
+    if (dfsm->dfsm_callbacks->dfsm_confchg_fn) {
         dfsm->dfsm_callbacks->dfsm_confchg_fn(dfsm, dfsm->data, member_list, member_list_entries);
+    }
 
     return;
 leave:
@@ -1177,18 +1213,21 @@ dfsm_t *dfsm_new(
 
     dfsm_t *dfsm;
 
-    if ((dfsm = g_new0(dfsm_t, 1)) == NULL)
+    if ((dfsm = g_new0(dfsm_t, 1)) == NULL) {
         return NULL;
+    }
 
     g_mutex_init(&dfsm->sync_mutex);
 
     g_cond_init(&dfsm->sync_cond);
 
-    if (!(dfsm->results = g_hash_table_new(g_int64_hash, g_int64_equal)))
+    if (!(dfsm->results = g_hash_table_new(g_int64_hash, g_int64_equal))) {
         goto err;
+    }
 
-    if (!(dfsm->msg_queue = g_sequence_new(NULL)))
+    if (!(dfsm->msg_queue = g_sequence_new(NULL))) {
         goto err;
+    }
 
     g_mutex_init(&dfsm->cpg_mutex);
 
@@ -1203,8 +1242,9 @@ dfsm_t *dfsm_new(
     dfsm->dfsm_callbacks = callbacks;
 
     dfsm->members = g_hash_table_new(dfsm_sync_info_hash, dfsm_sync_info_equal);
-    if (!dfsm->members)
+    if (!dfsm->members) {
         goto err;
+    }
 
     g_mutex_init(&dfsm->mode_mutex);
 
@@ -1224,8 +1264,9 @@ gboolean dfsm_is_initialized(dfsm_t *dfsm) {
 gboolean dfsm_lowest_nodeid(dfsm_t *dfsm) {
     g_return_val_if_fail(dfsm != NULL, FALSE);
 
-    if (dfsm->lowest_nodeid && (dfsm->lowest_nodeid == dfsm->nodeid))
+    if (dfsm->lowest_nodeid && (dfsm->lowest_nodeid == dfsm->nodeid)) {
         return TRUE;
+    }
 
     return FALSE;
 }
@@ -1234,12 +1275,14 @@ cs_error_t dfsm_verify_request(dfsm_t *dfsm) {
     g_return_val_if_fail(dfsm != NULL, CS_ERR_INVALID_PARAM);
 
     /* only do when we have lowest nodeid */
-    if (!dfsm->lowest_nodeid || (dfsm->lowest_nodeid != dfsm->nodeid))
+    if (!dfsm->lowest_nodeid || (dfsm->lowest_nodeid != dfsm->nodeid)) {
         return CS_OK;
+    }
 
     dfsm_mode_t mode = dfsm_get_mode(dfsm);
-    if (mode != DFSM_MODE_SYNCED)
+    if (mode != DFSM_MODE_SYNCED) {
         return CS_OK;
+    }
 
     int len = 1;
     struct iovec iov[len];
@@ -1258,8 +1301,9 @@ cs_error_t dfsm_verify_request(dfsm_t *dfsm) {
     cs_error_t result;
     result = dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_VERIFY_REQUEST, iov, len);
 
-    if (result != CS_OK)
+    if (result != CS_OK) {
         cfs_dom_critical(dfsm->log_domain, "failed to send VERIFY_REQUEST message");
+    }
 
     return result;
 }
@@ -1277,8 +1321,9 @@ loop:
     if (result == CS_ERR_TRY_AGAIN) {
         nanosleep(&tvreq, NULL);
         ++retries;
-        if ((retries % 10) == 0)
+        if ((retries % 10) == 0) {
             cfs_dom_message(dfsm->log_domain, "cpg_dispatch retry %d", retries);
+        }
         goto loop;
     }
 
@@ -1355,8 +1400,9 @@ loop:
     if (result == CS_ERR_TRY_AGAIN) {
         nanosleep(&tvreq, NULL);
         ++retries;
-        if ((retries % 10) == 0)
+        if ((retries % 10) == 0) {
             cfs_dom_message(dfsm->log_domain, "cpg_join retry %d", retries);
+        }
         goto loop;
     }
 
@@ -1384,8 +1430,9 @@ loop:
     if (result == CS_ERR_TRY_AGAIN) {
         nanosleep(&tvreq, NULL);
         ++retries;
-        if ((retries % 10) == 0)
+        if ((retries % 10) == 0) {
             cfs_dom_message(dfsm->log_domain, "cpg_leave retry %d", retries);
+        }
         goto loop;
     }
 
@@ -1404,8 +1451,9 @@ gboolean dfsm_finalize(dfsm_t *dfsm) {
 
     dfsm_send_sync_message_abort(dfsm);
 
-    if (dfsm->joined)
+    if (dfsm->joined) {
         dfsm_leave(dfsm);
+    }
 
     if (dfsm->cpg_handle) {
         cpg_finalize(dfsm->cpg_handle);
@@ -1422,8 +1470,9 @@ void dfsm_destroy(dfsm_t *dfsm) {
 
     dfsm_finalize(dfsm);
 
-    if (dfsm->sync_info && dfsm->sync_info->data && dfsm->dfsm_callbacks->dfsm_cleanup_fn)
+    if (dfsm->sync_info && dfsm->sync_info->data && dfsm->dfsm_callbacks->dfsm_cleanup_fn) {
         dfsm->dfsm_callbacks->dfsm_cleanup_fn(dfsm, dfsm->data, dfsm->sync_info);
+    }
 
     dfsm_free_sync_queue(dfsm);
 
@@ -1435,22 +1484,26 @@ void dfsm_destroy(dfsm_t *dfsm) {
 
     g_mutex_clear(&dfsm->cpg_mutex);
 
-    if (dfsm->results)
+    if (dfsm->results) {
         g_hash_table_destroy(dfsm->results);
+    }
 
     if (dfsm->msg_queue) {
         dfsm_free_message_queue(dfsm);
         g_sequence_free(dfsm->msg_queue);
     }
 
-    if (dfsm->sync_info)
+    if (dfsm->sync_info) {
         g_free(dfsm->sync_info);
+    }
 
-    if (dfsm->cpg_handle)
+    if (dfsm->cpg_handle) {
         cpg_finalize(dfsm->cpg_handle);
+    }
 
-    if (dfsm->members)
+    if (dfsm->members) {
         g_hash_table_destroy(dfsm->members);
+    }
 
     g_free(dfsm);
 }
@@ -1481,14 +1534,16 @@ static int service_dfsm_initialize(cfs_service_t *service, gpointer context) {
     g_return_val_if_fail(dfsm != NULL, -1);
 
     /* serious internal error - don't try to recover */
-    if (!dfsm_restartable(dfsm))
+    if (!dfsm_restartable(dfsm)) {
         return -1;
+    }
 
     int fd = -1;
 
     cs_error_t result;
-    if ((result = dfsm_initialize(dfsm, &fd)) != CS_OK)
+    if ((result = dfsm_initialize(dfsm, &fd)) != CS_OK) {
         return -1;
+    }
 
     result = dfsm_join(dfsm);
     if (result != CS_OK) {
@@ -1513,22 +1568,27 @@ static gboolean service_dfsm_dispatch(cfs_service_t *service, gpointer context) 
     cs_error_t result;
 
     result = dfsm_dispatch(dfsm, CS_DISPATCH_ONE);
-    if (result == CS_ERR_LIBRARY || result == CS_ERR_BAD_HANDLE)
+    if (result == CS_ERR_LIBRARY || result == CS_ERR_BAD_HANDLE) {
         goto finalize;
-    if (result != CS_OK)
+    }
+    if (result != CS_OK) {
         goto fail;
+    }
 
     dfsm_mode_t mode = dfsm_get_mode(dfsm);
     if (mode >= DFSM_ERROR_MODE_START) {
         if (dfsm->joined) {
             result = dfsm_leave(dfsm);
-            if (result == CS_ERR_LIBRARY || result == CS_ERR_BAD_HANDLE)
+            if (result == CS_ERR_LIBRARY || result == CS_ERR_BAD_HANDLE) {
                 goto finalize;
-            if (result != CS_OK)
+            }
+            if (result != CS_OK) {
                 goto finalize;
+            }
         } else {
-            if (!dfsm->we_are_member)
+            if (!dfsm->we_are_member) {
                 return FALSE;
+            }
         }
     }
 
@@ -1566,8 +1626,9 @@ cfs_service_t *service_dfsm_new(dfsm_t *dfsm) {
     g_return_val_if_fail(dfsm != NULL, NULL);
 
     service_dfsm_private_t *private = g_new0(service_dfsm_private_t, 1);
-    if (!private)
+    if (!private) {
         return NULL;
+    }
 
     private->dfsm = dfsm;
 

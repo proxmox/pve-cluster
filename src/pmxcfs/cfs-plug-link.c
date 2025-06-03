@@ -80,12 +80,14 @@ static int cfs_plug_link_readlink(cfs_plug_t *plug, const char *path, char *buf,
 
     cfs_plug_link_t *lnk = (cfs_plug_link_t *)plug;
 
-    if (!lnk->symlink)
+    if (!lnk->symlink) {
         goto ret;
+    }
 
     strncpy(buf, lnk->symlink, max);
-    if (max > 0)
+    if (max > 0) {
         buf[max - 1] = '\0';
+    }
     ret = 0;
 
 ret:

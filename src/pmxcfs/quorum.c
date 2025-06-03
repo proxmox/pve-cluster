@@ -165,13 +165,15 @@ loop:
     if (result == CS_ERR_TRY_AGAIN) {
         usleep(100000);
         ++retries;
-        if ((retries % 100) == 0)
+        if ((retries % 100) == 0) {
             cfs_message("quorum_dispatch retry %d", retries);
+        }
         goto loop;
     }
 
-    if (result == CS_OK || result == CS_ERR_TRY_AGAIN)
+    if (result == CS_OK || result == CS_ERR_TRY_AGAIN) {
         return TRUE;
+    }
 
     cfs_critical("quorum_dispatch failed: %d", result);
 
@@ -191,8 +193,9 @@ cfs_service_t *service_quorum_new(void) {
     cfs_service_t *service;
 
     qs_private_t *private = g_new0(qs_private_t, 1);
-    if (!private)
+    if (!private) {
         return NULL;
+    }
 
     service = cfs_service_new(&cfs_quorum_callbacks, G_LOG_DOMAIN, private);
 
