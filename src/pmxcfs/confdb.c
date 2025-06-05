@@ -221,7 +221,14 @@ static int service_cmap_initialize(cfs_service_t *service, gpointer context) {
 
         result = cmap_initialize(&handle);
         if (result != CS_OK) {
-            cfs_critical("cmap_initialize failed: %s", cs_strerror(result));
+            if (result == CS_ERR_LIBRARY) {
+                cfs_critical(
+                    "cmap_initialize failed: %s (failed to connect to corosync)",
+                    cs_strerror(result)
+                );
+            } else {
+                cfs_critical("cmap_initialize failed: %s", cs_strerror(result));
+            }
             private->handle = 0;
             return -1;
         }

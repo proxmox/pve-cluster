@@ -107,7 +107,14 @@ static int service_quorum_initialize(cfs_service_t *service, gpointer context) {
 
         result = quorum_initialize(&handle, &quorum_callbacks, &quorum_type);
         if (result != CS_OK) {
-            cfs_critical("quorum_initialize failed: %s", cs_strerror(result));
+            if (result == CS_ERR_LIBRARY) {
+                cfs_critical(
+                    "quorum_initialize failed: %s (failed to connect to corosync)",
+                    cs_strerror(result)
+                );
+            } else {
+                cfs_critical("quorum_initialize failed: %s", cs_strerror(result));
+            }
             goto err_reset_handle;
         }
 

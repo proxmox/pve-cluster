@@ -1351,7 +1351,16 @@ cs_error_t dfsm_initialize(dfsm_t *dfsm, int *fd) {
 
     if (dfsm->cpg_handle == 0) {
         if ((result = cpg_initialize(&dfsm->cpg_handle, dfsm->cpg_callbacks)) != CS_OK) {
-            cfs_dom_critical(dfsm->log_domain, "cpg_initialize failed: %s", cs_strerror(result));
+            if (result == CS_ERR_LIBRARY) {
+                cfs_dom_critical(
+                    dfsm->log_domain, "cpg_initialize failed: %s (failed to connect to corosync)",
+                    cs_strerror(result)
+                );
+            } else {
+                cfs_dom_critical(
+                    dfsm->log_domain, "cpg_initialize failed: %s", cs_strerror(result)
+                );
+            }
             goto err_no_finalize;
         }
 
