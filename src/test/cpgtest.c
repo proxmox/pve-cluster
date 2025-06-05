@@ -82,8 +82,9 @@ loop:
         goto loop;
     }
 
-    if (result != CS_OK)
-        printf("cpg_send_message failed: %d\n", result);
+    if (result != CS_OK) {
+        printf("cpg_send_message failed: %s\n", cs_strerror(result));
+    }
 }
 
 static cpg_callbacks_t callbacks = {
@@ -110,18 +111,18 @@ start:
     printf("calling cpg_initialize\n");
     result = cpg_initialize(&handle, &callbacks);
     if (result != CS_OK) {
-        printf("cpg_initialize failed: %d\n", result);
+        printf("cpg_initialize failed: %s\n", cs_strerror(result));
         goto retry;
     }
 
     printf("calling cpg_join\n");
     while ((result = cpg_join(handle, &group_name)) == CS_ERR_TRY_AGAIN) {
-        printf("cpg_join returned %d\n", result);
+        printf("cpg_join returned %s\n", cs_strerror(result));
         sleep(1);
     }
 
     if (result != CS_OK) {
-        printf("cpg_join failed: %d\n", result);
+        printf("cpg_join failed: %s\n", cs_strerror(result));
         exit(-1);
     }
 
@@ -147,7 +148,7 @@ start:
             if (FD_ISSET(cpg_fd, &read_fds)) {
                 cs_error_t res = cpg_dispatch(handle, CS_DISPATCH_ALL);
                 if (res != CS_OK) {
-                    printf("cpg_dispatch failed: %d\n", res);
+                    printf("cpg_dispatch failed: %s\n", cs_strerror(res));
                     break;
                 }
             }
@@ -168,7 +169,7 @@ retry:
 
         result = cpg_finalize(handle);
         if (result != CS_OK) {
-            printf("cpg_finalize failed: %d\n", result);
+            printf("cpg_finalize failed: %s\n", cs_strerror(result));
             exit(-1);
         }
     }

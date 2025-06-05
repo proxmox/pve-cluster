@@ -35,6 +35,7 @@
 #include <unistd.h>
 
 #include <corosync/cmap.h>
+#include <corosync/corotypes.h>
 
 #include "cfs-utils.h"
 #include "loop.h"
@@ -53,7 +54,7 @@ static cs_error_t cmap_read_clusternodes(cmap_handle_t handle, cfs_clinfo_t *cli
 
     result = cmap_iter_init(handle, "nodelist.node.", &iter);
     if (result != CS_OK) {
-        cfs_critical("cmap_iter_init failed %d", result);
+        cfs_critical("cmap_iter_init failed %s", cs_strerror(result));
         return result;
     }
 
@@ -87,23 +88,23 @@ static cs_error_t cmap_read_clusternodes(cmap_handle_t handle, cfs_clinfo_t *cli
 
         if (strcmp(subkey, "nodeid") == 0) {
             if ((result = cmap_get_uint32(handle, key_name, &nodeid)) != CS_OK) {
-                cfs_critical("cmap_get %s failed %d", key_name, result);
+                cfs_critical("cmap_get %s failed %s", key_name, cs_strerror(result));
             }
         } else if (strcmp(subkey, "quorum_votes") == 0) {
             if ((result = cmap_get_uint32(handle, key_name, &votes)) != CS_OK) {
-                cfs_critical("cmap_get %s failed %d", key_name, result);
+                cfs_critical("cmap_get %s failed %s", key_name, cs_strerror(result));
             }
         } else if (strcmp(subkey, "ring0_addr") == 0) {
             // prefering the 'name' subkey over 'ring0_addr', needed for RRP
             // and when using a IP address for ring0_addr
             if (name == NULL && (result = cmap_get_string(handle, key_name, &name)) != CS_OK) {
-                cfs_critical("cmap_get %s failed %d", key_name, result);
+                cfs_critical("cmap_get %s failed %s", key_name, cs_strerror(result));
             }
         } else if (strcmp(subkey, "name") == 0) {
             free(name);
             name = NULL;
             if ((result = cmap_get_string(handle, key_name, &name)) != CS_OK) {
-                cfs_critical("cmap_get %s failed %d", key_name, result);
+                cfs_critical("cmap_get %s failed %s", key_name, cs_strerror(result));
             }
         }
     }
@@ -116,7 +117,7 @@ static cs_error_t cmap_read_clusternodes(cmap_handle_t handle, cfs_clinfo_t *cli
 
     result = cmap_iter_finalize(handle, iter);
     if (result != CS_OK) {
-        cfs_critical("cmap_iter_finalize failed %d", result);
+        cfs_critical("cmap_iter_finalize failed %s", cs_strerror(result));
         return result;
     }
 
@@ -130,14 +131,14 @@ static cs_error_t cmap_read_config(cmap_handle_t handle) {
 
     result = cmap_get_uint64(handle, "totem.config_version", &config_version);
     if (result != CS_OK) {
-        cfs_critical("cmap_get totem.config_version failed %d", result);
+        cfs_critical("cmap_get totem.config_version failed %s", cs_strerror(result));
         // optional, do not throw error
     }
 
     char *clustername = NULL;
     result = cmap_get_string(handle, "totem.cluster_name", &clustername);
     if (result != CS_OK) {
-        cfs_critical("cmap_get totem.cluster_name failed %d", result);
+        cfs_critical("cmap_get totem.cluster_name failed %s", cs_strerror(result));
         return result;
     }
 
@@ -165,7 +166,7 @@ static gboolean service_cmap_finalize(cfs_service_t *service, gpointer context) 
     if (private->track_nodelist_handle) {
         result = cmap_track_delete(handle, private->track_nodelist_handle);
         if (result != CS_OK) {
-            cfs_critical("cmap_track_delete nodelist failed: %d", result);
+            cfs_critical("cmap_track_delete nodelist failed: %s", cs_strerror(result));
         }
         private->track_nodelist_handle = 0;
     }
@@ -173,7 +174,7 @@ static gboolean service_cmap_finalize(cfs_service_t *service, gpointer context) 
     if (private->track_version_handle) {
         result = cmap_track_delete(handle, private->track_version_handle);
         if (result != CS_OK) {
-            cfs_critical("cmap_track_delete version failed: %d", result);
+            cfs_critical("cmap_track_delete version failed: %s", cs_strerror(result));
         }
         private->track_version_handle = 0;
     }
@@ -181,7 +182,7 @@ static gboolean service_cmap_finalize(cfs_service_t *service, gpointer context) 
     result = cmap_finalize(handle);
     private->handle = 0;
     if (result != CS_OK) {
-        cfs_critical("cmap_finalize failed: %d", result);
+        cfs_critical("cmap_finalize failed: %s", cs_strerror(result));
         return FALSE;
     }
 
@@ -220,14 +221,14 @@ static int service_cmap_initialize(cfs_service_t *service, gpointer context) {
 
         result = cmap_initialize(&handle);
         if (result != CS_OK) {
-            cfs_critical("cmap_initialize failed: %d", result);
+            cfs_critical("cmap_initialize failed: %s", cs_strerror(result));
             private->handle = 0;
             return -1;
         }
 
         result = cmap_context_set(handle, private);
         if (result != CS_OK) {
-            cfs_critical("cmap_context_set failed: %d", result);
+            cfs_critical("cmap_context_set failed: %s", cs_strerror(result));
             cmap_finalize(handle);
             private->handle = 0;
             return -1;
@@ -250,18 +251,18 @@ static int service_cmap_initialize(cfs_service_t *service, gpointer context) {
     }
 
     if (result == CS_ERR_LIBRARY || result == CS_ERR_BAD_HANDLE) {
-        cfs_critical("cmap_track_changes failed: %d - closing handle", result);
+        cfs_critical("cmap_track_changes failed: %s - closing handle", cs_strerror(result));
         cmap_finalize(handle);
         private->handle = 0;
         return -1;
     } else if (result != CS_OK) {
-        cfs_critical("cmap_track_changes failed: %d - trying again", result);
+        cfs_critical("cmap_track_changes failed: %s - trying again", cs_strerror(result));
         return -1;
     }
 
     int cmap_fd = -1;
     if ((result = cmap_fd_get(handle, &cmap_fd)) != CS_OK) {
-        cfs_critical("confdb_fd_get failed %d - trying again", result);
+        cfs_critical("confdb_fd_get failed %s - trying again", cs_strerror(result));
         return -1;
     }
 

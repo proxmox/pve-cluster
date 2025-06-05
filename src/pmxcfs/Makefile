@@ -1,5 +1,5 @@
 
-DEPENDENCIES=libcpg libcmap libquorum libqb glib-2.0 fuse sqlite3 librrd
+DEPENDENCIES=libcpg libcmap libcorosync_common libquorum libqb glib-2.0 fuse sqlite3 librrd
 
 CC = gcc
 CFLAGS += -std=gnu99

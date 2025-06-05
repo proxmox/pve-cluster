@@ -205,7 +205,7 @@ loop:
     }
 
     if (result != CS_OK && (!retry || result != CS_ERR_TRY_AGAIN)) {
-        cfs_dom_critical(dfsm->log_domain, "cpg_send_message failed: %d", result);
+        cfs_dom_critical(dfsm->log_domain, "cpg_send_message failed: %s", cs_strerror(result));
     }
 
     return result;
@@ -287,7 +287,7 @@ cs_error_t dfsm_send_message_sync(
     g_mutex_unlock(&dfsm->sync_mutex);
 
     if (result != CS_OK) {
-        cfs_dom_critical(dfsm->log_domain, "cpg_send_message failed: %d", result);
+        cfs_dom_critical(dfsm->log_domain, "cpg_send_message failed: %s", cs_strerror(result));
 
         if (rp) {
             g_mutex_lock(&dfsm->sync_mutex);
@@ -567,7 +567,7 @@ static void dfsm_cpg_deliver_callback(
     dfsm_t *dfsm = NULL;
     result = cpg_context_get(handle, (gpointer *)&dfsm);
     if (result != CS_OK || !dfsm || dfsm->cpg_callbacks != &cpg_callbacks) {
-        cfs_critical("cpg_context_get error: %d (%p)", result, (void *)dfsm);
+        cfs_critical("cpg_context_get error: %s (%p)", cs_strerror(result), (void *)dfsm);
         return; /* we have no valid dfsm pointer, so we can just ignore this */
     }
     dfsm_mode_t mode = dfsm_get_mode(dfsm);
@@ -1079,7 +1079,7 @@ static void dfsm_cpg_confchg_callback(
     dfsm_t *dfsm = NULL;
     result = cpg_context_get(handle, (gpointer *)&dfsm);
     if (result != CS_OK || !dfsm || dfsm->cpg_callbacks != &cpg_callbacks) {
-        cfs_critical("cpg_context_get error: %d (%p)", result, (void *)dfsm);
+        cfs_critical("cpg_context_get error: %s (%p)", cs_strerror(result), (void *)dfsm);
         return; /* we have no valid dfsm pointer, so we can just ignore this */
     }
 
@@ -1328,7 +1328,7 @@ loop:
     }
 
     if (!(result == CS_OK || result == CS_ERR_TRY_AGAIN)) {
-        cfs_dom_critical(dfsm->log_domain, "cpg_dispatch failed: %d", result);
+        cfs_dom_critical(dfsm->log_domain, "cpg_dispatch failed: %s", cs_strerror(result));
     }
 
     return result;
@@ -1351,12 +1351,12 @@ cs_error_t dfsm_initialize(dfsm_t *dfsm, int *fd) {
 
     if (dfsm->cpg_handle == 0) {
         if ((result = cpg_initialize(&dfsm->cpg_handle, dfsm->cpg_callbacks)) != CS_OK) {
-            cfs_dom_critical(dfsm->log_domain, "cpg_initialize failed: %d", result);
+            cfs_dom_critical(dfsm->log_domain, "cpg_initialize failed: %s", cs_strerror(result));
             goto err_no_finalize;
         }
 
         if ((result = cpg_local_get(dfsm->cpg_handle, &dfsm->nodeid)) != CS_OK) {
-            cfs_dom_critical(dfsm->log_domain, "cpg_local_get failed: %d", result);
+            cfs_dom_critical(dfsm->log_domain, "cpg_local_get failed: %s", cs_strerror(result));
             goto err_finalize;
         }
 
@@ -1364,14 +1364,14 @@ cs_error_t dfsm_initialize(dfsm_t *dfsm, int *fd) {
 
         result = cpg_context_set(dfsm->cpg_handle, dfsm);
         if (result != CS_OK) {
-            cfs_dom_critical(dfsm->log_domain, "cpg_context_set failed: %d", result);
+            cfs_dom_critical(dfsm->log_domain, "cpg_context_set failed: %s", cs_strerror(result));
             goto err_finalize;
         }
     }
 
     result = cpg_fd_get(dfsm->cpg_handle, fd);
     if (result != CS_OK) {
-        cfs_dom_critical(dfsm->log_domain, "cpg_fd_get failed: %d", result);
+        cfs_dom_critical(dfsm->log_domain, "cpg_fd_get failed: %s", cs_strerror(result));
         goto err_finalize;
     }
 
@@ -1407,7 +1407,7 @@ loop:
     }
 
     if (result != CS_OK) {
-        cfs_dom_critical(dfsm->log_domain, "cpg_join failed: %d", result);
+        cfs_dom_critical(dfsm->log_domain, "cpg_join failed: %s", cs_strerror(result));
         return result;
     }
 
@@ -1437,7 +1437,7 @@ loop:
     }
 
     if (result != CS_OK) {
-        cfs_dom_critical(dfsm->log_domain, "cpg_leave failed: %d", result);
+        cfs_dom_critical(dfsm->log_domain, "cpg_leave failed: %s", cs_strerror(result));
         return result;
     }
 

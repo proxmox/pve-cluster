@@ -30,6 +30,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <corosync/corotypes.h>
 #include <corosync/quorum.h>
 
 #include "cfs-utils.h"
@@ -59,7 +60,7 @@ static void quorum_notification_fn(
 
     result = quorum_context_get(handle, (gconstpointer *)&private);
     if (result != CS_OK || !private) {
-        cfs_critical("quorum_context_get error: %d (%p)", result, (void *)private);
+        cfs_critical("quorum_context_get error: %s (%p)", cs_strerror(result), (void *)private);
         return;
     }
 
@@ -84,7 +85,7 @@ static gboolean service_quorum_finalize(cfs_service_t *service, gpointer context
     result = quorum_finalize(handle);
     private->handle = 0;
     if (result != CS_OK) {
-        cfs_critical("quorum_finalize failed: %d", result);
+        cfs_critical("quorum_finalize failed: %s", cs_strerror(result));
         return FALSE;
     }
 
@@ -106,7 +107,7 @@ static int service_quorum_initialize(cfs_service_t *service, gpointer context) {
 
         result = quorum_initialize(&handle, &quorum_callbacks, &quorum_type);
         if (result != CS_OK) {
-            cfs_critical("quorum_initialize failed: %d", result);
+            cfs_critical("quorum_initialize failed: %s", cs_strerror(result));
             goto err_reset_handle;
         }
 
@@ -117,7 +118,7 @@ static int service_quorum_initialize(cfs_service_t *service, gpointer context) {
 
         result = quorum_context_set(handle, private);
         if (result != CS_OK) {
-            cfs_critical("quorum_context_set failed: %d", result);
+            cfs_critical("quorum_context_set failed: %s", cs_strerror(result));
             goto err_finalize;
         }
 
@@ -126,16 +127,16 @@ static int service_quorum_initialize(cfs_service_t *service, gpointer context) {
 
     result = quorum_trackstart(handle, CS_TRACK_CHANGES);
     if (result == CS_ERR_LIBRARY || result == CS_ERR_BAD_HANDLE) {
-        cfs_critical("quorum_trackstart failed: %d - closing handle", result);
+        cfs_critical("quorum_trackstart failed: %s - closing handle", cs_strerror(result));
         goto err_finalize;
     } else if (result != CS_OK) {
-        cfs_critical("quorum_trackstart failed: %d - trying again", result);
+        cfs_critical("quorum_trackstart failed: %s - trying again", cs_strerror(result));
         return -1;
     }
 
     int quorum_fd = -1;
     if ((result = quorum_fd_get(handle, &quorum_fd)) != CS_OK) {
-        cfs_critical("quorum_fd_get failed %d - trying again", result);
+        cfs_critical("quorum_fd_get failed %s - trying again", cs_strerror(result));
         return -1;
     }
 
@@ -175,7 +176,7 @@ loop:
         return TRUE;
     }
 
-    cfs_critical("quorum_dispatch failed: %d", result);
+    cfs_critical("quorum_dispatch failed: %s", cs_strerror(result));
 
     cfs_set_quorate(0, FALSE);
     quorum_finalize(handle);
