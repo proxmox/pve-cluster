@@ -54,7 +54,7 @@ install: pmxcfs create_pmxcfs_db pmxcfs.8
 .PHONY: tidy format
 tidy: format
 format:
-	git ls-files ':/src/pmxcfs/*.[ch]' | xargs -n2 -P0 -- clang-format -i
+	git ls-files ':/src/pmxcfs/*.[ch]' | xargs -n2 -P0 -- clang-format-19 -i
 
 .PHONY: check
 check: check_memdb
