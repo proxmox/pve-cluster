@@ -55,8 +55,16 @@ static int cfs_plug_link_getattr(cfs_plug_t *plug, const char *path, struct stat
 
     cfs_debug("enter cfs_plug_link_getattr %s", path);
 
+    int ret = -EACCES;
+
+    cfs_plug_link_t *lnk = (cfs_plug_link_t *)plug;
+    if (!lnk->symlink) {
+        goto ret;
+    }
+
     memset(stbuf, 0, sizeof(struct stat));
 
+    stbuf->st_size = strlen(lnk->symlink);
     if (cfs_is_quorate()) {
         stbuf->st_mode = S_IFLNK | 0777;
     } else {
@@ -65,7 +73,10 @@ static int cfs_plug_link_getattr(cfs_plug_t *plug, const char *path, struct stat
 
     stbuf->st_nlink = 1;
 
-    return 0;
+    ret = 0;
+
+ret:
+    return ret;
 }
 
 static int cfs_plug_link_readlink(cfs_plug_t *plug, const char *path, char *buf, size_t max) {
