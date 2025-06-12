@@ -46,7 +46,27 @@ my $migration_format = {
         type => 'string',
         format => 'CIDR',
         format_description => 'CIDR',
-        description => "CIDR of the (sub) network that is used for migration and replication.",
+        description => "CIDR of the (sub) network that is used for migration. "
+	    . "Used as a fallback for replications jobs if the replication network setting is not set",
+    },
+};
+
+my $replication_format = {
+    type => {
+        default_key => 1,
+        type => 'string',
+        enum => ['secure', 'insecure'],
+        description => "Replication traffic is encrypted using an SSH tunnel by "
+            . "default. On secure, completely private networks this can be "
+            . "disabled to increase performance.",
+        default => 'secure',
+    },
+    network => {
+        optional => 1,
+        type => 'string',
+        format => 'CIDR',
+        format_description => 'CIDR',
+        description => "CIDR of the (sub) network that is used for replication jobs.",
     },
 };
 
@@ -352,6 +372,12 @@ my $datacenter_schema = {
             format => $migration_format,
             description => "For cluster wide migration settings.",
         },
+        replication => {
+            optional => 1,
+            type => 'string',
+            format => $replication_format,
+            description => "For cluster wide replication settings.",
+        },
         console => {
             optional => 1,
             type => 'string',
@@ -504,6 +530,10 @@ sub parse_datacenter_config {
 
     if (my $migration = $res->{migration}) {
         $res->{migration} = parse_property_string($migration_format, $migration);
+    }
+
+    if (my $replication = $res->{replication}) {
+        $res->{replication} = parse_property_string($replication_format, $replication);
     }
 
     if (my $next_id = $res->{'next-id'}) {
