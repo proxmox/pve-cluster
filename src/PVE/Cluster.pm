@@ -69,6 +69,7 @@ my $observed = {
     'ha/crm_commands' => 1,
     'ha/manager_status' => 1,
     'ha/resources.cfg' => 1,
+    'ha/rules.cfg' => 1,
     'ha/groups.cfg' => 1,
     'ha/fence.cfg' => 1,
     'status.cfg' => 1,

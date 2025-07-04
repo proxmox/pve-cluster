@@ -97,6 +97,7 @@ static memdb_change_t memdb_change_array[] = {
     {.path = "ha/crm_commands"},
     {.path = "ha/manager_status"},
     {.path = "ha/resources.cfg"},
+    {.path = "ha/rules.cfg"},
     {.path = "ha/groups.cfg"},
     {.path = "ha/fence.cfg"},
     {.path = "status.cfg"},
