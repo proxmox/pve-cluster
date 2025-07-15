@@ -1185,16 +1185,33 @@ static void create_rrd_file(const char *filename, int argcount, const char *rrdd
     }
 }
 
-static inline const char *rrd_skip_data(const char *data, int count) {
+static inline const char *rrd_skip_data(const char *data, int count, char separator) {
     int found = 0;
     while (*data && found < count) {
-        if (*data++ == ':') {
+        if (*data++ == separator) {
             found++;
         }
     }
     return data;
 }
 
+// The key and subdirectory format used up until PVE8 is 'pve{version}-{type}/{id}' with version
+// being 2 or 2.3 for VMs. Starting with PVE9 'pve-{type}-{version}/{id}'. Newer versions are only
+// allowed to append new columns to the data! Otherwise this would be a breaking change.
+//
+// Type can be: node, vm, storage
+//
+// Version is the version of PVE with which it was introduced, e.g.: 9.0, 9.2, 10.0.
+//
+// ID is the actual identifier of the item in question. E.g. node name, VMID or for storage it is
+// '{node}/{storage name}'
+//
+// This way, we can handle unknown new formats gracefully and cut the data at the expected
+// column for the currently understood format. Receiving older formats will still need special
+// checks to determine how much padding is needed.
+//
+// Should we ever plan to change existing columns, we need to introduce this as a breaking
+// change!
 static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
     g_return_if_fail(key != NULL);
     g_return_if_fail(data != NULL);
@@ -1210,12 +1227,13 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
 
     char *filename = NULL;
 
-    int skip = 0;
+    int skip = 0; // columns to skip at beginning. They contain non-archivable data, like uptime,
+                  // status, is guest a template and such.
+    int keep_columns = 0; // how many columns do we want to keep (after initial skip) in case we get
+                          // more columns than needed from a newer format
 
-    if (strncmp(key, "pve2-node/", 10) == 0) {
-        const char *node = key + 10;
-
-        skip = 2;
+    if (strncmp(key, "pve2-node/", 10) == 0 || strncmp(key, "pve-node-", 9) == 0) {
+        const char *node = rrd_skip_data(key, 1, '/');
 
         if (strchr(node, '/') != NULL) {
             goto keyerror;
@@ -1225,19 +1243,23 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
             goto keyerror;
         }
 
-        filename = g_strdup_printf(RRDDIR "/%s", key);
+        skip = 2; // first two columns are live data that isn't archived
+
+        if (strncmp(key, "pve-node-", 9) == 0) {
+            keep_columns = 12; // pve2-node format uses 12 columns
+        }
+
+        filename = g_strdup_printf(RRDDIR "/pve2-node/%s", node);
 
         if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-
             mkdir(RRDDIR "/pve2-node", 0755);
             int argcount = sizeof(rrd_def_node) / sizeof(void *) - 1;
             create_rrd_file(filename, argcount, rrd_def_node);
         }
 
-    } else if (strncmp(key, "pve2.3-vm/", 10) == 0) {
-        const char *vmid = key + 10;
+    } else if (strncmp(key, "pve2.3-vm/", 10) == 0 || strncmp(key, "pve-vm-", 7) == 0) {
 
-        skip = 4;
+        const char *vmid = rrd_skip_data(key, 1, '/');
 
         if (strchr(vmid, '/') != NULL) {
             goto keyerror;
@@ -1247,28 +1269,28 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
             goto keyerror;
         }
 
+        skip = 4; // first 4 columns are live data that isn't archived
+
+        if (strncmp(key, "pve-vm-", 7) == 0) {
+            keep_columns = 10; // pve2.3-vm format uses 10 data columns
+        }
+
         filename = g_strdup_printf(RRDDIR "/%s/%s", "pve2-vm", vmid);
 
         if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-
             mkdir(RRDDIR "/pve2-vm", 0755);
             int argcount = sizeof(rrd_def_vm) / sizeof(void *) - 1;
             create_rrd_file(filename, argcount, rrd_def_vm);
         }
 
-    } else if (strncmp(key, "pve2-storage/", 13) == 0) {
-        const char *node = key + 13;
+    } else if (strncmp(key, "pve2-storage/", 13) == 0 || strncmp(key, "pve-storage-", 12) == 0) {
+        const char *node = rrd_skip_data(key, 1, '/'); // will contain {node}/{storage}
 
-        const char *storage = node;
-        while (*storage && *storage != '/') {
-            storage++;
-        }
+        const char *storage = rrd_skip_data(node, 1, '/');
 
-        if (*storage != '/' || ((storage - node) < 1)) {
+        if ((storage - node) < 1) {
             goto keyerror;
         }
-
-        storage++;
 
         if (strchr(storage, '/') != NULL) {
             goto keyerror;
@@ -1278,12 +1300,10 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
             goto keyerror;
         }
 
-        filename = g_strdup_printf(RRDDIR "/%s", key);
+        filename = g_strdup_printf(RRDDIR "/pve2-storage/%s", node);
 
         if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-
             mkdir(RRDDIR "/pve2-storage", 0755);
-
             char *dir = g_path_get_dirname(filename);
             mkdir(dir, 0755);
             g_free(dir);
@@ -1296,7 +1316,14 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
         goto keyerror;
     }
 
-    const char *dp = skip ? rrd_skip_data(data, skip) : data;
+    const char *dp = skip ? rrd_skip_data(data, skip, ':') : data;
+
+    if (keep_columns) {
+        keep_columns++; // We specify the number of columns we want earlier, but we also have the
+                        // always present timestamp column, so we need to skip one more column
+        char *cut = (char *)rrd_skip_data(dp, keep_columns, ':');
+        *(cut - 1) = 0; // terminate string by replacing colon from field separator with zero.
+    }
 
     const char *update_args[] = {dp, NULL};
 
