@@ -1234,16 +1234,10 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
             create_rrd_file(filename, argcount, rrd_def_node);
         }
 
-    } else if ((strncmp(key, "pve2-vm/", 8) == 0) || (strncmp(key, "pve2.3-vm/", 10) == 0)) {
-        const char *vmid;
+    } else if (strncmp(key, "pve2.3-vm/", 10) == 0) {
+        const char *vmid = key + 10;
 
-        if (strncmp(key, "pve2-vm/", 8) == 0) {
-            vmid = key + 8;
-            skip = 2;
-        } else {
-            vmid = key + 10;
-            skip = 4;
-        }
+        skip = 4;
 
         if (strchr(vmid, '/') != NULL) {
             goto keyerror;
