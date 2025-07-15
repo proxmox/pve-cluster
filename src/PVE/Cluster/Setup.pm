@@ -604,8 +604,7 @@ sub gen_pve_node_files {
 
     gen_auth_key();
 
-    # make sure we have a (cluster wide) secret
-    # for CSRFR prevention
+    # make sure we have a (cluster-wide) secret for CSRF prevention
     gen_pve_www_key();
 
     # make sure we have a (per node) private key
