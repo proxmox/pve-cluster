@@ -1,3 +1,11 @@
+pve-cluster (8.1.2) bookworm; urgency=medium
+
+  * status: handle new metrics update data to avoid issues on a upgrade of a
+    cluster to Proxmox VE 9, where some nodes will use a newer version that
+    might broadcast updated RRD data, and others still run on PVE 8.4.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 16 Jul 2025 20:44:28 +0200
+
 pve-cluster (8.1.1) bookworm; urgency=medium
 
   * pvecm: increase certificate generation timeout to cope with slow/old
