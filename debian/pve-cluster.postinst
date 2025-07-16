@@ -14,11 +14,13 @@ remove_fabrics_directory() {
 case "$1" in
   configure)
     # TODO: remove with PVE 10+
-    if dpkg --compare-versions "$2" 'lt' '9.0.0'; then
+    if dpkg --compare-versions "$2" 'lt' '9.0.1'; then
       remove_fabrics_directory
     fi
   ;;
 esac
+
+#DEBHELPER#
 
 exit 0
 
