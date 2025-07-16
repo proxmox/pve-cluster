@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -e
+
+remove_fabrics_directory() {
+  LEGACY_FABRICS_DIRECTORY="/etc/pve/sdn/fabrics/"
+
+  if test -d "$LEGACY_FABRICS_DIRECTORY"; then
+    echo "Removing legacy sdn fabrics directory ..."
+    rm -d $LEGACY_FABRICS_DIRECTORY || echo "Failed to remove legacy sdn folder ${LEGACY_FABRICS_DIRECTORY}!"
+  fi
+}
+
+case "$1" in
+  configure)
+    # TODO: remove with PVE 10+
+    if dpkg --compare-versions "$2" 'lt' '9.0.0'; then
+      remove_fabrics_directory
+    fi
+  ;;
+esac
+
+exit 0
+
