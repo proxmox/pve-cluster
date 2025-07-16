@@ -1,3 +1,23 @@
+pve-cluster (9.0.1) trixie; urgency=medium
+
+  * fix #6434: pmxcfs: add context to errors stemming from the connection to
+    corosync having failed.
+
+  * pmxcfs: pretty print corosync error codes
+
+  * fix #6445: correctly set size when stat-ing symlinks, as the size of a
+    symlink should be the length of its target (name, not content).
+
+  * cfs: add 'fabrics.cfg' and 'ha/rules.cfg' to observed files.
+
+  * datacenter config: add schema for cluster-wide replication settings.
+
+  * cfs status: drop old pve2-vm rrd schema support.
+
+  * cfs status: handle new metrics update data.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 17 Jul 2025 00:27:03 +0200
+
 pve-cluster (9.0.0) trixie; urgency=medium
 
   * re-build for Debian 13 "Trixie" based Proxmox releases.
