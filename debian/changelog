@@ -1,3 +1,10 @@
+pve-cluster (9.0.2) trixie; urgency=medium
+
+  * datacenter config: correctly serialize the replication property when
+    writing the config.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 18 Jul 2025 14:18:22 +0200
+
 pve-cluster (9.0.1) trixie; urgency=medium
 
   * fix #6434: pmxcfs: add context to errors stemming from the connection to
