@@ -615,6 +615,10 @@ sub write_datacenter_config {
         $cfg->{migration} = PVE::JSONSchema::print_property_string($migration, $migration_format);
     }
 
+    if (ref(my $replication = $cfg->{replication})) {
+        $cfg->{replication} = PVE::JSONSchema::print_property_string($replication, $replication_format);
+    }
+
     if (defined(my $next_id = $cfg->{'next-id'})) {
         $next_id = parse_property_string($next_id_format, $next_id) if !ref($next_id);
 
