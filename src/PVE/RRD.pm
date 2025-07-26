@@ -14,13 +14,29 @@ sub create_rrd_data {
 
     my $rrd = "$rrddir/$rrdname";
 
-    my $setup = {
-        hour => [60, 70],
-        day => [60 * 30, 70],
-        week => [60 * 180, 70],
-        month => [60 * 720, 70],
-        year => [60 * 10080, 70],
+    # Format: [ resolution, number of data points/count]
+    # Old ranges, pre PVE9
+    my $setup_pve2 = {
+        hour => [60, 60], # 1 min resolution, one hour
+        day => [60 * 30, 70], # 30 min resolution, one day
+        week => [60 * 180, 70], # 3 hour resolution, one week
+        month => [60 * 720, 70], # 12 hour resolution, 1 month
+        year => [60 * 10080, 70], # 7 day resolution, 1 year
     };
+
+    my $setup = {
+        hour => [60, 60], # 1 min resolution
+        day => [60, 1440], # 1 min resolution, full day
+        week => [60 * 30, 336], # 30 min resolution, 7 days
+        month => [3600 * 6, 121], # 6 hour resolution, 30 days, need one more count. Otherwise RRD gets wrong $step
+        year => [3600 * 6, 1140], # 6 hour resolution, 360 days
+        decade => [86400 * 7, 570], # 1 week resolution, 10 years
+    };
+
+    if ($rrdname =~ /^pve2/) {
+        $setup = $setup_pve2;
+        $timeframe = "year" if $timeframe eq "decade"; # we only store up to one year in the old format
+    }
 
     my ($reso, $count) = @{ $setup->{$timeframe} };
     my $ctime = $reso * int(time() / $reso);
@@ -82,13 +98,29 @@ sub create_rrd_graph {
 
     my $filename = "${rrd}_${ds_txt}.png";
 
-    my $setup = {
-        hour => [60, 60],
-        day => [60 * 30, 70],
-        week => [60 * 180, 70],
-        month => [60 * 720, 70],
-        year => [60 * 10080, 70],
+    # Format: [ resolution, number of data points/count]
+    # Old ranges, pre PVE9
+    my $setup_pve2 = {
+        hour => [60, 60], # 1 min resolution, one hour
+        day => [60 * 30, 70], # 30 min resolution, one day
+        week => [60 * 180, 70], # 3 hour resolution, one week
+        month => [60 * 720, 70], # 12 hour resolution, 1 month
+        year => [60 * 10080, 70], # 7 day resolution, 1 year
     };
+
+    my $setup = {
+        hour => [60, 60], # 1 min resolution
+        day => [60, 1440], # 1 min resolution, full day
+        week => [60 * 30, 336], # 30 min resolution, 7 days
+        month => [3600 * 6, 121], # 6 hour resolution, 30 days, need one more count. Otherwise RRD gets wrong $step
+        year => [3600 * 6, 1140], # 6 hour resolution, 360 days
+        decade => [86400 * 7, 570], # 1 week resolution, 10 years
+    };
+
+    if ($rrdname =~ /^pve2/) {
+        $setup = $setup_pve2;
+        $timeframe = "year" if $timeframe eq "decade"; # we only store up to one year in the old format
+    }
 
     my ($reso, $count) = @{ $setup->{$timeframe} };
 
