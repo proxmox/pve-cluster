@@ -1381,7 +1381,11 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
                 create_rrd_file(filename, argcount, rrd_def_node);
             } else {
                 // no dir exists yet, use new pve-node-9.0
-                mkdir(RRDDIR "/pve-node-9.0", 0755);
+                const char *path = RRDDIR "/pve-node-9.0";
+
+                if (!mkdir(path, 0755)) {
+                    cfs_message("could not create directory %s: %s", path, strerror(errno));
+                }
 
                 int argcount = sizeof(rrd_def_node_pve9_0) / sizeof(void *) - 1;
                 create_rrd_file(filename, argcount, rrd_def_node_pve9_0);
@@ -1449,7 +1453,10 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
                 create_rrd_file(filename, argcount, rrd_def_vm);
             } else {
                 // no dir exists yet, use new pve-vm-9.0
-                mkdir(RRDDIR "/pve-vm-9.0", 0755);
+                const char *path = RRDDIR "/pve-vm-9.0";
+                if (!mkdir(path, 0755)) {
+                    cfs_message("could not create directory %s: %s", path, strerror(errno));
+                };
 
                 int argcount = sizeof(rrd_def_vm_pve9_0) / sizeof(void *) - 1;
                 create_rrd_file(filename, argcount, rrd_def_vm_pve9_0);
@@ -1517,7 +1524,10 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
                 create_rrd_file(filename, argcount, rrd_def_storage);
             } else {
                 // no dir exists yet, use new pve-storage-9.0
-                mkdir(RRDDIR "/pve-storage-9.0", 0755);
+                const char *path = RRDDIR "/pve-storage-9.0";
+                if (!mkdir(path, 0755)) {
+                    cfs_message("could not create directory %s: %s", path, strerror(errno));
+                }
 
                 int argcount = sizeof(rrd_def_storage_pve9_0) / sizeof(void *) - 1;
                 create_rrd_file(filename, argcount, rrd_def_storage_pve9_0);
