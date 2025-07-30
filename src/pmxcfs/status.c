@@ -1331,8 +1331,8 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
 
     char *filename = NULL;
 
-    int skip = 0; // columns to skip at beginning. They contain non-archivable data, like uptime,
-                  // status, is guest a template and such.
+    int skip = 0;    // columns to skip at beginning. They contain non-archivable data, like uptime,
+                     // status, is guest a template and such.
     int padding = 0; // how many columns need to be added with "U" if we get an old format that is
                      // missing columns at the end.
     int keep_columns = 0; // how many columns do we want to keep (after initial skip) in case we get
