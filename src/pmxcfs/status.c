@@ -1127,6 +1127,9 @@ static const char *rrd_def_node[] = {
     NULL,
 };
 
+// This *must* be the number of columns as defined above.
+static const int rrd_def_node_columns = 12;
+
 static const char *rrd_def_node_pve9_0[] = {
     "DS:loadavg:GAUGE:120:0:U",
     "DS:maxcpu:GAUGE:120:0:U",
@@ -1160,6 +1163,9 @@ static const char *rrd_def_node_pve9_0[] = {
     NULL,
 };
 
+// This *must* be the number of columns as defined above.
+static const int rrd_def_node_pve9_0_columns = 19;
+
 static const char *rrd_def_vm[] = {
     "DS:maxcpu:GAUGE:120:0:U",
     "DS:cpu:GAUGE:120:0:U",
@@ -1185,6 +1191,10 @@ static const char *rrd_def_vm[] = {
     "RRA:MAX:0.5:10080:70", // 7 day max - ony year
     NULL,
 };
+
+// This *must* be the number of columns as defined above.
+static const int rrd_def_vm_columns = 10;
+
 static const char *rrd_def_vm_pve9_0[] = {
     "DS:maxcpu:GAUGE:120:0:U",
     "DS:cpu:GAUGE:120:0:U",
@@ -1215,6 +1225,9 @@ static const char *rrd_def_vm_pve9_0[] = {
     "RRA:MAX:0.5:10080:570", // 1 week * 570 => ~10 years
     NULL,
 };
+
+// This *must* be the number of columns as defined above.
+static const int rrd_def_vm_pve9_0_columns = 17;
 
 static const char *rrd_def_storage[] = {
     "DS:total:GAUGE:120:0:U",
@@ -1249,6 +1262,9 @@ static const char *rrd_def_storage_pve9_0[] = {
     "RRA:MAX:0.5:10080:570", // 1 week * 570 => ~10 years
     NULL,
 };
+
+// This *must* be the number of columns as defined above.
+static const int rrd_def_storage_pve9_0_columns = 2;
 
 #define RRDDIR "/var/lib/rrdcached/db"
 
@@ -1377,13 +1393,13 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
         skip = 2; // first two columns are live data that isn't archived
 
         if (strncmp(key, "pve2-node/", 10) == 0 && !use_pve2_file) {
-            padding = 7; // pve-node-9.0 has 7 more columns than pve2-node
+            padding = rrd_def_node_pve9_0_columns - rrd_def_node_columns;
         } else if (strncmp(key, "pve-node-", 9) == 0 && use_pve2_file) {
-            keep_columns = 12; // pve2-node format uses 12 columns
+            keep_columns = rrd_def_node_columns;
         } else if (strncmp(key, "pve-node-9.0/", 13) != 0) {
             // we received an unknown format, expectation is it is newer and has more columns
             // than we can currently handle
-            keep_columns = 19; // pve-node-9.0 format uses 19 columns
+            keep_columns = rrd_def_node_pve9_0_columns;
         }
 
         g_free(filename_pve2);
@@ -1445,13 +1461,13 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
         skip = 4; // first 4 columns are live data that isn't archived
 
         if (strncmp(key, "pve2.3-vm/", 10) == 0 && !use_pve2_file) {
-            padding = 7; // pve-vm-9.0 has 7 more columns than pve2.3-vm
+            padding = rrd_def_vm_pve9_0_columns - rrd_def_vm_columns;
         } else if (strncmp(key, "pve-vm-", 7) == 0 && use_pve2_file) {
-            keep_columns = 10; // pve2.3-vm format uses 10 columns
+            keep_columns = rrd_def_vm_columns;
         } else if (strncmp(key, "pve-vm-9.0/", 11) != 0) {
             // we received an unknown format, expectation is it is newer and has more columns
             // than we can currently handle
-            keep_columns = 17; // pve-vm-9.0 format uses 19 columns
+            keep_columns = rrd_def_vm_pve9_0_columns;
         }
 
         g_free(filename_pve2);
@@ -1514,7 +1530,7 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
         if (strncmp(key, "pve-storage-", 12) == 0 && strncmp(key, "pve-storage-9.0/", 16) != 0) {
             // we received an unknown format, expectation is it is newer and has more columns
             // than we can currently handle
-            keep_columns = 2; // pve-storage-9.0 format uses 2 columns
+            keep_columns = rrd_def_storage_pve9_0_columns;
         }
 
         g_free(filename_pve2);
