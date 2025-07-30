@@ -1562,9 +1562,7 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
     }
 
 ret:
-    if (filename) {
-        g_free(filename);
-    }
+    g_free(filename);
 
     return;
 
