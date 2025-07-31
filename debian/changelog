@@ -1,3 +1,22 @@
+pve-cluster (9.0.3) trixie; urgency=medium
+
+  * status: introduce new pve-{type}- rrd and metric format for PVE 9 to
+    simpler allow extending this in the future, if needed.
+
+  * add Pressure Stall Information (PSI) of memory, CPU and IO for nodes and
+    virtual guest.
+
+  * add ZFS Arc size and 'memavailable' columns for nodes.
+
+  * add 'memhost' for total memory consumption of virtual machines from POV of
+    the host.
+
+  * increase aggregate windows to match how we do it for the Proxmox Backup
+    Server, providing more granularity over time, e.g. 1 point/minute for a
+    whole day, 1 point/30min for a month and 1 point/6h for a year.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 31 Jul 2025 03:51:52 +0200
+
 pve-cluster (9.0.2) trixie; urgency=medium
 
   * datacenter config: correctly serialize the replication property when
