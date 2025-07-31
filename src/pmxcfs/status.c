@@ -1145,6 +1145,7 @@ static const char *rrd_def_node_pve9_0[] = {
     "DS:netout:DERIVE:120:0:U",
     "DS:memavailable:GAUGE:120:0:U",
     "DS:arcsize:GAUGE:120:0:U",
+    // if we every switch to our RRD format lets use sane names (e.g. psi_cpu_{some,full})
     "DS:pressurecpusome:GAUGE:120:0:U",
     "DS:pressureiosome:GAUGE:120:0:U",
     "DS:pressureiofull:GAUGE:120:0:U",
@@ -1207,6 +1208,7 @@ static const char *rrd_def_vm_pve9_0[] = {
     "DS:diskread:DERIVE:120:0:U",
     "DS:diskwrite:DERIVE:120:0:U",
     "DS:memhost:GAUGE:120:0:U",
+    // if we every switch to our RRD format lets use sane names (e.g. psi_cpu_{some,full})
     "DS:pressurecpusome:GAUGE:120:0:U",
     "DS:pressurecpufull:GAUGE:120:0:U",
     "DS:pressureiosome:GAUGE:120:0:U",
