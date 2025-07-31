@@ -1143,7 +1143,7 @@ static const char *rrd_def_node_pve9_0[] = {
     "DS:rootused:GAUGE:120:0:U",
     "DS:netin:DERIVE:120:0:U",
     "DS:netout:DERIVE:120:0:U",
-    "DS:memfree:GAUGE:120:0:U",
+    "DS:memavailable:GAUGE:120:0:U",
     "DS:arcsize:GAUGE:120:0:U",
     "DS:pressurecpusome:GAUGE:120:0:U",
     "DS:pressureiosome:GAUGE:120:0:U",
