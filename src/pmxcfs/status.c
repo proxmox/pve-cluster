@@ -1369,7 +1369,7 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
             use_pve2_file = 1;
 
             g_free(filename);
-            filename = g_strdup_printf("%s", filename_pve2);
+            filename = g_strdup(filename_pve2);
         } else {
             // neither file exists, check for directories to decide and create file
 
@@ -1381,7 +1381,7 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
                 use_pve2_file = 1;
 
                 g_free(filename);
-                filename = g_strdup_printf("%s", filename_pve2);
+                filename = g_strdup(filename_pve2);
 
                 char *dir = g_path_get_dirname(filename);
                 checked_mkdir(dir, 0755);
@@ -1441,7 +1441,7 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
             // old file exists, use it
             use_pve2_file = 1;
             g_free(filename);
-            filename = g_strdup_printf("%s", filename_pve2);
+            filename = g_strdup(filename_pve2);
         } else {
             // neither file exists, check for directories to decide and create file
 
@@ -1453,7 +1453,7 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
                 use_pve2_file = 1;
 
                 g_free(filename);
-                filename = g_strdup_printf("%s", filename_pve2);
+                filename = g_strdup(filename_pve2);
 
                 int argcount = sizeof(rrd_def_vm) / sizeof(void *) - 1;
                 create_rrd_file(filename, argcount, rrd_def_vm);
@@ -1507,7 +1507,7 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
         } else if (g_file_test(filename_pve2, G_FILE_TEST_EXISTS)) {
             // old file exists, use it
             g_free(filename);
-            filename = g_strdup_printf("%s", filename_pve2);
+            filename = g_strdup(filename_pve2);
         } else {
             // neither file exists, check for directories to decide and create file
 
@@ -1520,7 +1520,7 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
                 create_rrd_file(filename, argcount, rrd_def_storage_pve9_0);
             } else if (g_file_test(RRDDIR "/pve2-storage", G_FILE_TEST_IS_DIR)) {
                 g_free(filename);
-                filename = g_strdup_printf("%s", filename_pve2);
+                filename = g_strdup(filename_pve2);
 
                 char *dir = g_path_get_dirname(filename);
                 checked_mkdir(dir, 0755);
