@@ -1372,14 +1372,12 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
             filename = g_strdup_printf("%s", filename_pve2);
         } else {
             // neither file exists, check for directories to decide and create file
-            char *dir_pve2 = g_strdup_printf(RRDDIR "/pve2-node");
-            char *dir_pve90 = g_strdup_printf(RRDDIR "/pve-node-9.0");
 
-            if (g_file_test(dir_pve90, G_FILE_TEST_IS_DIR)) {
+            if (g_file_test(RRDDIR "/pve-node-9.0", G_FILE_TEST_IS_DIR)) {
 
                 int argcount = sizeof(rrd_def_node_pve9_0) / sizeof(void *) - 1;
                 create_rrd_file(filename, argcount, rrd_def_node_pve9_0);
-            } else if (g_file_test(dir_pve2, G_FILE_TEST_IS_DIR)) {
+            } else if (g_file_test(RRDDIR "/pve2-node", G_FILE_TEST_IS_DIR)) {
                 use_pve2_file = 1;
 
                 g_free(filename);
@@ -1402,8 +1400,6 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
                 int argcount = sizeof(rrd_def_node_pve9_0) / sizeof(void *) - 1;
                 create_rrd_file(filename, argcount, rrd_def_node_pve9_0);
             }
-            g_free(dir_pve2);
-            g_free(dir_pve90);
         }
 
         skip = 2; // first two columns are live data that isn't archived
@@ -1448,14 +1444,12 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
             filename = g_strdup_printf("%s", filename_pve2);
         } else {
             // neither file exists, check for directories to decide and create file
-            char *dir_pve2 = g_strdup_printf(RRDDIR "/pve2-vm");
-            char *dir_pve90 = g_strdup_printf(RRDDIR "/pve-vm-9.0");
 
-            if (g_file_test(dir_pve90, G_FILE_TEST_IS_DIR)) {
+            if (g_file_test(RRDDIR "/pve-vm-9.0", G_FILE_TEST_IS_DIR)) {
 
                 int argcount = sizeof(rrd_def_vm_pve9_0) / sizeof(void *) - 1;
                 create_rrd_file(filename, argcount, rrd_def_vm_pve9_0);
-            } else if (g_file_test(dir_pve2, G_FILE_TEST_IS_DIR)) {
+            } else if (g_file_test(RRDDIR "/pve2-vm", G_FILE_TEST_IS_DIR)) {
                 use_pve2_file = 1;
 
                 g_free(filename);
@@ -1470,8 +1464,6 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
                 int argcount = sizeof(rrd_def_vm_pve9_0) / sizeof(void *) - 1;
                 create_rrd_file(filename, argcount, rrd_def_vm_pve9_0);
             }
-            g_free(dir_pve2);
-            g_free(dir_pve90);
         }
 
         skip = 4; // first 4 columns are live data that isn't archived
@@ -1518,17 +1510,15 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
             filename = g_strdup_printf("%s", filename_pve2);
         } else {
             // neither file exists, check for directories to decide and create file
-            char *dir_pve2 = g_strdup_printf(RRDDIR "/pve2-storage");
-            char *dir_pve90 = g_strdup_printf(RRDDIR "/pve-storage-9.0");
 
-            if (g_file_test(dir_pve90, G_FILE_TEST_IS_DIR)) {
+            if (g_file_test(RRDDIR "/pve-storage-9.0", G_FILE_TEST_IS_DIR)) {
                 char *dir = g_path_get_dirname(filename);
                 checked_mkdir(dir, 0755);
                 g_free(dir);
 
                 int argcount = sizeof(rrd_def_storage_pve9_0) / sizeof(void *) - 1;
                 create_rrd_file(filename, argcount, rrd_def_storage_pve9_0);
-            } else if (g_file_test(dir_pve2, G_FILE_TEST_IS_DIR)) {
+            } else if (g_file_test(RRDDIR "/pve2-storage", G_FILE_TEST_IS_DIR)) {
                 g_free(filename);
                 filename = g_strdup_printf("%s", filename_pve2);
 
@@ -1549,8 +1539,6 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
                 int argcount = sizeof(rrd_def_storage_pve9_0) / sizeof(void *) - 1;
                 create_rrd_file(filename, argcount, rrd_def_storage_pve9_0);
             }
-            g_free(dir_pve2);
-            g_free(dir_pve90);
         }
 
         // actual data columns didn't change between pve2-storage and pve-storage-9.0
