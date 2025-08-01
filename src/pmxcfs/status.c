@@ -1367,6 +1367,8 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
         } else if (g_file_test(filename_pve2, G_FILE_TEST_EXISTS)) {
             // old file exists, use it
             use_pve2_file = 1;
+
+            g_free(filename);
             filename = g_strdup_printf("%s", filename_pve2);
         } else {
             // neither file exists, check for directories to decide and create file
