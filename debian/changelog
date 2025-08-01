@@ -1,3 +1,12 @@
+pve-cluster (9.0.5) trixie; urgency=medium
+
+  * pmxcfs: remove legacy ipam db and mac cache files.
+
+  * pmxcfs: various internal code clean-ups and fixing some smaller memory
+    leaks.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 01 Aug 2025 14:58:03 +0200
+
 pve-cluster (9.0.4) trixie; urgency=medium
 
   * pmxcfs: status: fix create sub directories in /var/lib/rrdcached/db when
