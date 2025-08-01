@@ -1429,7 +1429,7 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
         }
 
         filename = g_strdup_printf(RRDDIR "/pve-vm-9.0/%s", vmid);
-        char *filename_pve2 = g_strdup_printf(RRDDIR "/%s/%s", "pve2-vm", vmid);
+        char *filename_pve2 = g_strdup_printf(RRDDIR "/pve2-vm/%s", vmid);
 
         int use_pve2_file = 0;
 
@@ -1498,7 +1498,7 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
         }
 
         filename = g_strdup_printf(RRDDIR "/pve-storage-9.0/%s", node);
-        char *filename_pve2 = g_strdup_printf(RRDDIR "/%s/%s", "pve2-storage", node);
+        char *filename_pve2 = g_strdup_printf(RRDDIR "/pve2-storage/%s", node);
 
         // check existing rrd files and directories
         if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
