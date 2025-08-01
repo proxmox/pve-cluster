@@ -1301,6 +1301,12 @@ static inline const char *rrd_skip_data(const char *data, int count, char separa
     return data;
 }
 
+static inline void checked_mkdir(char* path, int mode) {
+    if (!mkdir(path, mode) && errno != EEXIST) {
+        cfs_message("could not create directory %s: %s", path, strerror(errno));
+    };
+}
+
 // The key and subdirectory format used up until PVE8 is 'pve{version}-{type}/{id}' with version
 // being 2 or 2.3 for VMs. Starting with PVE9 'pve-{type}-{version}/{id}'. Newer versions are only
 // allowed to append new columns to the data! Otherwise this would be a breaking change.
@@ -1379,15 +1385,19 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
                 g_free(filename);
                 filename = g_strdup_printf("%s", filename_pve2);
 
+                char *dir = g_path_get_dirname(filename);
+                checked_mkdir(dir, 0755);
+                g_free(dir);
+
                 int argcount = sizeof(rrd_def_node) / sizeof(void *) - 1;
                 create_rrd_file(filename, argcount, rrd_def_node);
             } else {
                 // no dir exists yet, use new pve-node-9.0
-                const char *path = RRDDIR "/pve-node-9.0";
+                checked_mkdir(RRDDIR "/pve-node-9.0", 0755);
 
-                if (!mkdir(path, 0755)) {
-                    cfs_message("could not create directory %s: %s", path, strerror(errno));
-                }
+                char *dir = g_path_get_dirname(filename);
+                checked_mkdir(dir, 0755);
+                g_free(dir);
 
                 int argcount = sizeof(rrd_def_node_pve9_0) / sizeof(void *) - 1;
                 create_rrd_file(filename, argcount, rrd_def_node_pve9_0);
@@ -1455,10 +1465,7 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
                 create_rrd_file(filename, argcount, rrd_def_vm);
             } else {
                 // no dir exists yet, use new pve-vm-9.0
-                const char *path = RRDDIR "/pve-vm-9.0";
-                if (!mkdir(path, 0755)) {
-                    cfs_message("could not create directory %s: %s", path, strerror(errno));
-                };
+                checked_mkdir(RRDDIR "/pve-vm-9.0", 0755);
 
                 int argcount = sizeof(rrd_def_vm_pve9_0) / sizeof(void *) - 1;
                 create_rrd_file(filename, argcount, rrd_def_vm_pve9_0);
@@ -1515,6 +1522,9 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
             char *dir_pve90 = g_strdup_printf(RRDDIR "/pve-storage-9.0");
 
             if (g_file_test(dir_pve90, G_FILE_TEST_IS_DIR)) {
+                char *dir = g_path_get_dirname(filename);
+                checked_mkdir(dir, 0755);
+                g_free(dir);
 
                 int argcount = sizeof(rrd_def_storage_pve9_0) / sizeof(void *) - 1;
                 create_rrd_file(filename, argcount, rrd_def_storage_pve9_0);
@@ -1522,14 +1532,19 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
                 g_free(filename);
                 filename = g_strdup_printf("%s", filename_pve2);
 
+                char *dir = g_path_get_dirname(filename);
+                checked_mkdir(dir, 0755);
+                g_free(dir);
+
                 int argcount = sizeof(rrd_def_storage) / sizeof(void *) - 1;
                 create_rrd_file(filename, argcount, rrd_def_storage);
             } else {
                 // no dir exists yet, use new pve-storage-9.0
-                const char *path = RRDDIR "/pve-storage-9.0";
-                if (!mkdir(path, 0755)) {
-                    cfs_message("could not create directory %s: %s", path, strerror(errno));
-                }
+                checked_mkdir(RRDDIR "/pve-storage-9.0", 0755);
+
+                char *dir = g_path_get_dirname(filename);
+                checked_mkdir(dir, 0755);
+                g_free(dir);
 
                 int argcount = sizeof(rrd_def_storage_pve9_0) / sizeof(void *) - 1;
                 create_rrd_file(filename, argcount, rrd_def_storage_pve9_0);
