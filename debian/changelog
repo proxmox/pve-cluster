@@ -1,3 +1,10 @@
+pve-cluster (9.0.4) trixie; urgency=medium
+
+  * pmxcfs: status: fix create sub directories in /var/lib/rrdcached/db when
+    needed.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 01 Aug 2025 10:49:28 +0200
+
 pve-cluster (9.0.3) trixie; urgency=medium
 
   * status: introduce new pve-{type}- rrd and metric format for PVE 9 to
