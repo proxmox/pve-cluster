@@ -1,3 +1,10 @@
+pve-cluster (9.0.6) trixie; urgency=medium
+
+  * rrd: cope with only partially renamed memavailable field when old data was
+    migrated.
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 04 Aug 2025 12:38:19 +0200
+
 pve-cluster (9.0.5) trixie; urgency=medium
 
   * pmxcfs: remove legacy ipam db and mac cache files.
