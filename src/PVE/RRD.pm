@@ -37,6 +37,7 @@ sub create_rrd_data {
         $setup = $setup_pve2;
         $timeframe = "year" if $timeframe eq "decade"; # we only store up to one year in the old format
     }
+    my $is_node = !!($rrdname =~ /^pve-node/);
 
     my ($reso, $count) = @{ $setup->{$timeframe} };
     my $ctime = $reso * int(time() / $reso);
@@ -70,6 +71,8 @@ sub create_rrd_data {
             my $name = $names->[$i];
             if (defined(my $val = $line->[$i])) {
                 $entry->{$name} = $val;
+                $entry->{memavailable} = $val
+                    if $is_node && $name eq 'memfree' && !exists($entry->{memavailable});
             } else {
                 # leave empty fields undefined
                 # maybe make this configurable?
