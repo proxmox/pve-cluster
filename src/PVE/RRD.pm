@@ -121,6 +121,12 @@ sub create_rrd_data {
 
     $get_rrd_data->($rrd, $cf, $is_node, $reso, $args, $res);
 
+    # The newest bucket can still be empty right after a boundary.
+    if (scalar($res->@*) > 0) {
+        # only contains 'time'
+        pop @$res if scalar(keys $res->[-1]->%*) == 1;
+    }
+
     return $res;
 }
 
