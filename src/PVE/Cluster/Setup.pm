@@ -582,15 +582,12 @@ __EOD
             '-extfile', $cfgfn,
         ]);
     };
+    my $err = $@;
 
-    if (my $err = $@) {
-        unlink $reqfn;
-        unlink $cfgfn;
-        die "unable to generate pve ssl certificate:\n$err";
-    }
+    unlink $reqfn or $!{ENOENT} or warn "failed to clean up '$reqfn' - $!";
+    unlink $cfgfn or $!{ENOENT} or warn "failed to clean up '$cfgfn' - $!";
 
-    unlink $cfgfn;
-    unlink $reqfn;
+    die "unable to generate pve ssl certificate:\n$err" if $err;
 }
 
 sub gen_pve_node_files {
