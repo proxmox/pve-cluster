@@ -28,8 +28,8 @@ sub create_rrd_data {
         hour => [60, 60], # 1 min resolution
         day => [60, 1440], # 1 min resolution, full day
         week => [60 * 30, 336], # 30 min resolution, 7 days
-        month => [3600 * 6, 121], # 6 hour resolution, 30 days, need one more count. Otherwise RRD gets wrong $step
-        year => [3600 * 6, 1140], # 6 hour resolution, 360 days
+        month => [60 * 30, 1440], # 30 min resolution  30 days
+        year => [3600 * 6, 1440], # 6 hour resolution, 360 days
         decade => [86400 * 7, 570], # 1 week resolution, 10 years
     };
 
@@ -115,8 +115,8 @@ sub create_rrd_graph {
         hour => [60, 60], # 1 min resolution
         day => [60, 1440], # 1 min resolution, full day
         week => [60 * 30, 336], # 30 min resolution, 7 days
-        month => [3600 * 6, 121], # 6 hour resolution, 30 days, need one more count. Otherwise RRD gets wrong $step
-        year => [3600 * 6, 1140], # 6 hour resolution, 360 days
+        month => [60 * 30, 1440], # 30 min resolution  30 days
+        year => [3600 * 6, 1440], # 6 hour resolution, 360 days
         decade => [86400 * 7, 570], # 1 week resolution, 10 years
     };
 
