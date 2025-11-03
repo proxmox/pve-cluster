@@ -1097,36 +1097,9 @@ kventry_hash_set(GHashTable *kvhash, const char *key, gconstpointer data, size_t
 // We create the RRD files with a 60 second stepsize, therefore, RRA timesteps
 // are alwys per 60 seconds. These 60 seconds are usually showing up in other
 // code paths where we interact with RRD data!
-static const char *rrd_def_node[] = {
-    "DS:loadavg:GAUGE:120:0:U",
-    "DS:maxcpu:GAUGE:120:0:U",
-    "DS:cpu:GAUGE:120:0:U",
-    "DS:iowait:GAUGE:120:0:U",
-    "DS:memtotal:GAUGE:120:0:U",
-    "DS:memused:GAUGE:120:0:U",
-    "DS:swaptotal:GAUGE:120:0:U",
-    "DS:swapused:GAUGE:120:0:U",
-    "DS:roottotal:GAUGE:120:0:U",
-    "DS:rootused:GAUGE:120:0:U",
-    "DS:netin:DERIVE:120:0:U",
-    "DS:netout:DERIVE:120:0:U",
-
-    "RRA:AVERAGE:0.5:1:70",     // 1 min avg - one hour
-    "RRA:AVERAGE:0.5:30:70",    // 30 min avg - one day
-    "RRA:AVERAGE:0.5:180:70",   // 3 hour avg - one week
-    "RRA:AVERAGE:0.5:720:70",   // 12 hour avg - one month
-    "RRA:AVERAGE:0.5:10080:70", // 7 day avg - ony year
-
-    "RRA:MAX:0.5:1:70",     // 1 min max - one hour
-    "RRA:MAX:0.5:30:70",    // 30 min max - one day
-    "RRA:MAX:0.5:180:70",   // 3 hour max - one week
-    "RRA:MAX:0.5:720:70",   // 12 hour max - one month
-    "RRA:MAX:0.5:10080:70", // 7 day max - ony year
-    NULL,
-};
 
 // This *must* be the number of columns as defined above.
-static const int rrd_def_node_columns = 12;
+static const int rrd_def_node_columns_pve2 = 12;
 
 static const char *rrd_def_node_pve9_0[] = {
     "DS:loadavg:GAUGE:120:0:U",
@@ -1165,34 +1138,8 @@ static const char *rrd_def_node_pve9_0[] = {
 // This *must* be the number of columns as defined above.
 static const int rrd_def_node_pve9_0_columns = 19;
 
-static const char *rrd_def_vm[] = {
-    "DS:maxcpu:GAUGE:120:0:U",
-    "DS:cpu:GAUGE:120:0:U",
-    "DS:maxmem:GAUGE:120:0:U",
-    "DS:mem:GAUGE:120:0:U",
-    "DS:maxdisk:GAUGE:120:0:U",
-    "DS:disk:GAUGE:120:0:U",
-    "DS:netin:DERIVE:120:0:U",
-    "DS:netout:DERIVE:120:0:U",
-    "DS:diskread:DERIVE:120:0:U",
-    "DS:diskwrite:DERIVE:120:0:U",
-
-    "RRA:AVERAGE:0.5:1:70",     // 1 min avg - one hour
-    "RRA:AVERAGE:0.5:30:70",    // 30 min avg - one day
-    "RRA:AVERAGE:0.5:180:70",   // 3 hour avg - one week
-    "RRA:AVERAGE:0.5:720:70",   // 12 hour avg - one month
-    "RRA:AVERAGE:0.5:10080:70", // 7 day avg - ony year
-
-    "RRA:MAX:0.5:1:70",     // 1 min max - one hour
-    "RRA:MAX:0.5:30:70",    // 30 min max - one day
-    "RRA:MAX:0.5:180:70",   // 3 hour max - one week
-    "RRA:MAX:0.5:720:70",   // 12 hour max - one month
-    "RRA:MAX:0.5:10080:70", // 7 day max - ony year
-    NULL,
-};
-
 // This *must* be the number of columns as defined above.
-static const int rrd_def_vm_columns = 10;
+static const int rrd_def_vm_columns_pve2 = 10;
 
 static const char *rrd_def_vm_pve9_0[] = {
     "DS:maxcpu:GAUGE:120:0:U",
@@ -1228,24 +1175,6 @@ static const char *rrd_def_vm_pve9_0[] = {
 
 // This *must* be the number of columns as defined above.
 static const int rrd_def_vm_pve9_0_columns = 17;
-
-static const char *rrd_def_storage[] = {
-    "DS:total:GAUGE:120:0:U",
-    "DS:used:GAUGE:120:0:U",
-
-    "RRA:AVERAGE:0.5:1:70",     // 1 min avg - one hour
-    "RRA:AVERAGE:0.5:30:70",    // 30 min avg - one day
-    "RRA:AVERAGE:0.5:180:70",   // 3 hour avg - one week
-    "RRA:AVERAGE:0.5:720:70",   // 12 hour avg - one month
-    "RRA:AVERAGE:0.5:10080:70", // 7 day avg - ony year
-
-    "RRA:MAX:0.5:1:70",     // 1 min max - one hour
-    "RRA:MAX:0.5:30:70",    // 30 min max - one day
-    "RRA:MAX:0.5:180:70",   // 3 hour max - one week
-    "RRA:MAX:0.5:720:70",   // 12 hour max - one month
-    "RRA:MAX:0.5:10080:70", // 7 day max - ony year
-    NULL,
-};
 
 static const char *rrd_def_storage_pve9_0[] = {
     "DS:total:GAUGE:120:0:U",
@@ -1356,68 +1285,27 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
         }
 
         filename = g_strdup_printf(RRDDIR "/pve-node-9.0/%s", node);
-        char *filename_pve2 = g_strdup_printf(RRDDIR "/pve2-node/%s", node);
 
-        int use_pve2_file = 0;
+        if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
+            checked_mkdir(RRDDIR "/pve-node-9.0", 0755);
 
-        // check existing rrd files and directories
-        if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
-            // pve-node-9.0 file exists, we use that
-            // TODO: get conditions so, that we do not have this empty branch
-        } else if (g_file_test(filename_pve2, G_FILE_TEST_EXISTS)) {
-            // old file exists, use it
-            use_pve2_file = 1;
+            char *dir = g_path_get_dirname(filename);
+            checked_mkdir(dir, 0755);
+            g_free(dir);
 
-            g_free(filename);
-            filename = filename_pve2;
-            filename_pve2 = NULL;
-        } else {
-            // neither file exists, check for directories to decide and create file
-
-            if (g_file_test(RRDDIR "/pve-node-9.0", G_FILE_TEST_IS_DIR)) {
-
-                int argcount = sizeof(rrd_def_node_pve9_0) / sizeof(void *) - 1;
-                create_rrd_file(filename, argcount, rrd_def_node_pve9_0);
-            } else if (g_file_test(RRDDIR "/pve2-node", G_FILE_TEST_IS_DIR)) {
-                use_pve2_file = 1;
-
-                g_free(filename);
-                filename = filename_pve2;
-                filename_pve2 = NULL;
-
-                char *dir = g_path_get_dirname(filename);
-                checked_mkdir(dir, 0755);
-                g_free(dir);
-
-                int argcount = sizeof(rrd_def_node) / sizeof(void *) - 1;
-                create_rrd_file(filename, argcount, rrd_def_node);
-            } else {
-                // no dir exists yet, use new pve-node-9.0
-                checked_mkdir(RRDDIR "/pve-node-9.0", 0755);
-
-                char *dir = g_path_get_dirname(filename);
-                checked_mkdir(dir, 0755);
-                g_free(dir);
-
-                int argcount = sizeof(rrd_def_node_pve9_0) / sizeof(void *) - 1;
-                create_rrd_file(filename, argcount, rrd_def_node_pve9_0);
-            }
+            int argcount = sizeof(rrd_def_node_pve9_0) / sizeof(void *) - 1;
+            create_rrd_file(filename, argcount, rrd_def_node_pve9_0);
         }
 
         skip = 2; // first two columns are live data that isn't archived
 
-        if (strncmp(key, "pve2-node/", 10) == 0 && !use_pve2_file) {
-            padding = rrd_def_node_pve9_0_columns - rrd_def_node_columns;
-        } else if (strncmp(key, "pve-node-", 9) == 0 && use_pve2_file) {
-            keep_columns = rrd_def_node_columns;
+        if (strncmp(key, "pve2-node/", 10) == 0) {
+            padding = rrd_def_node_pve9_0_columns - rrd_def_node_columns_pve2;
         } else if (strncmp(key, "pve-node-9.0/", 13) != 0) {
             // we received an unknown format, expectation is it is newer and has more columns
             // than we can currently handle
             keep_columns = rrd_def_node_pve9_0_columns;
         }
-
-        g_free(filename_pve2);
-
     } else if (strncmp(key, "pve2.3-vm/", 10) == 0 || strncmp(key, "pve-vm-", 7) == 0) {
 
         const char *vmid = rrd_skip_data(key, 1, '/');
@@ -1431,59 +1319,28 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
         }
 
         filename = g_strdup_printf(RRDDIR "/pve-vm-9.0/%s", vmid);
-        char *filename_pve2 = g_strdup_printf(RRDDIR "/pve2-vm/%s", vmid);
 
-        int use_pve2_file = 0;
+        if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
+            // no dir exists yet, use new pve-vm-9.0
+            checked_mkdir(RRDDIR "/pve-vm-9.0", 0755);
 
-        // check existing rrd files and directories
-        if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
-            // pve-vm-9.0 file exists, we use that
-            // TODO: get conditions so, that we do not have this empty branch
-        } else if (g_file_test(filename_pve2, G_FILE_TEST_EXISTS)) {
-            // old file exists, use it
-            use_pve2_file = 1;
-            g_free(filename);
-            filename = filename_pve2;
-            filename_pve2 = NULL;
-        } else {
-            // neither file exists, check for directories to decide and create file
+            char *dir = g_path_get_dirname(filename);
+            checked_mkdir(dir, 0755);
+            g_free(dir);
 
-            if (g_file_test(RRDDIR "/pve-vm-9.0", G_FILE_TEST_IS_DIR)) {
-
-                int argcount = sizeof(rrd_def_vm_pve9_0) / sizeof(void *) - 1;
-                create_rrd_file(filename, argcount, rrd_def_vm_pve9_0);
-            } else if (g_file_test(RRDDIR "/pve2-vm", G_FILE_TEST_IS_DIR)) {
-                use_pve2_file = 1;
-
-                g_free(filename);
-                filename = filename_pve2;
-                filename_pve2 = NULL;
-
-                int argcount = sizeof(rrd_def_vm) / sizeof(void *) - 1;
-                create_rrd_file(filename, argcount, rrd_def_vm);
-            } else {
-                // no dir exists yet, use new pve-vm-9.0
-                checked_mkdir(RRDDIR "/pve-vm-9.0", 0755);
-
-                int argcount = sizeof(rrd_def_vm_pve9_0) / sizeof(void *) - 1;
-                create_rrd_file(filename, argcount, rrd_def_vm_pve9_0);
-            }
+            int argcount = sizeof(rrd_def_vm_pve9_0) / sizeof(void *) - 1;
+            create_rrd_file(filename, argcount, rrd_def_vm_pve9_0);
         }
 
         skip = 4; // first 4 columns are live data that isn't archived
 
-        if (strncmp(key, "pve2.3-vm/", 10) == 0 && !use_pve2_file) {
-            padding = rrd_def_vm_pve9_0_columns - rrd_def_vm_columns;
-        } else if (strncmp(key, "pve-vm-", 7) == 0 && use_pve2_file) {
-            keep_columns = rrd_def_vm_columns;
+        if (strncmp(key, "pve2.3-vm/", 10) == 0) {
+            padding = rrd_def_vm_pve9_0_columns - rrd_def_vm_columns_pve2;
         } else if (strncmp(key, "pve-vm-9.0/", 11) != 0) {
             // we received an unknown format, expectation is it is newer and has more columns
             // than we can currently handle
             keep_columns = rrd_def_vm_pve9_0_columns;
         }
-
-        g_free(filename_pve2);
-
     } else if (strncmp(key, "pve2-storage/", 13) == 0 || strncmp(key, "pve-storage-", 12) == 0) {
         const char *node = rrd_skip_data(key, 1, '/'); // will contain {node}/{storage}
 
@@ -1502,49 +1359,17 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
         }
 
         filename = g_strdup_printf(RRDDIR "/pve-storage-9.0/%s", node);
-        char *filename_pve2 = g_strdup_printf(RRDDIR "/pve2-storage/%s", node);
 
-        // check existing rrd files and directories
-        if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
-            // pve-storage-9.0 file exists, we use that
-            // TODO: get conditions so, that we do not have this empty branch
-        } else if (g_file_test(filename_pve2, G_FILE_TEST_EXISTS)) {
-            // old file exists, use it
-            g_free(filename);
-            filename = filename_pve2;
-            filename_pve2 = NULL;
-        } else {
-            // neither file exists, check for directories to decide and create file
+        if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
+            // no dir exists yet, use new pve-storage-9.0
+            checked_mkdir(RRDDIR "/pve-storage-9.0", 0755);
 
-            if (g_file_test(RRDDIR "/pve-storage-9.0", G_FILE_TEST_IS_DIR)) {
-                char *dir = g_path_get_dirname(filename);
-                checked_mkdir(dir, 0755);
-                g_free(dir);
+            char *dir = g_path_get_dirname(filename);
+            checked_mkdir(dir, 0755);
+            g_free(dir);
 
-                int argcount = sizeof(rrd_def_storage_pve9_0) / sizeof(void *) - 1;
-                create_rrd_file(filename, argcount, rrd_def_storage_pve9_0);
-            } else if (g_file_test(RRDDIR "/pve2-storage", G_FILE_TEST_IS_DIR)) {
-                g_free(filename);
-                filename = filename_pve2;
-                filename_pve2 = NULL;
-
-                char *dir = g_path_get_dirname(filename);
-                checked_mkdir(dir, 0755);
-                g_free(dir);
-
-                int argcount = sizeof(rrd_def_storage) / sizeof(void *) - 1;
-                create_rrd_file(filename, argcount, rrd_def_storage);
-            } else {
-                // no dir exists yet, use new pve-storage-9.0
-                checked_mkdir(RRDDIR "/pve-storage-9.0", 0755);
-
-                char *dir = g_path_get_dirname(filename);
-                checked_mkdir(dir, 0755);
-                g_free(dir);
-
-                int argcount = sizeof(rrd_def_storage_pve9_0) / sizeof(void *) - 1;
-                create_rrd_file(filename, argcount, rrd_def_storage_pve9_0);
-            }
+            int argcount = sizeof(rrd_def_storage_pve9_0) / sizeof(void *) - 1;
+            create_rrd_file(filename, argcount, rrd_def_storage_pve9_0);
         }
 
         // actual data columns didn't change between pve2-storage and pve-storage-9.0
@@ -1553,9 +1378,6 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
             // than we can currently handle
             keep_columns = rrd_def_storage_pve9_0_columns;
         }
-
-        g_free(filename_pve2);
-
     } else {
         goto keyerror;
     }
