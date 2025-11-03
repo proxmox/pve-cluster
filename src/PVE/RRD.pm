@@ -7,6 +7,32 @@ use RRDs;
 
 use PVE::Tools;
 
+my $get_rrd_data = sub {
+    my ($rrd, $cf, $is_node, $reso, $args, $res) = @_;
+    my ($start, $step, $names, $data) = RRDs::fetch($rrd, $cf, @$args);
+
+    my $err = RRDs::error;
+    die "RRD error: $err\n" if $err;
+
+    my $fields = scalar(@$names);
+    for my $line (@$data) {
+        my $entry = { 'time' => $start };
+        $start += $step;
+        for (my $i = 0; $i < $fields; $i++) {
+            my $name = $names->[$i];
+            if (defined(my $val = $line->[$i])) {
+                $entry->{$name} = $val;
+                $entry->{memavailable} = $val
+                    if $is_node && $name eq 'memfree' && !exists($entry->{memavailable});
+            } else {
+                # leave empty fields undefined
+                # maybe make this configurable?
+            }
+        }
+        push @$res, $entry;
+    }
+};
+
 sub create_rrd_data {
     my ($rrdname, $timeframe, $cf) = @_;
 
@@ -33,53 +59,70 @@ sub create_rrd_data {
         decade => [86400 * 7, 570], # 1 week resolution, 10 years
     };
 
+    my $is_node = !!($rrdname =~ /^pve-node/);
+    $cf = "AVERAGE" if !$cf;
+    my $res = [];
+
     if ($rrdname =~ /^pve2/) {
         $setup = $setup_pve2;
         $timeframe = "year" if $timeframe eq "decade"; # we only store up to one year in the old format
     }
-    my $is_node = !!($rrdname =~ /^pve-node/);
 
     my ($reso, $count) = @{ $setup->{$timeframe} };
     my $ctime = $reso * int(time() / $reso);
     my $req_start = $ctime - $reso * $count;
 
-    $cf = "AVERAGE" if !$cf;
+    my $last_old;
+    # check if we have old rrd file and if the start point is still covered by
+    # it, fetch that data from it for any data not available in the old file we
+    # will fetch it from the new file.
+    if ($rrdname =~ /pve-(?<type>node|vm|storage)-[0-9]*\.[0-9]*\/(?<resource>.*)/) {
+        my $old_rrd = "${rrddir}/pve2-$+{type}/$+{resource}";
+        my $old_exists = 0;
 
-    my @args = (
-        "-s" => $req_start,
-        "-e" => $ctime - 1,
-        "-r" => $reso,
-    );
+        # we can have already migrated rrd files that have the .old suffix too
+        if (-e $old_rrd) {
+            $old_exists = 1;
+        } elsif (-e "${old_rrd}.old") {
+            $old_exists = 1;
+            $old_rrd = "${old_rrd}.old";
+        }
 
-    my $socket = "/var/run/rrdcached.sock";
-    push @args, "--daemon" => "unix:$socket" if -S $socket;
+        if ($old_exists) {
+            $last_old = RRDs::last($old_rrd);
+            if ($req_start < $last_old) {
+                my ($reso_old, $count_old) = @{ $setup_pve2->{$timeframe} };
+                my $ctime_old = $reso_old * int(time() / $reso_old);
+                my $req_start_old = $ctime_old - $reso_old * $count_old;
+                my $args = [];
+                push(@$args, "-s" => $req_start_old);
+                push(@$args, "-e" => $last_old);
+                push(@$args, "-r" => $reso_old);
 
-    my ($start, $step, $names, $data) = RRDs::fetch($rrd, $cf, @args);
+                my $socket = "/var/run/rrdcached.sock";
+                push @$args, "--daemon" => "unix:$socket" if -S $socket;
 
-    my $err = RRDs::error;
-    die "RRD error: $err\n" if $err;
-
-    die "got wrong time resolution ($step != $reso)\n"
-        if $step != $reso;
-
-    my $res = [];
-    my $fields = scalar(@$names);
-    for my $line (@$data) {
-        my $entry = { 'time' => $start };
-        $start += $step;
-        for (my $i = 0; $i < $fields; $i++) {
-            my $name = $names->[$i];
-            if (defined(my $val = $line->[$i])) {
-                $entry->{$name} = $val;
-                $entry->{memavailable} = $val
-                    if $is_node && $name eq 'memfree' && !exists($entry->{memavailable});
+                $get_rrd_data->($old_rrd, $cf, $is_node, $reso_old, $args, $res);
             } else {
-                # leave empty fields undefined
-                # maybe make this configurable?
+                $last_old = undef;
             }
         }
-        push @$res, $entry;
     }
+
+    my $args = [];
+    if ($last_old) {
+        push(@$args, "-s" => $last_old);
+    } else {
+        push(@$args, "-s" => $req_start);
+    }
+
+    push(@$args, "-e" => $ctime - 1);
+    push(@$args, "-r" => $reso);
+
+    my $socket = "/var/run/rrdcached.sock";
+    push @$args, "--daemon" => "unix:$socket" if -S $socket;
+
+    $get_rrd_data->($rrd, $cf, $is_node, $reso, $args, $res);
 
     return $res;
 }
@@ -126,6 +169,33 @@ sub create_rrd_graph {
     }
 
     my ($reso, $count) = @{ $setup->{$timeframe} };
+    my $ctime = $reso * int(time() / $reso);
+    my $req_start = $ctime - $reso * $count;
+
+    my $last_old;
+    my $old_rrd;
+    my $old_exists = 0;
+    my $use_old;
+    # check if we have old rrd file and if the start point is still covered
+    # by it
+    if ($rrdname =~ /pve-(?<type>node|vm|storage)-[0-9]*\.[0-9]*\/(?<resource>.*)/) {
+        $old_rrd = "${rrddir}/pve2-$+{type}/$+{resource}";
+
+        # we can have already migrated rrd files that have the .old suffix too
+        if (-e $old_rrd) {
+            $old_exists = 1;
+        } elsif (-e "${old_rrd}.old") {
+            $old_exists = 1;
+            $old_rrd = "${old_rrd}.old";
+        }
+
+        if ($old_exists) {
+            $last_old = RRDs::last($old_rrd);
+            if ($req_start < $last_old) {
+                $use_old = 1;
+            }
+        }
+    }
 
     my @args = (
         "--imgformat" => "PNG",
@@ -147,13 +217,27 @@ sub create_rrd_graph {
     my $i = 0;
     foreach my $id (@ids) {
         my $col = $coldef[$i++] || die "fixme: no color definition";
-        push @args, "DEF:${id}=$rrd:${id}:$cf";
         my $dataid = $id;
+        my $linedef = "DEF:${dataid}=$rrd:${id}:$cf";
+        $linedef = "${linedef}:start=${last_old}" if $use_old; # avoid eventual overlap
+
+        push @args, "${linedef}";
+
         if ($id eq 'cpu' || $id eq 'iowait') {
-            push @args, "CDEF:${id}_per=${id},100,*";
+            push @args, "CDEF:${dataid}_per=${id},100,*";
             $dataid = "${id}_per";
         }
         push @args, "LINE2:${dataid}${col}:${id}";
+
+        if ($use_old) {
+            my $dataid = "${id}old";
+            push @args, "DEF:${dataid}=$old_rrd:${id}:${cf}";
+            if ($id eq 'cpu' || $id eq 'iowait') {
+                push @args, "CDEF:${dataid}_per=${dataid},100,*";
+                $dataid = "${dataid}_per";
+            }
+            push @args, "LINE2:${dataid}${col}";
+        }
     }
 
     push @args, '--full-size-mode';
