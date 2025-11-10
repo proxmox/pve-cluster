@@ -37,7 +37,6 @@ sub create_rrd_data {
     my ($rrdname, $timeframe, $cf) = @_;
 
     my $rrddir = "/var/lib/rrdcached/db";
-
     my $rrd = "$rrddir/$rrdname";
 
     # Format: [ resolution, number of data points/count]
@@ -109,15 +108,11 @@ sub create_rrd_data {
         }
     }
 
-    my $args = [];
-    if ($last_old) {
-        push(@$args, "-s" => $last_old);
-    } else {
-        push(@$args, "-s" => $req_start);
-    }
-
-    push(@$args, "-e" => $ctime - 1);
-    push(@$args, "-r" => $reso);
+    my $args = [
+        '-s' => $last_old ? $last_old : $req_start,
+        '-e' => $ctime - 1,
+        '-r' => $reso,
+    ];
 
     my $socket = "/var/run/rrdcached.sock";
     push @$args, "--daemon" => "unix:$socket" if -S $socket;
@@ -135,11 +130,9 @@ sub create_rrd_graph {
     # related things with javascript (new extjs html5 graph library).
 
     my $rrddir = "/var/lib/rrdcached/db";
-
     my $rrd = "$rrddir/$rrdname";
 
     my @ids = PVE::Tools::split_list($ds);
-
     my $ds_txt = join('_', @ids);
 
     my $filename = "${rrd}_${ds_txt}.png";
