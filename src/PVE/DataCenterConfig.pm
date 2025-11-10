@@ -47,7 +47,7 @@ my $migration_format = {
         format => 'CIDR',
         format_description => 'CIDR',
         description => "CIDR of the (sub) network that is used for migration. "
-	    . "Used as a fallback for replications jobs if the replication network setting is not set",
+            . "Used as a fallback for replications jobs if the replication network setting is not set",
     },
 };
 
@@ -616,7 +616,8 @@ sub write_datacenter_config {
     }
 
     if (ref(my $replication = $cfg->{replication})) {
-        $cfg->{replication} = PVE::JSONSchema::print_property_string($replication, $replication_format);
+        $cfg->{replication} =
+            PVE::JSONSchema::print_property_string($replication, $replication_format);
     }
 
     if (defined(my $next_id = $cfg->{'next-id'})) {
