@@ -1,3 +1,23 @@
+pve-cluster (9.0.7) trixie; urgency=medium
+
+  * RRD metrics: fix resolution and point count for querying the data of month
+    and year time frames, which otherwise resulted in showing a lower
+    resolution than it was available.
+
+  * RRD metrics: transparently fetch data from old RRD files on demand. This
+    will replace the explicit RRD data migration but rather transparently
+    switch between querying new or old RRD files (or both on overlap) when
+    querying RRD metric data or rendering a bitmap graph.
+
+  * pmxcfs: status: always use 9.0-format RRD files when writing out metric
+    data.
+
+  * fix #6615: rrd: only return last entry if it's really a complete one. RRD
+    fetch can include the latest bucket before metrics are flushed, resulting
+    the last entry consisting only of a timestamp without value.
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 10 Nov 2025 20:23:55 +0100
+
 pve-cluster (9.0.6) trixie; urgency=medium
 
   * rrd: cope with only partially renamed memavailable field when old data was
