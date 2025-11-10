@@ -33,6 +33,19 @@ my $get_rrd_data = sub {
     }
 };
 
+my sub get_old_rrd_path_if_exist {
+    my ($basename) = @_;
+
+    # we can have already migrated rrd files that have the .old suffix too
+    if (-e "/var/lib/rrdcached/db/${basename}") {
+        return "/var/lib/rrdcached/db/${basename}";
+    } elsif (-e "/var/lib/rrdcached/db/${basename}.old") {
+        return "/var/lib/rrdcached/db/${basename}.old";
+    }
+
+    return undef;
+}
+
 sub create_rrd_data {
     my ($rrdname, $timeframe, $cf) = @_;
 
@@ -76,18 +89,7 @@ sub create_rrd_data {
     # it, fetch that data from it for any data not available in the old file we
     # will fetch it from the new file.
     if ($rrdname =~ /pve-(?<type>node|vm|storage)-[0-9]*\.[0-9]*\/(?<resource>.*)/) {
-        my $old_rrd = "${rrddir}/pve2-$+{type}/$+{resource}";
-        my $old_exists = 0;
-
-        # we can have already migrated rrd files that have the .old suffix too
-        if (-e $old_rrd) {
-            $old_exists = 1;
-        } elsif (-e "${old_rrd}.old") {
-            $old_exists = 1;
-            $old_rrd = "${old_rrd}.old";
-        }
-
-        if ($old_exists) {
+        if (defined(my $old_rrd = get_old_rrd_path_if_exist("pve2-$+{type}/$+{resource}"))) {
             $last_old = RRDs::last($old_rrd);
             if ($req_start < $last_old) {
                 my ($reso_old, $count_old) = @{ $setup_pve2->{$timeframe} };
@@ -165,27 +167,13 @@ sub create_rrd_graph {
     my $ctime = $reso * int(time() / $reso);
     my $req_start = $ctime - $reso * $count;
 
-    my $last_old;
-    my $old_rrd;
-    my $old_exists = 0;
-    my $use_old;
-    # check if we have old rrd file and if the start point is still covered
-    # by it
+    my ($last_old, $old_rrd);
+    # check if we have old rrd file and if the start point is still covered by it
     if ($rrdname =~ /pve-(?<type>node|vm|storage)-[0-9]*\.[0-9]*\/(?<resource>.*)/) {
-        $old_rrd = "${rrddir}/pve2-$+{type}/$+{resource}";
-
-        # we can have already migrated rrd files that have the .old suffix too
-        if (-e $old_rrd) {
-            $old_exists = 1;
-        } elsif (-e "${old_rrd}.old") {
-            $old_exists = 1;
-            $old_rrd = "${old_rrd}.old";
-        }
-
-        if ($old_exists) {
+        if (defined($old_rrd = get_old_rrd_path_if_exist("pve2-$+{type}/$+{resource}"))) {
             $last_old = RRDs::last($old_rrd);
-            if ($req_start < $last_old) {
-                $use_old = 1;
+            if ($req_start >= $last_old) {
+                $old_rrd = undef; # old RRD exist, but not needed to render requested time range.
             }
         }
     }
@@ -212,7 +200,7 @@ sub create_rrd_graph {
         my $col = $coldef[$i++] || die "fixme: no color definition";
         my $dataid = $id;
         my $linedef = "DEF:${dataid}=$rrd:${id}:$cf";
-        $linedef = "${linedef}:start=${last_old}" if $use_old; # avoid eventual overlap
+        $linedef = "${linedef}:start=${last_old}" if defined($old_rrd); # avoid eventual overlap
 
         push @args, "${linedef}";
 
@@ -222,7 +210,7 @@ sub create_rrd_graph {
         }
         push @args, "LINE2:${dataid}${col}:${id}";
 
-        if ($use_old) {
+        if (defined($old_rrd)) {
             my $dataid = "${id}old";
             push @args, "DEF:${dataid}=$old_rrd:${id}:${cf}";
             if ($id eq 'cpu' || $id eq 'iowait') {
