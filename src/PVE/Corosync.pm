@@ -274,6 +274,7 @@ sub create_conf {
     my $clustername = $param->{clustername};
     my $nodeid = $param->{nodeid} || 1;
     my $votes = $param->{votes} || 1;
+    my $token_coefficient = $param->{'token-coefficient'};
 
     my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
 
@@ -323,6 +324,8 @@ sub create_conf {
 
         $node->{"ring${lnum}_addr"} = $link->{address};
     }
+
+    $totem->{token_coefficient} = $token_coefficient if defined($token_coefficient);
 
     return { main => $conf };
 }

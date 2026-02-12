@@ -111,11 +111,21 @@ __PACKAGE__->register_method({
                 minimum => 1,
                 optional => 1,
             },
+            'token-coefficient' => {
+                type => 'integer',
+                description => "Coefficient used to determine Corosync's token timeout. See the"
+                    . " corosync.conf(5) manual for more details.",
+                default => 125,
+                minimum => 0,
+                optional => 1,
+            },
         }),
     },
     returns => { type => 'string' },
     code => sub {
         my ($param) = @_;
+
+        $param->{'token-coefficient'} //= 125;
 
         die "cluster config '$clusterconf' already exists\n" if -f $clusterconf;
 
