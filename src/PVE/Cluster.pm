@@ -7,10 +7,12 @@ use Encode;
 use File::stat qw();
 use File::Path qw(make_path);
 use JSON;
+use List::Util;
 use Net::SSLeay;
 use POSIX qw(ENOENT);
 use Socket;
 use Storable qw(dclone);
+use Time::HiRes qw(usleep);
 
 use PVE::Certificate;
 use PVE::INotify;
@@ -622,19 +624,29 @@ my $cfs_lock = sub {
 
         my $timeout_err = sub { die "got lock request timeout\n"; };
         local $SIG{ALRM} = $timeout_err;
+        my $slept_usec = 0;
 
         while (1) {
-            alarm($timeout);
+            my $slept_sec = int($slept_usec / 1_000_000);
+            # Below increases by the actual amount of time slept, so in principle, the value
+            # $timeout - $slept_sec could end up being zero.
+            my $remaining_timeout_sec = List::Util::max($timeout - $slept_sec, 1);
+
+            alarm($remaining_timeout_sec);
             $got_lock = mkdir($filename);
-            $timeout = alarm(0) - 1; # we'll sleep for 1s, see down below
 
             last if $got_lock;
 
-            $timeout_err->() if $timeout <= 0;
+            my $sleep_usec = List::Util::min($remaining_timeout_sec, 10) * 100_000;
+            my $next_slept_sec = int(($slept_usec + $sleep_usec) / 1_000_000);
 
-            print STDERR "trying to acquire cfs lock '$lockid' ...\n";
+            $timeout_err->() if $next_slept_sec >= $timeout;
+
+            if ($next_slept_sec > $slept_sec) { # don't log more often than once per second
+                print STDERR "trying to acquire cfs lock '$lockid' ...\n";
+            }
             utime(0, 0, $filename); # cfs unlock request
-            sleep(1);
+            $slept_usec += usleep($sleep_usec);
         }
 
         # fixed command timeout: cfs locks have a timeout of 120
