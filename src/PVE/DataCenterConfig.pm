@@ -224,7 +224,7 @@ PVE::JSONSchema::register_format('mac-prefix', \&pve_verify_mac_prefix);
 sub pve_verify_mac_prefix {
     my ($mac_prefix, $noerr) = @_;
 
-    if ($mac_prefix !~ m/^[a-f0-9][02468ace](?::[a-f0-9]{2}){0,2}:?$/i) {
+    if ($mac_prefix !~ m/^[a-f0-9][02468ace](?::[a-f0-9]{2}){0,2}(?::[a-f0-9]?)?$/i) {
         return undef if $noerr;
         die "value is not a valid unicast MAC address prefix\n";
     }
