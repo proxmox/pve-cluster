@@ -1,3 +1,26 @@
+pve-cluster (9.1.0) trixie; urgency=medium
+
+  * cfs lock: reduce time between lock attempts over each iterations to
+    increase chance for longer running operations to get the lock on high
+    contention, reducing starvation.
+
+  * corosync config: allow to override token coefficient on cluster create and
+    lower the default from 650 ms to 125 ms. This coefficient is used in
+    combination with the amount of nodes to calculate various timeouts inside
+    corosync. We found that it's default was rather high, which was, e.g.,
+    causing needless long wait times for new quorate partitions to form (>50s
+    for >30 nodes), which could impact cluster operations during node
+    maintenance or failure. The previous defaults was chosen on assumptions of
+    another network stack and also network reliability status from about 20
+    years ago, the new 125 ms still has significant head room for safe
+    operations. This change will also cause kronosnet, the current
+    communication underlay network of corosync, to send more frequent pings
+    and apply shorter timeouts, the increase in traffic is still small and
+    should be negligible while providing faster feedback to host or network
+    availability changes.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 03 Mar 2026 20:54:22 +0100
+
 pve-cluster (9.0.7) trixie; urgency=medium
 
   * RRD metrics: fix resolution and point count for querying the data of month
