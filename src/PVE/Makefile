@@ -61,6 +61,6 @@ IPCC.so: IPCC.o
 
 .PHONY: clean
 clean:
-	rm -f *.xml.tmp *.1 *.5 *.8 *{synopsis,opts}.adoc docinfo.xml
+	$(MAKE) cleanup-docgen
 	rm -f IPCC.so IPCC.o IPCC.c pvecm.bash-completion pvecm.zsh-completion
 	for d in $(SUBDIRS); do $(MAKE) -C $$d clean; done
