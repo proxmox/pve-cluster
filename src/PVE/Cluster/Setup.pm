@@ -439,6 +439,8 @@ sub gen_pveca_cert {
             '-new',
             '-x509',
             '-nodes',
+            '-addext',
+            'keyUsage=critical,keyCertSign,cRLSign',
             '-key',
             $pveca_key_fn,
             '-out',
