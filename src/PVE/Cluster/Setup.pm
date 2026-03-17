@@ -504,33 +504,6 @@ sub gen_pve_ssl_cert {
         $names .= ",DNS:$fqdn";
     }
 
-    my $sslconf = <<__EOD;
-RANDFILE = /root/.rnd
-extensions = v3_req
-
-[ req ]
-default_bits = 2048
-distinguished_name = req_distinguished_name
-req_extensions = v3_req
-prompt = no
-string_mask = nombstr
-
-[ req_distinguished_name ]
-organizationalUnitName = PVE Cluster Node
-organizationName = Proxmox Virtual Environment
-commonName = $fqdn
-
-[ v3_req ]
-basicConstraints = CA:FALSE
-extendedKeyUsage = serverAuth
-subjectAltName = $names
-__EOD
-
-    my $cfgfn = "/tmp/pvesslconf-$$.tmp";
-    my $fh = IO::File->new($cfgfn, "w");
-    print $fh $sslconf;
-    close($fh);
-
     my $reqfn = "/tmp/pvecertreq-$$.tmp";
     unlink $reqfn;
 
@@ -541,18 +514,23 @@ __EOD
             'req',
             '-batch',
             '-new',
-            '-config',
-            $cfgfn,
             '-key',
             $pvessl_key_fn,
             '-out',
             $reqfn,
+            '-subj',
+            "/OU=PVE Cluster Node/O=Proxmox Virtual Environment/CN=$fqdn",
+            '-addext',
+            'basicConstraints=CA:FALSE',
+            '-addext',
+            'extendedKeyUsage=serverAuth',
+            '-addext',
+            "subjectAltName=$names",
         ]);
     };
 
     if (my $err = $@) {
         unlink $reqfn;
-        unlink $cfgfn;
         die "unable to generate pve certificate request:\n$err";
     }
 
@@ -581,13 +559,12 @@ __EOD
             'openssl', 'x509', '-req', '-in', $reqfn, '-days', $daysleft, '-out',
             $pvessl_cert_fn,
             '-CAkey', $pveca_key_fn, '-CA', $pveca_cert_fn, '-CAserial', $pveca_srl_fn,
-            '-extfile', $cfgfn,
+            '-copy_extensions', 'copyall',
         ]);
     };
     my $err = $@;
 
     unlink $reqfn or $!{ENOENT} or warn "failed to clean up '$reqfn' - $!";
-    unlink $cfgfn or $!{ENOENT} or warn "failed to clean up '$cfgfn' - $!";
 
     die "unable to generate pve ssl certificate:\n$err" if $err;
 }
