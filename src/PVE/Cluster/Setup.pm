@@ -504,7 +504,7 @@ sub gen_pve_ssl_cert {
         $names .= ",DNS:$fqdn";
     }
 
-    my $reqfn = "/tmp/pvecertreq-$$.tmp";
+    my $reqfn = "/run/pve-cluster/pvecertreq-$$.tmp";
     unlink $reqfn;
 
     my $pvessl_key_fn = "$pmxcfs_base_dir/nodes/$nodename/pve-ssl.key";
