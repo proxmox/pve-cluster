@@ -17,6 +17,11 @@ case "$1" in
     if dpkg --compare-versions "$2" 'lt' '9.0.1'; then
       remove_fabrics_directory
     fi
+
+    # TODO: remove with PVE 10+
+    if dpkg --compare-versions "$2" 'lt' '9.1.1'; then
+      [ -d /var/lib/pve-cluster/backup ] && chmod -v 0700 /var/lib/pve-cluster/backup
+    fi
   ;;
 esac
 
