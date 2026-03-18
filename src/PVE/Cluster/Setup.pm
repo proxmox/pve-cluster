@@ -808,8 +808,13 @@ sub finish_join {
     my $cmd = ['systemctl', 'stop', 'pve-cluster'];
     PVE::Tools::run_command($cmd, errmsg => "can't stop pve-cluster service");
 
-    my $dbfile = PVE::Cluster::cfs_backup_database();
-    unlink $dbfile;
+    eval { PVE::Cluster::cfs_backup_database() };
+    if (my $err = $@) {
+        warn "failed to create backup of pre-join config database - $err";
+        PVE::Cluster::cfs_rename_db_unsafe();
+    } else {
+        PVE::Cluster::cfs_unlink_db_unsafe();
+    }
 
     $cmd = ['systemctl', 'start', 'corosync', 'pve-cluster'];
     PVE::Tools::run_command($cmd, errmsg => "starting pve-cluster failed");
