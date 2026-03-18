@@ -1287,10 +1287,10 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
         filename = g_strdup_printf(RRDDIR "/pve-node-9.0/%s", node);
 
         if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-            checked_mkdir(RRDDIR "/pve-node-9.0", 0755);
+            checked_mkdir(RRDDIR "/pve-node-9.0", 0750);
 
             char *dir = g_path_get_dirname(filename);
-            checked_mkdir(dir, 0755);
+            checked_mkdir(dir, 0750);
             g_free(dir);
 
             int argcount = sizeof(rrd_def_node_pve9_0) / sizeof(void *) - 1;
@@ -1322,10 +1322,10 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
 
         if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
             // no dir exists yet, use new pve-vm-9.0
-            checked_mkdir(RRDDIR "/pve-vm-9.0", 0755);
+            checked_mkdir(RRDDIR "/pve-vm-9.0", 0750);
 
             char *dir = g_path_get_dirname(filename);
-            checked_mkdir(dir, 0755);
+            checked_mkdir(dir, 0750);
             g_free(dir);
 
             int argcount = sizeof(rrd_def_vm_pve9_0) / sizeof(void *) - 1;
@@ -1362,10 +1362,10 @@ static void update_rrd_data(const char *key, gconstpointer data, size_t len) {
 
         if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
             // no dir exists yet, use new pve-storage-9.0
-            checked_mkdir(RRDDIR "/pve-storage-9.0", 0755);
+            checked_mkdir(RRDDIR "/pve-storage-9.0", 0750);
 
             char *dir = g_path_get_dirname(filename);
-            checked_mkdir(dir, 0755);
+            checked_mkdir(dir, 0750);
             g_free(dir);
 
             int argcount = sizeof(rrd_def_storage_pve9_0) / sizeof(void *) - 1;

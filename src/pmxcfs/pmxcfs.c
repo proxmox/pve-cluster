@@ -848,8 +848,8 @@ int main(int argc, char *argv[]) {
 
     umask(027);
 
-    mkdir(VARLIBDIR, 0755);
-    mkdir(RUNDIR, 0755);
+    mkdir(VARLIBDIR, 0750);
+    mkdir(RUNDIR, 0750);
     chown(RUNDIR, 0, cfs.gid);
 
     if ((lockfd = open(LOCKFILE, O_RDWR | O_CREAT | O_APPEND, 0600)) == -1) {
@@ -927,7 +927,7 @@ int main(int argc, char *argv[]) {
 
     umount2(CFSDIR, MNT_FORCE);
 
-    mkdir(CFSDIR, 0755);
+    mkdir(CFSDIR, 0750);
 
     // TODO: remove big_writes with change to libfuse3
     char *fa[] = {"-f", "-odefault_permissions", "-oallow_other", "-obig_writes", NULL};
