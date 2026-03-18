@@ -1,3 +1,13 @@
+pve-cluster (9.1.1) trixie; urgency=medium
+
+  * pmxcfs: improve cluster join handling:
+    - don't abort when backup of the old config database fails, improving
+      resilience of the cluster join process. If the backup succeeds, the old
+      database is removed; if it fails, the database is renamed as fallback.
+    - correctly set backup directory mode.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 18 Mar 2026 15:21:38 +0100
+
 pve-cluster (9.1.0) trixie; urgency=medium
 
   * cfs lock: reduce time between lock attempts over each iterations to
