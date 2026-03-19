@@ -903,8 +903,17 @@ sub cfs_backup_database {
             unlink $1;
         }
     }
+}
 
-    return $dbfile;
+# NOTE: Should only be called during cluster join to remove the old database.
+sub cfs_unlink_db_unsafe {
+    unlink $dbfile or $!{ENOENT} or warn "failed to remove old config database - $!\n";
+}
+
+# NOTE: Should only be called during cluster join when backup failed.
+sub cfs_rename_db_unsafe {
+    my $ctime = time();
+    rename $dbfile, "$dbfile.$ctime.bak" or warn "failed to rename old config database - $!\n";
 }
 
 1;
