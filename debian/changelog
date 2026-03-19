@@ -1,3 +1,13 @@
+pve-cluster (8.1.3) bookworm; urgency=medium
+
+  * pmxcfs: backport improvements for cluster join handling:
+    - don't abort when backup of the old config database fails, improving
+      resilience of the cluster join process. If the backup succeeds, the old
+      database is removed; if it fails, the database is renamed as fallback.
+    - correctly set backup directory mode.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 19 Mar 2026 15:05:49 +0100
+
 pve-cluster (8.1.2) bookworm; urgency=medium
 
   * status: handle new metrics update data to avoid issues on a upgrade of a
