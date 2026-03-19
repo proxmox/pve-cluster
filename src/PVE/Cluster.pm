@@ -882,7 +882,8 @@ sub complete_migration_target {
 
 # NOTE: filesystem must be offline here, no DB changes allowed
 sub cfs_backup_database {
-    mkdir $dbbackupdir;
+    mkdir $dbbackupdir or $!{EEXIST} or die "failed to create backup dir - $!\n";
+    chmod 0700, $dbbackupdir or die "failed to set mode for backup dir - $!\n";
 
     my $ctime = time();
     my $backup_fn = "$dbbackupdir/config-$ctime.sql.gz";
