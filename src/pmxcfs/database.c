@@ -43,7 +43,6 @@
 struct db_backend {
     sqlite3 *db;
     sqlite3_stmt *stmt_insert_entry;
-    sqlite3_stmt *stmt_update_entry;
     sqlite3_stmt *stmt_replace_entry;
     sqlite3_stmt *stmt_delete_entry;
     sqlite3_stmt *stmt_begin;
@@ -76,10 +75,6 @@ static char *sql_insert_entry =
     "INSERT INTO tree ("
     "inode, parent, version, writer, mtime, type, name, data) "
     "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);";
-
-static char *sql_update_entry =
-    "UPDATE tree SET parent = ?2, version = ?3, writer = ?4, mtime = ?5, "
-    "type = ?6, name = ?7, data = ?8 WHERE inode = ?1;";
 
 static char *sql_replace_entry =
     "REPLACE INTO tree (inode, parent, version, writer, mtime, type, "
@@ -649,7 +644,6 @@ void bdb_backend_close(db_backend_t *bdb) {
 
     sqlite3_finalize(bdb->stmt_insert_entry);
     sqlite3_finalize(bdb->stmt_replace_entry);
-    sqlite3_finalize(bdb->stmt_update_entry);
     sqlite3_finalize(bdb->stmt_delete_entry);
     sqlite3_finalize(bdb->stmt_begin);
     sqlite3_finalize(bdb->stmt_commit);
@@ -689,11 +683,6 @@ db_backend_t *bdb_backend_open(const char *filename, memdb_tree_entry_t *root, G
     rc = sqlite3_prepare_v3(bdb->db, sql_insert_entry, -1, flags, &bdb->stmt_insert_entry, NULL);
     if (rc != SQLITE_OK) {
         cfs_critical("sqlite3_prepare 'sql_insert_entry' failed: %s\n", sqlite3_errmsg(bdb->db));
-        goto fail;
-    }
-    rc = sqlite3_prepare_v3(bdb->db, sql_update_entry, -1, flags, &bdb->stmt_update_entry, NULL);
-    if (rc != SQLITE_OK) {
-        cfs_critical("sqlite3_prepare 'sql_update_entry' failed: %s\n", sqlite3_errmsg(bdb->db));
         goto fail;
     }
     rc = sqlite3_prepare_v3(bdb->db, sql_replace_entry, -1, flags, &bdb->stmt_replace_entry, NULL);
