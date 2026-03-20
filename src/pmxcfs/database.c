@@ -105,6 +105,7 @@ static sqlite3 *bdb_create(const char *filename) {
 
     if (chmod(filename, 0600) == -1) {
         cfs_critical("chmod failed: %s", strerror(errno));
+        sqlite3_close(db);
         return NULL;
     }
 
