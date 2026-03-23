@@ -28,4 +28,37 @@ for (my $i = 0; $i <= length($prefix); $i++) {
     }
 }
 
+# test that only mac prefixes with unicast bit are accepted
+my $unicast = [
+    "00:00:00",
+    "02:00:00",
+    "04:00:00",
+    "06:00:00",
+    "08:00:00",
+    "0a:00:00",
+    "0c:00:00",
+    "0e:00:00",
+];
+for my $case ($unicast->@*) {
+    ok(PVE::DataCenterConfig::pve_verify_mac_prefix($case), "$case is a valid unicast mac prefix");
+}
+
+my $multicast = [
+    "01:00:00",
+    "03:00:00",
+    "05:00:00",
+    "07:00:00",
+    "09:00:00",
+    "0b:00:00",
+    "0d:00:00",
+    "0f:00:00",
+];
+for my $case ($multicast->@*) {
+    is(
+        PVE::DataCenterConfig::pve_verify_mac_prefix($case, 1),
+        undef,
+        "$case is an invalid multicast mac prefix",
+    );
+}
+
 done_testing();
