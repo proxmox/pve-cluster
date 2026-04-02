@@ -33,6 +33,50 @@ EODESC
             "Set to use CRS for selecting a suited node when a HA services request-state"
             . " changes from stop to start.",
     },
+    'ha-auto-rebalance' => {
+        type => 'boolean',
+        optional => 1,
+        default => 0,
+        description => "Whether to use CRS for balancing HA resources automatically"
+            . " depending on the current node imbalance.",
+    },
+    'ha-auto-rebalance-threshold' => {
+        type => 'number',
+        optional => 1,
+        minimum => 0.0,
+        default => 0.3,
+        requires => 'ha-auto-rebalance',
+        description => "The threshold for the cluster node imbalance, which will"
+            . " trigger the automatic resource balancing system if its value"
+            . " is exceeded.",
+    },
+    'ha-auto-rebalance-method' => {
+        type => 'string',
+        enum => ['bruteforce', 'topsis'],
+        optional => 1,
+        default => 'bruteforce',
+        requires => 'ha-auto-rebalance',
+        description => "The method to use for the scoring of balancing migrations.",
+    },
+    'ha-auto-rebalance-hold-duration' => {
+        type => 'number',
+        optional => 1,
+        minimum => 0,
+        default => 3,
+        requires => 'ha-auto-rebalance',
+        description => "The number of HA rounds for which the cluster node"
+            . " imbalance threshold must be exceeded before triggering an"
+            . " automatic resource balancing migration.",
+    },
+    'ha-auto-rebalance-margin' => {
+        type => 'number',
+        optional => 1,
+        minimum => 0.0,
+        default => 0.1,
+        requires => 'ha-auto-rebalance',
+        description => "The minimum relative improvement in cluster node"
+            . " imbalance to commit to a resource balancing migration.",
+    },
 };
 
 my $migration_format = {
