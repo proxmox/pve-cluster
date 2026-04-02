@@ -17,9 +17,12 @@ my $crs_format = {
         optional => 1,
         default => 'basic',
         description => "Use this resource scheduler mode for HA.",
-        verbose_description => "Configures how the HA manager should select nodes to start or "
-            . "recover services. With 'basic', only the number of services is used, with 'static', "
-            . "static CPU and memory configuration of services is considered.",
+        verbose_description => <<EODESC,
+Configures how the HA Manager should select nodes to start or recover services:
+
+- with 'basic', only the number of services is used,
+- with 'static', static CPU and memory configuration of services are considered.
+EODESC
     },
     'ha-rebalance-on-start' => {
         type => 'boolean',
