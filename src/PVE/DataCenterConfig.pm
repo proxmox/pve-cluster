@@ -13,7 +13,7 @@ my $PROXMOX_OUI = 'BC:24:11';
 my $crs_format = {
     ha => {
         type => 'string',
-        enum => ['basic', 'static'],
+        enum => ['basic', 'static', 'dynamic'],
         optional => 1,
         default => 'basic',
         description => "Use this resource scheduler mode for HA.",
@@ -21,7 +21,8 @@ my $crs_format = {
 Configures how the HA Manager should select nodes to start or recover services:
 
 - with 'basic', only the number of services is used,
-- with 'static', static CPU and memory configuration of services are considered.
+- with 'static', static CPU and memory configuration of services are considered,
+- with 'dynamic', static and dynamic CPU and memory usage of services are considered.
 EODESC
     },
     'ha-rebalance-on-start' => {
