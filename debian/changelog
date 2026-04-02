@@ -1,3 +1,21 @@
+pve-cluster (9.1.2) trixie; urgency=medium
+
+  * fix #6701: setup: add keyUsage extension to root CA for RFC 5280
+    compliance. Python 3.13 now enforces strict X.509 validation, which broke
+    clients like Ansible connecting to the API.
+
+  * setup: harden certificate generation by replacing temporary OpenSSL config
+    files with CLI arguments and moving the temporary CSR file from /tmp to
+    /run/pve-cluster to avoid symlink race conditions.
+
+  * fix #2685: datacenter config: allow 4-bit suffix in mac_prefix.
+
+  * datacenter config: add dynamic load scheduler option and auto rebalancing
+    options for the HA Manager, allowing automatic VM/CT migration to balance
+    load across cluster nodes.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 02 Apr 2026 17:35:03 +0200
+
 pve-cluster (9.1.1) trixie; urgency=medium
 
   * pmxcfs: improve cluster join handling:
