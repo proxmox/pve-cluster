@@ -111,6 +111,7 @@ static memdb_change_t memdb_change_array[] = {
     {.path = "sdn/dns.cfg"},
     {.path = "sdn/fabrics.cfg"},
     {.path = "sdn/route-maps.cfg"},
+    {.path = "sdn/prefix-lists.cfg"},
     {.path = "sdn/.running-config"},
     {.path = "virtual-guest/cpu-models.conf"},
     {.path = "virtual-guest/profiles.cfg"},

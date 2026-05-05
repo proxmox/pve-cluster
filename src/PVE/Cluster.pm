@@ -84,6 +84,7 @@ my $observed = {
     'sdn/dns.cfg' => 1,
     'sdn/fabrics.cfg' => 1,
     'sdn/route-maps.cfg' => 1,
+    'sdn/prefix-lists.cfg' => 1,
     'sdn/.running-config' => 1,
     'virtual-guest/cpu-models.conf' => 1,
     'virtual-guest/profiles.cfg' => 1,
