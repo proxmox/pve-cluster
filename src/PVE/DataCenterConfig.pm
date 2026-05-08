@@ -343,6 +343,28 @@ my $user_tag_privs_format = {
     },
 };
 
+my $location_format = {
+    name => {
+        type => 'string',
+        description => 'The name of the location of this node',
+        typetext => '<name>',
+        optional => 1,
+        maxLength => 128,
+    },
+    latitude => {
+        type => 'number',
+        description => "The latitude of the nodes location in degrees.",
+        minimum => -90,
+        maximum => 90,
+    },
+    longitude => {
+        type => 'number',
+        description => "The longitude of the nodes location in degrees.",
+        minimum => -180,
+        maximum => 180,
+    },
+};
+
 my $datacenter_schema = {
     type => "object",
     additionalProperties => 0,
@@ -543,6 +565,12 @@ my $datacenter_schema = {
             type => 'string',
             maxLength => 64 * 1024,
             description => "Consent text that is displayed before logging in.",
+        },
+        location => {
+            type => 'string',
+            format => $location_format,
+            description => "The location of the cluster.",
+            optional => 1,
         },
     },
 };
