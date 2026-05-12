@@ -63,6 +63,7 @@ my $observed = {
     'priv/tfa.cfg' => 1,
     'priv/token.cfg' => 1,
     'priv/acme/plugins.cfg' => 1,
+    'priv/wg-keys.cfg' => 1,
     '/qemu-server/' => 1,
     '/openvz/' => 1,
     '/lxc/' => 1,
