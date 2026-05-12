@@ -1,3 +1,14 @@
+pve-cluster (9.1.4) trixie; urgency=medium
+
+  * datacenter config: add 'location' property to optionally describe a
+    cluster's geographic location with a name and coordinates, for use by
+    management systems like Proxmox Datacenter Manager.
+
+  * pmxcfs: add 'priv/wg-keys.cfg' to observed files as preparation for
+    WireGuard SDN fabrics.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 13 May 2026 01:55:51 +0200
+
 pve-cluster (9.1.3) trixie; urgency=medium
 
   * pmxcfs: add 'sdn/prefix-lists.cfg' and 'sdn/route-maps.cfg' to observed
