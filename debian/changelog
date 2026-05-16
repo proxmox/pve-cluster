@@ -1,3 +1,15 @@
+pve-cluster (9.1.5) trixie; urgency=medium
+
+  * datacenter config: scale the HA auto-rebalance threshold and minimum
+    improvement margin from a 0.0-1.0 fraction to 0-100 percent. The
+    values now match the percent representation used in the HA panel
+    status and configuration UI.
+    NOTE: if you set this value during testing of the new dynamic CRS feature
+    you will need to adapt and re-set this to the same value multiplied by
+    100. If you did not alter the defaults, you do not need to do anything.
+
+ -- Proxmox Support Team <support@proxmox.com>  Sun, 17 May 2026 00:23:55 +0200
+
 pve-cluster (9.1.4) trixie; urgency=medium
 
   * datacenter config: add 'location' property to optionally describe a
