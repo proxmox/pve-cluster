@@ -11,6 +11,23 @@ remove_fabrics_directory() {
   fi
 }
 
+warn_ha_auto_rebalance_unit_change() {
+  DC_CFG="/etc/pve/datacenter.cfg"
+  test -r "$DC_CFG" || return 0
+  if grep -E -q '^crs:.*\b(ha-auto-rebalance-threshold|ha-auto-rebalance-margin)=' "$DC_CFG"; then
+    cat <<EOF
+
+!! ATTENTION !!
+Detected an explicit 'ha-auto-rebalance-threshold' or 'ha-auto-rebalance-margin'
+value in the 'crs' section of ${DC_CFG}.
+These properties now use a 0-100 percent scale instead of a 0.0-1.0 fraction;
+multiply any previously-configured fraction value by 100 to keep the same
+behavior.
+
+EOF
+  fi
+}
+
 case "$1" in
   configure)
     # TODO: remove with PVE 10+
@@ -21,6 +38,11 @@ case "$1" in
     # TODO: remove with PVE 10+
     if dpkg --compare-versions "$2" 'lt' '9.1.1'; then
       [ -d /var/lib/pve-cluster/backup ] && chmod -v 0700 /var/lib/pve-cluster/backup
+    fi
+
+    # TODO: remove with PVE 10+
+    if test -n "$2" && dpkg --compare-versions "$2" 'lt' '9.1.5~'; then
+      warn_ha_auto_rebalance_unit_change
     fi
   ;;
 esac

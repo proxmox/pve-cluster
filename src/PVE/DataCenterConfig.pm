@@ -43,12 +43,12 @@ EODESC
     'ha-auto-rebalance-threshold' => {
         type => 'number',
         optional => 1,
-        minimum => 0.0,
-        default => 0.3,
+        minimum => 0,
+        maximum => 100,
+        default => 30,
         requires => 'ha-auto-rebalance',
-        description => "The threshold for the cluster node imbalance, which will"
-            . " trigger the automatic resource balancing system if its value"
-            . " is exceeded.",
+        description => "The cluster node imbalance, in percent, which will trigger the"
+            . " automatic resource balancing system if exceeded.",
     },
     'ha-auto-rebalance-method' => {
         type => 'string',
@@ -71,11 +71,12 @@ EODESC
     'ha-auto-rebalance-margin' => {
         type => 'number',
         optional => 1,
-        minimum => 0.0,
-        default => 0.1,
+        minimum => 0,
+        maximum => 100,
+        default => 10,
         requires => 'ha-auto-rebalance',
-        description => "The minimum relative improvement in cluster node"
-            . " imbalance to commit to a resource balancing migration.",
+        description => "The minimum relative improvement in cluster node imbalance,"
+            . " in percent, to commit to a resource balancing migration.",
     },
 };
 
