@@ -601,8 +601,12 @@ sub parse_datacenter_config {
     # no MAC prefix is really not ideal, and overriding that here centrally catches all call sites
     $res->{mac_prefix} = $PROXMOX_OUI if !defined($res->{mac_prefix});
 
-    if (my $crs = $res->{crs}) {
+    # treat an empty crs value as missing; otherwise consumers would deref a string.
+    if (defined($res->{crs}) && (my $crs = $res->{crs}) ne '') {
         $res->{crs} = parse_property_string($crs_format, $crs);
+    } elsif (defined($res->{crs})) {
+        warn "ignoring empty 'crs:' line in datacenter.cfg\n";
+        delete $res->{crs};
     }
 
     if (my $migration = $res->{migration}) {
@@ -684,6 +688,8 @@ sub write_datacenter_config {
         delete $cfg->{mac_prefix}; # avoid writing out default prefix
     }
 
+    # avoid writing an empty 'crs:' line back out, which the reader then has to defuse
+    delete $cfg->{crs} if defined($cfg->{crs}) && !ref($cfg->{crs}) && $cfg->{crs} eq '';
     if (ref(my $crs = $cfg->{crs})) {
         $cfg->{crs} = PVE::JSONSchema::print_property_string($crs, $crs_format);
     }
