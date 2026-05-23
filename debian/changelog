@@ -1,3 +1,12 @@
+pve-cluster (9.1.6) trixie; urgency=medium
+
+  * datacenter config: ignore an empty 'crs' setting instead of crashing the
+    HA cluster resource manager on it; the empty value is dropped with a
+    warning on read and stripped on the next write, so a broken config heals
+    on the next save.
+
+ -- Proxmox Support Team <support@proxmox.com>  Sun, 24 May 2026 01:53:29 +0200
+
 pve-cluster (9.1.5) trixie; urgency=medium
 
   * datacenter config: scale the HA auto-rebalance threshold and minimum
