@@ -283,6 +283,42 @@ my $webauthn_format = {
     },
 };
 
+my $token_policy_format = {
+    'require-expiry' => {
+        type => 'boolean',
+        optional => 1,
+        default => 0,
+        description => "Require an expiration date for new API tokens and when changing the"
+            . " expiration date of existing ones.",
+    },
+    'max-lifetime' => {
+        type => 'integer',
+        optional => 1,
+        minimum => 1,
+        format_description => 'seconds',
+        description => "Maximum lifetime of API tokens in seconds, counted from when the"
+            . " expiration date is set, that is on creation or when an update changes it."
+            . " Implies 'require-expiry'.",
+    },
+    'disallow-expiry-extension' => {
+        type => 'boolean',
+        optional => 1,
+        default => 0,
+        description => "Disallow moving the expiration date of existing API tokens later or"
+            . " removing it, so that 'max-lifetime' cannot be circumvented by extending tokens"
+            . " repeatedly. Shortening the expiration date or setting one on a token that has"
+            . " none remains possible, and tokens can still be deleted and recreated.",
+    },
+    'require-privilege-separation' => {
+        type => 'boolean',
+        optional => 1,
+        default => 0,
+        description => "Require privilege separation for new API tokens and when changing that"
+            . " setting on existing ones, that is, disallow tokens with the full privileges of"
+            . " their user.",
+    },
+};
+
 PVE::JSONSchema::register_format('mac-prefix', \&pve_verify_mac_prefix);
 
 sub pve_verify_mac_prefix {
@@ -525,6 +561,13 @@ my $datacenter_schema = {
             format => $webauthn_format,
             description => 'webauthn configuration',
         },
+        'token-policy' => {
+            optional => 1,
+            type => 'string',
+            format => $token_policy_format,
+            description => "Cluster-wide policy for creating and updating API tokens, for"
+                . " example to enforce an expiration date or privilege separation.",
+        },
         description => {
             type => 'string',
             description =>
@@ -629,6 +672,10 @@ sub parse_datacenter_config {
         $res->{webauthn} = parse_property_string($webauthn_format, $webauthn);
     }
 
+    if (my $token_policy = $res->{'token-policy'}) {
+        $res->{'token-policy'} = parse_property_string($token_policy_format, $token_policy);
+    }
+
     if (my $tag_style = $res->{'tag-style'}) {
         $res->{'tag-style'} = parse_property_string($tag_style_format, $tag_style);
     }
@@ -720,6 +767,11 @@ sub write_datacenter_config {
 
     if (ref(my $webauthn = $cfg->{webauthn})) {
         $cfg->{webauthn} = PVE::JSONSchema::print_property_string($webauthn, $webauthn_format);
+    }
+
+    if (ref(my $token_policy = $cfg->{'token-policy'})) {
+        $cfg->{'token-policy'} =
+            PVE::JSONSchema::print_property_string($token_policy, $token_policy_format);
     }
 
     if (ref(my $tag_style = $cfg->{'tag-style'})) {
