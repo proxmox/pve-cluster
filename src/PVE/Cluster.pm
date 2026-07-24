@@ -20,7 +20,7 @@ use PVE::IPCC;
 use PVE::JSONSchema;
 use PVE::Network;
 use PVE::SafeSyslog;
-use PVE::Tools qw(run_command);
+use PVE::Tools qw(run_command pvecfg_min_version);
 
 use PVE::Cluster::IPCConst;
 
@@ -927,6 +927,43 @@ sub cfs_unlink_db_unsafe {
 sub cfs_rename_db_unsafe {
     my $ctime = time();
     rename $dbfile, "$dbfile.$ctime.bak" or warn "failed to rename old config database - $!\n";
+}
+
+# Asserts that all configured nodes in the cluster meet a minimum version requirement.
+# Evaluates against the full, static cluster node list rather than only live nodes.
+# Aborts if any node is offline, unreadable, or running an
+# outdated version, preventing partial feature rollouts from corrupting cluster state.
+# NOTE: Uses PVE::Tools::pvecfg_min_version, which currently checks basic major.minor.release
+# triples. If gatekeeping a feature right around a major release transition, be aware that it
+# does not yet lexically sort trailing Debian revision suffixes (e.g., distinguishing '9.0.0' as
+# newer than '9.0.0~22').
+sub assert_min_cluster_version {
+    my ($major, $minor, $release) = @_;
+
+    my $nodestat = get_node_kv('version-info');
+    my $nodelist = get_nodelist();
+
+    for my $node (sort @$nodelist) {
+        my $raw_json = $nodestat->{$node};
+
+        if (!defined($raw_json)) {
+            die "cannot execute operation: cluster node '$node' is offline or not reporting its"
+                . " version. All nodes must be online to verify cluster-wide feature support.\n";
+        }
+
+        my $vinfo = eval { decode_json($raw_json) };
+        if ($@ || !$vinfo || !$vinfo->{version}) {
+            die "cannot execute operation: failed to parse cluster version string for node"
+                . " '$node'.\n";
+        }
+
+        if (!pvecfg_min_version($vinfo->{version}, $major, $minor, $release)) {
+            die "cannot execute operation: cluster node '$node' runs an older version of Proxmox"
+                . " VE ($vinfo->{version}) than the required $major.$minor.$release. Please"
+                . " upgrade all nodes first.\n";
+        }
+    }
+    return 1;
 }
 
 1;
