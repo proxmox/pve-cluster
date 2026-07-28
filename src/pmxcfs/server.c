@@ -161,6 +161,18 @@ static int32_t s1_connection_closed_fn(qb_ipcs_connection_t *c) {
     return 0;
 }
 
+/* Compare in constant time, so that a caller cannot learn a valid token prefix from how long the
+ * comparison takes. Both lengths are already known to the caller, only the contents are secret. */
+static gboolean token_equal(const char *a, const char *b, size_t len) {
+    unsigned char diff = 0;
+
+    for (size_t i = 0; i < len; i++) {
+        diff |= (unsigned char)a[i] ^ (unsigned char)b[i];
+    }
+
+    return diff == 0;
+}
+
 static int32_t s1_msg_handle_request(
     struct s1_context *ctx, void *data, int32_t request_id, int32_t request_size
 ) {
@@ -426,7 +438,7 @@ static int32_t s1_msg_handle_request(
                 while (line != NULL) {
                     next_line = memchr(line, '\n', remaining);
                     linelen = next_line == NULL ? remaining : next_line - line;
-                    if (linelen == tokenlen && strncmp(line, token, linelen) == 0) {
+                    if (linelen == tokenlen && token_equal(line, token, linelen)) {
                         result = 0;
                         break;
                     }
