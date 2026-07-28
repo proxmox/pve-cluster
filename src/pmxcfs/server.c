@@ -331,14 +331,16 @@ static int32_t s1_msg_handle_request(
             request_size - G_STRUCT_OFFSET(cfs_guest_config_propery_get_request_header_t, property);
 
         result = 0;
-        if (rh->vmid < 100 && rh->vmid != 0) {
+        if (proplen <= 0) {
+            /* vmid is part of the request body, so do not read it before the request is known
+             * to be long enough to carry it */
+            cfs_debug("proplen <= 0, %d", proplen);
+            result = -EINVAL;
+        } else if (rh->vmid < 100 && rh->vmid != 0) {
             cfs_debug("vmid out of range %u", rh->vmid);
             result = -EINVAL;
         } else if (rh->vmid >= 100 && !vmlist_vm_exists(rh->vmid)) {
             result = -ENOENT;
-        } else if (proplen <= 0) {
-            cfs_debug("proplen <= 0, %d", proplen);
-            result = -EINVAL;
         } else {
             ((char *)data)[request_size - 1] = 0; // ensure property is 0 terminated
 
@@ -356,16 +358,18 @@ static int32_t s1_msg_handle_request(
             request_size - G_STRUCT_OFFSET(cfs_guest_config_properties_get_request_header_t, props);
 
         result = 0;
-        if (rh->vmid < 100 && rh->vmid != 0) {
+        if (remaining <= 1) {
+            /* vmid and num_props are part of the request body, so do not read them before the
+             * request is known to be long enough to carry them */
+            cfs_debug("property length <= 1, %ld", remaining);
+            result = -EINVAL;
+        } else if (rh->vmid < 100 && rh->vmid != 0) {
             cfs_debug("vmid out of range %u", rh->vmid);
             result = -EINVAL;
         } else if (rh->vmid >= 100 && !vmlist_vm_exists(rh->vmid)) {
             result = -ENOENT;
         } else if (rh->num_props == 0) {
             cfs_debug("num_props == 0");
-            result = -EINVAL;
-        } else if (remaining <= 1) {
-            cfs_debug("property length <= 1, %ld", remaining);
             result = -EINVAL;
         } else {
             const char **properties = malloc(sizeof(char *) * rh->num_props);
