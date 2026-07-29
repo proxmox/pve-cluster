@@ -101,6 +101,56 @@ static clog_entry_t *clog_alloc_entry(clog_base_t *clog, uint32_t size) {
     return entry;
 }
 
+/* entry offsets inside a log buffer received from another node are not covered by the size check
+ * done on the state message, so verify that an entry really lies inside the buffer before it gets
+ * dereferenced */
+static gboolean clog_entry_in_bounds(const clog_base_t *clog, uint32_t cpos) {
+    g_return_val_if_fail(clog != NULL, FALSE);
+
+    if (cpos < sizeof(clog_base_t) || (uint64_t)cpos + sizeof(clog_entry_t) > clog->size) {
+        return FALSE;
+    }
+
+    const clog_entry_t *entry = (const clog_entry_t *)((const char *)clog + cpos);
+
+    /* not clog_entry_size(), that truncates the sum to 32 bit */
+    uint64_t size = (uint64_t)sizeof(clog_entry_t) + entry->node_len + entry->ident_len +
+                    entry->tag_len + entry->msg_len;
+
+    return ((uint64_t)cpos + size) <= clog->size;
+}
+
+/* Step a backwards walk to the previous entry, 0 means the chain ended. Entries are appended at
+ * strictly increasing offsets, so walking back decreases until it crosses the wrap-around point,
+ * which can happen at most once - anything else is a cycle. That matters because the chain of a
+ * log received from another node is attacker controlled, and a cycle would spin forever while
+ * holding the clusterlog mutex. */
+static uint32_t clog_entry_prev(const clog_base_t *clog, uint32_t cpos, gboolean *wrapped) {
+    g_return_val_if_fail(clog != NULL, 0);
+    g_return_val_if_fail(wrapped != NULL, 0);
+
+    uint32_t prev = ((const clog_entry_t *)((const char *)clog + cpos))->prev;
+
+    if (!prev || !clog_entry_in_bounds(clog, prev)) {
+        return 0;
+    }
+
+    if (prev >= cpos) {
+        /* only the single wrap-around may jump forward, and only to past the head */
+        if (*wrapped || prev == cpos || prev <= clog->cpos) {
+            return 0;
+        }
+        *wrapped = TRUE;
+    }
+
+    /* would land inside the entry that is currently being written */
+    if (prev > clog->cpos && prev <= (clog->cpos + CLOG_MAX_ENTRY_SIZE)) {
+        return 0;
+    }
+
+    return prev;
+}
+
 static void clog_dump_entry(clog_entry_t *cur, uint32_t cpos) {
     g_return_if_fail(cur != NULL);
 
@@ -123,16 +173,12 @@ void clog_dump(clog_base_t *clog) {
     g_return_if_fail(clog != NULL);
 
     uint32_t cpos = clog->cpos;
+    gboolean wrapped = FALSE;
 
-    while (cpos && (cpos <= clog->cpos || cpos > (clog->cpos + CLOG_MAX_ENTRY_SIZE))) {
+    while (cpos && clog_entry_in_bounds(clog, cpos)) {
         clog_entry_t *cur = (clog_entry_t *)((char *)clog + cpos);
         clog_dump_entry(cur, cpos);
-
-        // wrap-around has to land after initial position
-        if (cpos < cur->prev && cur->prev <= clog->cpos) {
-            break;
-        }
-        cpos = cur->prev;
+        cpos = clog_entry_prev(clog, cpos, &wrapped);
     }
 }
 
@@ -153,14 +199,11 @@ void clog_dump_json(clog_base_t *clog, GString *str, const char *ident, guint ma
     g_string_append_printf(str, "\"data\": [\n");
 
     guint count = 0;
-    while (cpos && (cpos <= clog->cpos || cpos > (clog->cpos + CLOG_MAX_ENTRY_SIZE))) {
+    gboolean wrapped = FALSE;
+    while (cpos && clog_entry_in_bounds(clog, cpos)) {
         clog_entry_t *cur = (clog_entry_t *)((char *)clog + cpos);
 
-        // wrap-around has to land after initial position
-        if (cpos < cur->prev && cur->prev <= clog->cpos) {
-            break;
-        }
-        cpos = cur->prev;
+        cpos = clog_entry_prev(clog, cpos, &wrapped);
 
         if (count >= max_entries) {
             break;
@@ -334,18 +377,12 @@ clog_base_t *clog_sort(clog_base_t *clog) {
     }
 
     uint32_t cpos = clog->cpos;
+    gboolean wrapped = FALSE;
 
-    while (cpos && (cpos <= clog->cpos || cpos > (clog->cpos + CLOG_MAX_ENTRY_SIZE))) {
+    while (cpos && clog_entry_in_bounds(clog, cpos)) {
         clog_entry_t *cur = (clog_entry_t *)((char *)clog + cpos);
-
         g_tree_insert(tree, cur, cur);
-
-        // wrap-around has to land after initial position
-        if (cpos < cur->prev && cur->prev <= clog->cpos) {
-            break;
-        }
-
-        cpos = cur->prev;
+        cpos = clog_entry_prev(clog, cpos, &wrapped);
     }
 
     g_tree_foreach(tree, clog_tree_foreach_fn, res);
@@ -410,7 +447,10 @@ clog_base_t *clusterlog_merge(clusterlog_t *cl, clog_base_t **clog, int count, i
     g_return_val_if_fail(local_index < count, NULL);
 
     uint32_t cpos[count];
+    gboolean wrapped[count];
     uint32_t maxsize = 0;
+
+    memset(wrapped, 0, sizeof(wrapped));
 
     GHashTable *dedup;
     if (!(dedup = g_hash_table_new_full(g_int64_hash, g_int64_equal, NULL, g_free))) {
@@ -442,6 +482,12 @@ clog_base_t *clusterlog_merge(clusterlog_t *cl, clog_base_t **clog, int count, i
             cpos[i] = 0;
             continue;
         }
+        if (clog[i]->cpos && !clog_entry_in_bounds(clog[i], clog[i]->cpos)) {
+            cfs_critical("received log with out of bounds entry position %u", clog[i]->cpos);
+            cpos[i] = 0;
+            continue;
+        }
+
         cpos[i] = clog[i]->cpos;
         if (clog[i]->size > maxsize) {
             maxsize = clog[i]->size;
@@ -484,17 +530,7 @@ clog_base_t *clusterlog_merge(clusterlog_t *cl, clog_base_t **clog, int count, i
             }
         }
 
-        // no previous entry or wrap-around into already overwritten entry
-        if (!cur->prev || (cpos[found] < cur->prev && cur->prev <= clog[found]->cpos)) {
-            cpos[found] = 0;
-        } else {
-            cpos[found] = cur->prev;
-            // wrap-around into current entry
-            if (!(cpos[found] <= clog[found]->cpos ||
-                  cpos[found] > (clog[found]->cpos + CLOG_MAX_ENTRY_SIZE))) {
-                cpos[found] = 0;
-            }
-        }
+        cpos[found] = clog_entry_prev(clog[found], cpos[found], &wrapped[found]);
     }
 
     g_tree_foreach(tree, clog_tree_foreach_fn, res);
