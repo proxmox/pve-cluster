@@ -27,6 +27,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <glib.h>
+#include <inttypes.h>
 #include <rrd.h>
 #include <rrd_client.h>
 #include <stdint.h>
@@ -1572,11 +1573,12 @@ static clog_entry_t *kvstore_parse_log_message(const void *msg, size_t msg_len) 
 
     clog_entry_t *entry = (clog_entry_t *)msg;
 
-    uint32_t size =
+    /* keep this 64 bit, else the sum gets truncated and a huge msg_len passes this check */
+    uint64_t size =
         sizeof(clog_entry_t) + entry->node_len + entry->ident_len + entry->tag_len + entry->msg_len;
 
     if (msg_len != size) {
-        cfs_critical("received log message with wrong size (%zu != %u)", msg_len, size);
+        cfs_critical("received log message with wrong size (%zu != %" PRIu64 ")", msg_len, size);
         return NULL;
     }
 

@@ -199,7 +199,8 @@ static gboolean dcdb_parse_fuse_message(
     msg_ptr += 4;
     msg_len -= 4;
 
-    if (msg_len != ((*size) + pathlen + tolen)) {
+    /* compute in 64 bit, else the sum of the guint32 fields wraps and passes this check */
+    if (msg_len != (uint64_t)(*size) + pathlen + tolen) {
         cfs_critical("received mailformed fuse message");
         return FALSE;
     }
@@ -319,7 +320,8 @@ memdb_tree_entry_t *dcdb_parse_update_inode(const void *msg, size_t msg_len) {
         return NULL;
     }
 
-    if (msg_len != (size + namelen)) {
+    /* compute in 64 bit, else the sum of the guint32 fields wraps and passes this check */
+    if (msg_len != (uint64_t)size + namelen) {
         cfs_critical("received mailformed message (msg_len != (size + namelen))");
         return NULL;
     }
