@@ -281,8 +281,9 @@ static gboolean dcdb_send_update_inode(dfsm_t *dfsm, memdb_tree_entry_t *te) {
 }
 
 memdb_tree_entry_t *dcdb_parse_update_inode(const void *msg, size_t msg_len) {
-    if (msg_len < 40) {
-        cfs_critical("received short message (msg_len < 40)");
+    /* 41, not 40 - the type byte past the fixed fields is read unconditionally below */
+    if (msg_len < 41) {
+        cfs_critical("received short message (msg_len < 41)");
         return NULL;
     }
 
