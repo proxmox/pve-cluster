@@ -628,6 +628,17 @@ static int dcdb_process_state_update(dfsm_t *dfsm, gpointer data, dfsm_sync_info
             cfs_critical("received mailformed memdb index (len != idx->bytes)");
             return -1;
         }
+
+        /* 'size' is an independent field on the wire, but both the leader diff and the backend
+         * commit iterate it - make sure it matches the actual allocation. memdb_encode_index never
+         * emits an empty index, a node claiming one would make every follower drop all its inodes
+         */
+        if (idx[i]->size == 0 ||
+            (uint64_t)idx[i]->bytes !=
+                sizeof(memdb_index_t) + (uint64_t)idx[i]->size * sizeof(memdb_index_extry_t)) {
+            cfs_critical("received mailformed memdb index (bytes != size)");
+            return -1;
+        }
     }
 
     /* select leader - set mode */
