@@ -528,7 +528,9 @@ static gboolean dcdb_create_and_send_updates(
                 j++;
             }
 
-            if (memcmp(&slave->entries[j], &master->entries[i], sizeof(memdb_index_extry_t)) == 0) {
+            /* the inner loop above can leave j at slave->size, do not read past the index */
+            if (j < slave->size &&
+                memcmp(&slave->entries[j], &master->entries[i], sizeof(memdb_index_extry_t)) == 0) {
                 continue;
             }
 
