@@ -958,6 +958,9 @@ int memdb_write(
 }
 
 memdb_tree_entry_t *memdb_getattr(memdb_t *memdb, const char *path) {
+    g_return_val_if_fail(memdb != NULL, NULL);
+    g_return_val_if_fail(path != NULL, NULL);
+
     memdb_tree_entry_t *te, *parent;
 
     g_mutex_lock(&memdb->mutex);
@@ -1058,6 +1061,10 @@ static int unlink_tree_entry(memdb_t *memdb, memdb_tree_entry_t *parent, memdb_t
 }
 
 int memdb_rename(memdb_t *memdb, const char *from, const char *to, guint32 writer, guint32 mtime) {
+    g_return_val_if_fail(memdb != NULL, -EINVAL);
+    g_return_val_if_fail(from != NULL, -EINVAL);
+    g_return_val_if_fail(to != NULL, -EINVAL);
+
     int ret = -EACCES;
 
     char *nodename = NULL;
@@ -1205,6 +1212,9 @@ ret:
 }
 
 int memdb_delete(memdb_t *memdb, const char *path, guint32 writer, guint32 mtime) {
+    g_return_val_if_fail(memdb != NULL, -EINVAL);
+    g_return_val_if_fail(path != NULL, -EINVAL);
+
     memdb_tree_entry_t *te, *parent;
 
     g_mutex_lock(&memdb->mutex);
