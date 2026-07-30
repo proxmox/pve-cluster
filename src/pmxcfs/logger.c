@@ -338,18 +338,24 @@ clog_base_t *clog_new(uint32_t size) {
 }
 
 static gint clog_entry_sort_fn(gconstpointer v1, gconstpointer v2, gpointer user_data) {
-    clog_entry_t *entry1 = (clog_entry_t *)v1;
-    clog_entry_t *entry2 = (clog_entry_t *)v2;
+    const clog_entry_t *entry1 = (const clog_entry_t *)v1;
+    const clog_entry_t *entry2 = (const clog_entry_t *)v2;
 
+    /* do not subtract, these are wider than the return value and a difference that truncates
+     * to zero makes two distinct entries compare equal */
     if (entry1->time != entry2->time) {
-        return entry1->time - entry2->time;
+        return entry1->time < entry2->time ? -1 : 1;
     }
 
     if (entry1->node_digest != entry2->node_digest) {
-        return entry1->node_digest - entry2->node_digest;
+        return entry1->node_digest < entry2->node_digest ? -1 : 1;
     }
 
-    return entry1->uid - entry2->uid;
+    if (entry1->uid != entry2->uid) {
+        return entry1->uid < entry2->uid ? -1 : 1;
+    }
+
+    return 0;
 }
 
 static gboolean clog_tree_foreach_fn(gpointer key, gpointer value, gpointer data) {

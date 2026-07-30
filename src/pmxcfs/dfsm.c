@@ -430,14 +430,19 @@ static gboolean dfsm_sync_info_equal(gconstpointer v1, gconstpointer v2) {
 }
 
 static int dfsm_sync_info_compare(gconstpointer v1, gconstpointer v2) {
-    dfsm_node_info_t *info1 = (dfsm_node_info_t *)v1;
-    dfsm_node_info_t *info2 = (dfsm_node_info_t *)v2;
+    const dfsm_node_info_t *info1 = (const dfsm_node_info_t *)v1;
+    const dfsm_node_info_t *info2 = (const dfsm_node_info_t *)v2;
 
+    /* an unsigned difference does not fit the signed return value, so compare instead */
     if (info1->nodeid != info2->nodeid) {
-        return info1->nodeid - info2->nodeid;
+        return info1->nodeid < info2->nodeid ? -1 : 1;
     }
 
-    return info1->pid - info2->pid;
+    if (info1->pid != info2->pid) {
+        return info1->pid < info2->pid ? -1 : 1;
+    }
+
+    return 0;
 }
 
 static void dfsm_set_mode(dfsm_t *dfsm, dfsm_mode_t new_mode) {
