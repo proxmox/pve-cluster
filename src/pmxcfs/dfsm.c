@@ -834,6 +834,15 @@ static void dfsm_cpg_deliver_callback(
                 goto leave;
             }
 
+            /* An empty state would leave ni->state NULL, so this node would never count as having
+             * sent its state and the sync would wait for it forever, blocking every writer. */
+            if (!msg_len) {
+                cfs_dom_critical(
+                    dfsm->log_domain, "received empty state for member %d/%d", nodeid, pid
+                );
+                goto leave;
+            }
+
             ni->state = g_memdup2(msg, msg_len);
             ni->state_len = msg_len;
 
