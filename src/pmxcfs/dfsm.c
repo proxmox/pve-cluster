@@ -536,7 +536,7 @@ static void dfsm_release_sync_resources(
             g_free(dfsm->sync_info);
         }
 
-        int size = sizeof(dfsm_sync_info_t) + member_list_entries * sizeof(dfsm_sync_info_t);
+        int size = sizeof(dfsm_sync_info_t) + member_list_entries * sizeof(dfsm_node_info_t);
         dfsm_sync_info_t *sync_info = dfsm->sync_info = g_malloc0(size);
         sync_info->node_count = member_list_entries;
 
