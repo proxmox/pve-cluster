@@ -789,9 +789,13 @@ static int memdb_pwrite(
 
     } else {
 
-        if (count && data) {
+        /* must allocate whenever the entry ends up non-empty, a plain truncate has no data but
+         * still grows the entry - readers would then copy from a NULL value */
+        if (newsize) {
             newdata = g_malloc0(newsize);
-            memcpy((uint8_t *)newdata + offset, data, count);
+            if (count && data) {
+                memcpy((uint8_t *)newdata + offset, data, count);
+            }
         }
     }
 

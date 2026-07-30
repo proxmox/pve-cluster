@@ -63,6 +63,23 @@ void teardown(void) {
     memdb_close(memdb);
 }
 
+START_TEST(test_truncate_grow) {
+    const char *fn = "/f1";
+    time_t ctime = 1234;
+    gpointer data;
+
+    ck_assert(memdb_create(memdb, fn, 0, ctime) == 0);
+
+    /* growing without writing data, as a plain truncate does, still has to leave the entry
+     * backed by an allocation */
+    ck_assert(memdb_write(memdb, fn, 0, ctime, NULL, 0, 16, 1) == 0);
+
+    ck_assert(memdb_read(memdb, fn, &data) == 16);
+    ck_assert(data != NULL);
+    g_free(data);
+}
+END_TEST
+
 START_TEST(test_indextest1) {
     char namebuf[100];
 
@@ -260,6 +277,8 @@ static Suite *memdb_suite(void) {
     add_test(s, test_dirtest1, "dirtest1");
 
     add_test(s, test_filetest1, "filetest1");
+
+    add_test(s, test_truncate_grow, "truncate_grow");
 
     add_test(s, test_indextest1, "indextest1");
 
