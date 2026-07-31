@@ -63,6 +63,23 @@ void teardown(void) {
     memdb_close(memdb);
 }
 
+START_TEST(test_path_is_private) {
+    ck_assert(path_is_private("priv"));
+    ck_assert(path_is_private("priv/lock/x"));
+    ck_assert(path_is_private("/priv"));
+    ck_assert(path_is_private("//priv//x"));
+    ck_assert(path_is_private("nodes/n1/priv/pve-ssl.key"));
+    ck_assert(path_is_private("nodes/n1//priv/x"));
+
+    ck_assert(!path_is_private(""));
+    ck_assert(!path_is_private("/"));
+    ck_assert(!path_is_private("privileged"));
+    ck_assert(!path_is_private("nodes/n1/qemu-server/100.conf"));
+    /* a node may be named 'priv', its directory is not the private one */
+    ck_assert(!path_is_private("nodes/priv/x"));
+}
+END_TEST
+
 START_TEST(test_truncate_grow) {
     const char *fn = "/f1";
     time_t ctime = 1234;
@@ -338,6 +355,8 @@ static Suite *memdb_suite(void) {
     add_test(s, test_filetest1, "filetest1");
 
     add_test(s, test_truncate_grow, "truncate_grow");
+
+    add_test(s, test_path_is_private, "path_is_private");
 
     add_test(s, test_indextest1, "indextest1");
 

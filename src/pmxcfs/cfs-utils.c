@@ -264,25 +264,54 @@ fail:
     goto ret;
 }
 
-gboolean path_is_private(const char *path) {
-    while (*path == '/') {
-        path++;
+/* Returns the next path component and advances 'path' behind it, or NULL at the end of the path.
+ * Empty components are skipped, just like the memdb path lookup does. */
+static const char *path_next_component(const char **path, size_t *len) {
+    const char *cur = *path;
+
+    while (*cur == '/') {
+        cur++;
     }
 
-    if ((strncmp(path, "priv", 4) == 0) && (path[4] == 0 || path[4] == '/')) {
-        return TRUE;
-    } else {
-        if (strncmp(path, "nodes/", 6) == 0) {
-            const char *tmp = path + 6;
-            while (*tmp && *tmp != '/') {
-                tmp++;
-            }
-            if (*tmp == '/' && (strncmp(tmp, "/priv", 5) == 0) && (tmp[5] == 0 || tmp[5] == '/')) {
-                return TRUE;
-            }
-        }
+    const char *start = cur;
+    while (*cur && *cur != '/') {
+        cur++;
     }
-    return FALSE;
+
+    *path = cur;
+    *len = cur - start;
+
+    return *len ? start : NULL;
+}
+
+static gboolean path_component_is(const char *component, size_t len, const char *name) {
+    return len == strlen(name) && strncmp(component, name, len) == 0;
+}
+
+gboolean path_is_private(const char *path) {
+    size_t len;
+    const char *component = path_next_component(&path, &len);
+
+    if (!component) {
+        return FALSE;
+    }
+
+    if (path_component_is(component, len, "priv")) {
+        return TRUE;
+    }
+
+    if (!path_component_is(component, len, "nodes")) {
+        return FALSE;
+    }
+
+    /* skip the node name */
+    if (!path_next_component(&path, &len)) {
+        return FALSE;
+    }
+
+    component = path_next_component(&path, &len);
+
+    return component && path_component_is(component, len, "priv");
 }
 
 gboolean path_is_lxc_conf(const char *path) {
