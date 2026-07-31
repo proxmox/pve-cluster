@@ -264,6 +264,7 @@ int bdb_backend_write(
 
         if (sqlite3_changes(bdb->db) != 1) {
             cfs_critical("no such inode %016" PRIX64, inode);
+            rc = SQLITE_ERROR;
             goto rollback;
         }
     }
@@ -491,7 +492,7 @@ gboolean bdb_backend_commit_update(
     sqlite3_reset(bdb->stmt_begin);
     if (rc != SQLITE_DONE) {
         cfs_critical("begin transaction failed: %s\n", sqlite3_errmsg(bdb->db));
-        return rc;
+        return FALSE;
     }
 
     g_mutex_lock(&memdb->mutex);
