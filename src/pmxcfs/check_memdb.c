@@ -228,6 +228,44 @@ START_TEST(test_loaddb1) {
 }
 END_TEST
 
+START_TEST(test_rename_same_entry) {
+    time_t ctime = 1234;
+    gpointer data;
+
+    ck_assert(memdb_mkdir(memdb, "dir1", 0, ctime) == 0);
+    ck_assert(memdb_create(memdb, "dir1/file1", 0, ctime) == 0);
+    ck_assert(memdb_write(memdb, "dir1/file1", 0, ctime, "data", 4, 0, 0) == 4);
+
+    /* both paths resolve to the same entry, so this has to be a no-op */
+    ck_assert(memdb_rename(memdb, "dir1/file1", "dir1//file1", 0, ctime) == 0);
+
+    ck_assert(memdb_read(memdb, "dir1/file1", &data) == 4);
+    ck_assert(memcmp(data, "data", 4) == 0);
+    g_free(data);
+}
+END_TEST
+
+START_TEST(test_rename_keeps_destination_on_error) {
+    time_t ctime = 1234;
+    gpointer data;
+
+    ck_assert(memdb_mkdir(memdb, "src", 0, ctime) == 0);
+    ck_assert(memdb_create(memdb, "src/keep", 0, ctime) == 0);
+    ck_assert(memdb_mkdir(memdb, "dst", 0, ctime) == 0);
+    ck_assert(memdb_create(memdb, "dst/file", 0, ctime) == 0);
+    ck_assert(memdb_write(memdb, "dst/file", 0, ctime, "keepme", 6, 0, 0) == 6);
+
+    /* a non-empty source directory cannot be renamed, so the destination must survive */
+    ck_assert(memdb_rename(memdb, "src", "dst/file", 0, ctime) == -ENOTEMPTY);
+
+    ck_assert(memdb_read(memdb, "dst/file", &data) == 6);
+    ck_assert(memcmp(data, "keepme", 6) == 0);
+    g_free(data);
+
+    ck_assert(memdb_read(memdb, "src/keep", &data) == 0);
+}
+END_TEST
+
 START_TEST(test_lock_timestamp_preserved) {
     time_t ctime = 1234;
     const char *path = "priv/lock/test";
@@ -308,6 +346,10 @@ static Suite *memdb_suite(void) {
     add_test(s, test_loaddb2, "loaddb2");
 
     add_test(s, test_lock_timestamp_preserved, "lock_timestamp_preserved");
+
+    add_test(s, test_rename_same_entry, "rename_same_entry");
+
+    add_test(s, test_rename_keeps_destination_on_error, "rename_keeps_destination_on_error");
 
     return s;
 }

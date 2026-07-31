@@ -1039,14 +1039,22 @@ void memdb_dirlist_free(GList *dirlist) {
     }
 }
 
-static int unlink_tree_entry(memdb_t *memdb, memdb_tree_entry_t *parent, memdb_tree_entry_t *te) {
+/* tells whether unlink_tree_entry() would succeed, without changing anything */
+static int check_unlink_tree_entry(memdb_tree_entry_t *parent, memdb_tree_entry_t *te) {
     g_return_val_if_fail(parent != NULL, -EACCES);
     g_return_val_if_fail(parent->inode == te->parent, -EACCES);
 
-    if (te->type == DT_DIR) {
-        if (g_hash_table_size(te->data.entries)) {
-            return -ENOTEMPTY;
-        }
+    if (te->type == DT_DIR && g_hash_table_size(te->data.entries)) {
+        return -ENOTEMPTY;
+    }
+
+    return 0;
+}
+
+static int unlink_tree_entry(memdb_t *memdb, memdb_tree_entry_t *parent, memdb_tree_entry_t *te) {
+    int ret = check_unlink_tree_entry(parent, te);
+    if (ret != 0) {
+        return ret;
     }
 
     if (!g_hash_table_steal(parent->data.entries, te->name)) {
@@ -1122,6 +1130,17 @@ int memdb_rename(memdb_t *memdb, const char *from, const char *to, guint32 write
     }
 
     if ((to_te = memdb_lookup_path(memdb, to, &to_parent))) {
+
+        /* renaming an entry onto itself, for example 'a/b' to 'a//b', changes nothing */
+        if (to_te == from_te) {
+            ret = 0;
+            goto ret;
+        }
+
+        /* the source unlink below must not leave the destination already destroyed */
+        if ((ret = check_unlink_tree_entry(from_parent, from_te)) != 0) {
+            goto ret;
+        }
 
         if ((ret = unlink_tree_entry(memdb, to_parent, to_te)) != 0) {
             goto ret;
