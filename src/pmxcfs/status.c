@@ -1547,7 +1547,8 @@ static int kvstore_send_update_message(dfsm_t *dfsm, const char *key, gpointer d
 
     struct iovec iov[2];
 
-    char name[256];
+    /* the whole fixed size field goes out on the wire, so do not leak stack padding */
+    char name[256] = {0};
     g_strlcpy(name, key, sizeof(name));
 
     iov[0].iov_base = &name;
