@@ -395,7 +395,7 @@ void memdb_update_locks(memdb_t *memdb) {
         if (memdb_tree_entry_csum(lock_te, csum)) {
             memcpy(li->csum, csum, 32);
             memdb_lock_info_t *oldli;
-            if ((oldli = g_hash_table_lookup(memdb->locks, lock_te->name)) &&
+            if ((oldli = g_hash_table_lookup(old, li->path)) &&
                 (memcmp(csum, oldli->csum, 32) == 0)) {
                 li->ltime = oldli->ltime;
             } else {

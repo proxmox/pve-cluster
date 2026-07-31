@@ -228,6 +228,27 @@ START_TEST(test_loaddb1) {
 }
 END_TEST
 
+START_TEST(test_lock_timestamp_preserved) {
+    time_t ctime = 1234;
+    const char *path = "priv/lock/test";
+
+    ck_assert(memdb_mkdir(memdb, "priv", 0, ctime) == 0);
+    ck_assert(memdb_mkdir(memdb, "priv/lock", 0, ctime) == 0);
+    ck_assert(memdb_mkdir(memdb, path, 0, ctime) == 0);
+
+    memdb_lock_info_t *lock = g_hash_table_lookup(memdb->locks, path);
+    ck_assert(lock != NULL);
+    lock->ltime = 42;
+
+    /* an unchanged lock directory has to keep its age, else it never expires */
+    memdb_update_locks(memdb);
+
+    lock = g_hash_table_lookup(memdb->locks, path);
+    ck_assert(lock != NULL);
+    ck_assert(lock->ltime == 42);
+}
+END_TEST
+
 START_TEST(test_loaddb2) {
     time_t ctime = 1234;
 
@@ -285,6 +306,8 @@ static Suite *memdb_suite(void) {
     add_test(s, test_loaddb1, "loaddb1");
 
     add_test(s, test_loaddb2, "loaddb2");
+
+    add_test(s, test_lock_timestamp_preserved, "lock_timestamp_preserved");
 
     return s;
 }
