@@ -713,7 +713,9 @@ static int dcdb_process_update(
 
     dcdb_sync_info_t *localsi = (dcdb_sync_info_t *)syncinfo->data;
 
-    localsi->updates = g_list_append(localsi->updates, te);
+    /* only the leader sends updates and it deduplicates by inode first, so the order does not
+     * matter here and prepending avoids walking the whole list per inode */
+    localsi->updates = g_list_prepend(localsi->updates, te);
 
     return 0;
 }

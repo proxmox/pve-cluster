@@ -1014,8 +1014,10 @@ GList *memdb_readdir(memdb_t *memdb, const char *path) {
 
         memdb_tree_entry_t *cpy = memdb_tree_entry_copy(te, 0);
 
-        list = g_list_append(list, cpy);
+        list = g_list_prepend(list, cpy);
     }
+
+    list = g_list_reverse(list);
 
 ret:
     g_mutex_unlock(&memdb->mutex);
