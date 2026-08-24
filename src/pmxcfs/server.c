@@ -251,6 +251,7 @@ static int32_t s1_msg_process_fn(qb_ipcs_connection_t *c, void *data, size_t siz
                 if (result > 0) {
                     g_string_append_len(outbuf, tmp, result);
                     g_free(tmp);
+                    result = 0;
                 }
             }
         }
@@ -452,7 +453,6 @@ static int32_t s1_msg_process_fn(qb_ipcs_connection_t *c, void *data, size_t siz
 
     if (result >= 0) {
         resp = outbuf->str;
-        result = 0;
     }
 
     int iov_len = 2;
