@@ -171,8 +171,6 @@ static int32_t s1_msg_process_fn(qb_ipcs_connection_t *c, void *data, size_t siz
     int32_t request_size __attribute__((aligned(8))) = req_pt->size;
     cfs_debug("process msg:%d, size:%d", request_id, request_size);
 
-    char *resp = NULL;
-
     g_string_truncate(outbuf, 0);
 
     int32_t result = -ECHRNG;
@@ -451,24 +449,23 @@ static int32_t s1_msg_process_fn(qb_ipcs_connection_t *c, void *data, size_t siz
 
     cfs_debug("process result %d", result);
 
-    if (result >= 0) {
-        resp = outbuf->str;
+    /* Do not send the response body in case of an error */
+    if (result < 0) {
+        g_string_truncate(outbuf, 0);
     }
 
     int iov_len = 2;
     struct iovec iov[iov_len];
     struct qb_ipc_response_header res_header;
 
-    int resp_data_len = resp ? outbuf->len : 0;
-
     res_header.id = request_id;
-    res_header.size = sizeof(res_header) + resp_data_len;
+    res_header.size = sizeof(res_header) + outbuf->len;
     res_header.error = result;
 
     iov[0].iov_base = (char *)&res_header;
     iov[0].iov_len = sizeof(res_header);
-    iov[1].iov_base = resp;
-    iov[1].iov_len = resp_data_len;
+    iov[1].iov_base = outbuf->str;
+    iov[1].iov_len = outbuf->len;
 
     ssize_t res = qb_ipcs_response_sendv(c, iov, iov_len);
     if (res < 0) {
