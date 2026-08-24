@@ -19,6 +19,7 @@ all: $(DEB) $(DBG_DEB)
 .PHONY: tidy
 tidy:
 	git ls-files ':*.p[ml]'| xargs -n4 -P0 proxmox-perltidy
+	$(MAKE) -C src tidy
 
 $(BUILDDIR):
 	rm -rf $@ $@.tmp

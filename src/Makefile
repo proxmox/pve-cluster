@@ -10,6 +10,9 @@ all:
 install:
 	set -e; for i in $(SUBDIRS); do $(MAKE) -C $$i $@; done
 
+.PHONY: tidy
+tidy:
+	$(MAKE) -C pmxcfs tidy
 
 .PHONY: check
 check:
