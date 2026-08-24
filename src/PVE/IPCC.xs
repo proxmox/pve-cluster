@@ -97,6 +97,11 @@ SV * data;
 PROTOTYPE: $;$
 CODE:
 {
+	size_t len = 0;
+	char *dataptr = NULL;
+	if (data && SvPOK(data))
+		dataptr = SvPV(data, len);
+
 	uint8_t retried_cache_connection = 0;
 	pid_t cpid = getpid();
 
@@ -116,11 +121,6 @@ recache_connection:
 
 		conn_pid = cpid;
 	}
-
-	size_t len = 0;
-	char *dataptr = NULL;
-	if (data && SvPOK(data))
-		dataptr = SvPV(data, len);
 
 	int iov_len = 2;
 	struct iovec iov[iov_len];
