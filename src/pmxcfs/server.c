@@ -37,6 +37,7 @@
 
 #include <glib.h>
 
+#include "cfs-ipc-common.h"
 #include "cfs-ipc-ops.h"
 #include "cfs-utils.h"
 #include "logger.h"
@@ -46,6 +47,8 @@
 static GThread *worker;
 static qb_loop_t *loop;
 static qb_ipcs_service_t *s1;
+/* initial size of the response buffer, it grows as needed */
+#define OUTBUF_SIZE (8192 * 8)
 static GString *outbuf;
 static memdb_t *memdb;
 
@@ -94,7 +97,18 @@ struct s1_context {
     uid_t uid;
     gid_t gid;
     gboolean read_only;
+    /* the rest of a chunked response, which the client did not fetch yet */
+    GString *pending;
+    size_t pending_offset;
+    uint32_t pending_index;
 };
+
+static void s1_context_drop_pending(struct s1_context *ctx) {
+    if (ctx->pending) {
+        g_string_free(ctx->pending, TRUE);
+        ctx->pending = NULL;
+    }
+}
 
 static int32_t s1_connection_accept_fn(qb_ipcs_connection_t *c, uid_t uid, gid_t gid) {
     if ((uid == 0 && gid == 0) || (gid == cfs.gid)) {
@@ -129,8 +143,9 @@ static void s1_connection_created_fn(qb_ipcs_connection_t *c) {
 static void s1_connection_destroyed_fn(qb_ipcs_connection_t *c) {
     cfs_debug("connection about to be freed");
 
-    gpointer ctx;
+    struct s1_context *ctx;
     if ((ctx = qb_ipcs_context_get(c))) {
+        s1_context_drop_pending(ctx);
         g_free(ctx);
     }
 }
@@ -428,14 +443,64 @@ static int32_t s1_msg_handle_request(
     return result;
 }
 
-static void s1_msg_send_response(qb_ipcs_connection_t *c, int32_t request_id, int32_t result) {
-    int iov_len = 2;
-    struct iovec iov[iov_len];
-    struct qb_ipc_response_header res_header;
+/* Sends as much of buf from offset on as fits into a single message, returns the number of body
+ * bytes sent or a negative errno value. */
+static ssize_t s1_msg_send_chunk(
+    qb_ipcs_connection_t *c,
+    gboolean chunked,
+    int32_t request_id,
+    int32_t result,
+    GString *buf,
+    size_t offset,
+    uint32_t index
+) {
+    struct cfs_ipc_response_header res_header;
+    struct iovec iov[2];
+
+    /* Only send the extended response header if the client supports it */
+    iov[0].iov_base = &res_header;
+    iov[0].iov_len = chunked ? sizeof(res_header) : sizeof(res_header.qb_header);
+
+    size_t max_chunk_size = qb_ipcs_connection_get_buffer_size(c) - iov[0].iov_len;
+    size_t size = buf->len - offset;
+
+    res_header.flags = CFS_IPC_RES_FLAG_CHUNK_LAST;
+    if (size > max_chunk_size) {
+        size = max_chunk_size;
+        res_header.flags = CFS_IPC_RES_FLAG_CHUNK;
+    }
+    res_header.index = index;
+
+    iov[1].iov_base = buf->str + offset;
+    iov[1].iov_len = size;
+
+    res_header.qb_header.id = request_id;
+    res_header.qb_header.error = result;
+    res_header.qb_header.size = iov[0].iov_len + iov[1].iov_len;
+
+    ssize_t res = qb_ipcs_response_sendv(c, iov, 2);
+    if (res < 0) {
+        return res;
+    }
+
+    cfs_debug("msg %d chunk %u with %zu bytes sent", request_id, index, size);
+
+    return size;
+}
+
+static void s1_msg_send_response(
+    qb_ipcs_connection_t *c,
+    struct s1_context *ctx,
+    int32_t request_id,
+    gboolean chunked,
+    int32_t result
+) {
     int32_t max_msg_size = qb_ipcs_connection_get_buffer_size(c);
 
-    size_t response_size = sizeof(res_header) + outbuf->len;
-    if (response_size > max_msg_size) {
+    /* Clients without chunk support only get the libqb response header and a single message, so
+     * the response has to fit into their buffer. */
+    size_t response_size = sizeof(struct qb_ipc_response_header) + outbuf->len;
+    if (!chunked && response_size > max_msg_size) {
         cfs_critical(
             "response for id %d is too large: %zu > %d", request_id, response_size, max_msg_size
         );
@@ -447,20 +512,61 @@ static void s1_msg_send_response(qb_ipcs_connection_t *c, int32_t request_id, in
         g_string_truncate(outbuf, 0);
     }
 
-    iov[0].iov_base = (char *)&res_header;
-    iov[0].iov_len = sizeof(res_header);
-    iov[1].iov_base = outbuf->str;
-    iov[1].iov_len = outbuf->len;
-
-    res_header.id = request_id;
-    res_header.size = iov[0].iov_len + iov[1].iov_len;
-    res_header.error = result;
-
-    ssize_t res = qb_ipcs_response_sendv(c, iov, iov_len);
-    if (res < 0) {
-        cfs_critical("qb_ipcs_response_send: %s", strerror(errno));
+    ssize_t sent = s1_msg_send_chunk(c, chunked, request_id, result, outbuf, 0, 0);
+    if (sent < 0) {
+        cfs_critical("sending response for id %d failed: %s", request_id, strerror(-sent));
         qb_ipcs_disconnect(c);
+        return;
     }
+
+    if ((size_t)sent < outbuf->len) {
+        /* Keep the rest for the client to fetch one chunk per CFS_IPC_GET_RESPONSE_CHUNK request.
+         * The client reads each chunk before asking for the next, so the response ring buffer
+         * always has room for it and the server never waits on a client, which would hold up all
+         * other connections. */
+        ctx->pending = outbuf;
+        ctx->pending_offset = sent;
+        ctx->pending_index = 1;
+        outbuf = g_string_sized_new(OUTBUF_SIZE);
+    }
+}
+
+/* Sends the next chunk of the pending response. Returns 0 if a chunk was sent or the connection had
+ * to be closed, or a negative errno value for an unexpected request. */
+static int32_t s1_msg_send_pending_chunk(
+    qb_ipcs_connection_t *c, struct s1_context *ctx, void *data, int32_t request_size
+) {
+    uint32_t index;
+
+    if (!ctx->pending || request_size != sizeof(index)) {
+        s1_context_drop_pending(ctx);
+        return -EINVAL;
+    }
+
+    memcpy(&index, data, sizeof(index));
+    if (index != ctx->pending_index) {
+        s1_context_drop_pending(ctx);
+        return -EINVAL;
+    }
+
+    ssize_t sent = s1_msg_send_chunk(
+        c, TRUE, CFS_IPC_GET_RESPONSE_CHUNK, 0, ctx->pending, ctx->pending_offset, index
+    );
+    if (sent < 0) {
+        cfs_critical("sending response chunk %u failed: %s", index, strerror(-sent));
+        s1_context_drop_pending(ctx);
+        qb_ipcs_disconnect(c);
+        return 0;
+    }
+
+    ctx->pending_offset += sent;
+    ctx->pending_index++;
+
+    if (ctx->pending_offset == ctx->pending->len) {
+        s1_context_drop_pending(ctx);
+    }
+
+    return 0;
 }
 
 static int32_t s1_msg_process_fn(qb_ipcs_connection_t *c, void *data, size_t size) {
@@ -474,15 +580,26 @@ static int32_t s1_msg_process_fn(qb_ipcs_connection_t *c, void *data, size_t siz
         return 0;
     }
 
-    int32_t request_id = req_pt->id;
+    gboolean chunked = (req_pt->id & CFS_IPC_REQ_FLAG_CHUNKED_RESPONSE) != 0;
+    int32_t request_id = req_pt->id & ~CFS_IPC_REQ_FLAG_CHUNKED_RESPONSE;
     int32_t request_size = req_pt->size - sizeof(struct qb_ipc_request_header);
     data = (uint8_t *)data + sizeof(struct qb_ipc_request_header);
-    cfs_debug("process msg:%d, size:%d", request_id, request_size);
+    cfs_debug("process msg:%d, size:%d, chunked:%d", request_id, request_size, chunked);
 
-    int32_t result = s1_msg_handle_request(ctx, data, request_id, request_size);
+    int32_t result;
+    if (chunked && request_id == CFS_IPC_GET_RESPONSE_CHUNK) {
+        result = s1_msg_send_pending_chunk(c, ctx, data, request_size);
+        if (result == 0) {
+            return 0;
+        }
+    } else {
+        /* any other request means the client gave up on the rest of a previous response */
+        s1_context_drop_pending(ctx);
+        result = s1_msg_handle_request(ctx, data, request_id, request_size);
+    }
     cfs_debug("process result %d", result);
 
-    s1_msg_send_response(c, request_id, result);
+    s1_msg_send_response(c, ctx, request_id, chunked, result);
 
     return 0;
 }
@@ -583,7 +700,7 @@ gboolean server_start(memdb_t *db) {
 
     memdb = db;
 
-    outbuf = g_string_sized_new(8192 * 8);
+    outbuf = g_string_sized_new(OUTBUF_SIZE);
 
     if (!(loop = qb_loop_create())) {
         cfs_critical("cant create event loop");

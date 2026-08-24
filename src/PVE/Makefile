@@ -45,6 +45,7 @@ CC=gcc
 CFLAGS += -fPIC -Wl,-z,relro -Wall -Werror -Wno-strict-aliasing -g -O2 -shared
 CFLAGS += $(shell pkg-config --cflags libqb)
 CFLAGS += $(shell perl -MExtUtils::Embed -e perl_inc)
+CFLAGS += -I../pmxcfs
 LDFLAGS = $(shell pkg-config --libs libqb)
 
 .c.o:
@@ -53,6 +54,8 @@ LDFLAGS = $(shell pkg-config --libs libqb)
 IPCC.c: IPCC.xs ppport.h
 	xsubpp -noversioncheck IPCC.xs > IPCC.xsc
 	mv IPCC.xsc IPCC.c
+
+IPCC.o: ../pmxcfs/cfs-ipc-common.h
 
 IPCC.so: IPCC.o
 	$(CC) $(CFLAGS) -shared -o $@ $<  $(LDFLAGS)

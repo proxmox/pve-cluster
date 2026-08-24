@@ -29,6 +29,8 @@
 #include <qb/qblog.h>
 #include <qb/qbipcc.h>
 
+#include "cfs-ipc-common.h"
+
 #define RESTART_FLAG_FILE "/run/pve-cluster/cfs-restart-flag"
 #define RESTART_GRACE_PERIOD 10
 
@@ -37,8 +39,15 @@
 #define PCS_SERVICE1 1
 #define MAX_MSG_SIZE (8192*128)
 
+/* how long to wait for a response before checking if pmxcfs is still connected */
+#define RECV_WAIT_SLICE_MS 2000
+
 static qb_ipcc_connection_t *conn;
 static pid_t conn_pid;
+/* pmxcfs on the cached connection does not support chunked responses
+ * FIXME: remove with PVE 10 together with all its uses, upgrades to it start from the latest
+ * PVE 9, whose pmxcfs already supports chunked responses */
+static int conn_legacy;
 
 static char ipcbuffer[MAX_MSG_SIZE];
 
@@ -87,6 +96,110 @@ retry_connection:
 	return connection;
 }
 
+/* Wait for the next response message like qb_ipcc_sendv_recv() with an infinite timeout does, as
+ * long as pmxcfs is connected. Handling a request can take a while, e.g. if the memdb is busy. */
+static ssize_t ipcc_recv(void) {
+	ssize_t res;
+
+	do {
+		res = qb_ipcc_recv(conn, ipcbuffer, sizeof(ipcbuffer), RECV_WAIT_SLICE_MS);
+	} while ((res == -ETIMEDOUT || res == -EAGAIN) && qb_ipcc_is_connected(conn));
+
+	return res;
+}
+
+/* Sends a request over the cached connection and appends the response body to result. Returns 0 and
+ * sets *error to the error field of the response, or returns a negative errno value if the request or
+ * the response could not be transferred, in which case the connection must not be reused. */
+static int ipcc_request(I32 msgid, char *dataptr, size_t len, SV *result, int32_t *error) {
+	struct qb_ipc_response_header *qb_header = (struct qb_ipc_response_header *)ipcbuffer;
+	struct cfs_ipc_response_header *res_header = (struct cfs_ipc_response_header *)ipcbuffer;
+	struct qb_ipc_request_header req_header;
+	struct iovec iov[2];
+	int32_t response_id;
+	uint32_t index;
+	ssize_t res;
+
+resend:
+	response_id = msgid;
+	req_header.id = conn_legacy ? msgid : msgid | CFS_IPC_REQ_FLAG_CHUNKED_RESPONSE;
+	req_header.size = sizeof(req_header) + len;
+
+	iov[0].iov_base = (char *)&req_header;
+	iov[0].iov_len = sizeof(req_header);
+	iov[1].iov_base = dataptr;
+	iov[1].iov_len = len;
+
+	res = qb_ipcc_sendv(conn, iov, 2);
+	if (res < 0)
+		return res;
+
+	index = 0;
+	while (1) {
+		res = ipcc_recv();
+		if (res < 0)
+			return res;
+
+		if (res < (ssize_t)sizeof(*qb_header) || qb_header->size != res)
+			return -EBADMSG;
+
+		/* A pmxcfs without chunked responses does not know the flagged request id and did
+		 * not handle the request, send plain requests on this connection from now on. */
+		if (!conn_legacy && index == 0 && qb_header->id == req_header.id &&
+		    qb_header->error == -ECHRNG && res == sizeof(*qb_header)) {
+			conn_legacy = 1;
+			goto resend;
+		}
+
+		if (qb_header->id != response_id)
+			return -EBADMSG;
+
+		if (conn_legacy) {
+			sv_catpvn(result, ipcbuffer + sizeof(*qb_header), res - sizeof(*qb_header));
+			*error = qb_header->error;
+			return 0;
+		}
+
+		if (res < (ssize_t)sizeof(*res_header))
+			return -EBADMSG;
+
+		/* errors come without body as standalone message, also for a chunk request */
+		if (qb_header->error < 0) {
+			*error = qb_header->error;
+			return 0;
+		}
+
+		if (res_header->index != index)
+			return -EBADMSG;
+
+		sv_catpvn(result, ipcbuffer + sizeof(*res_header), res - sizeof(*res_header));
+
+		if (res_header->flags & CFS_IPC_RES_FLAG_CHUNK_LAST) {
+			/* Either the last part of a multi-message response or
+			 * a standalone message response. There are no more
+			 * incoming message chunks to expect. */
+			*error = qb_header->error;
+			return 0;
+		} else if (!(res_header->flags & CFS_IPC_RES_FLAG_CHUNK)) {
+			return -EPROTO;
+		}
+
+		/* An intermediate part of a multi-message response,
+		 * fetch the next one. */
+		index++;
+
+		response_id = CFS_IPC_GET_RESPONSE_CHUNK;
+		req_header.id = CFS_IPC_GET_RESPONSE_CHUNK | CFS_IPC_REQ_FLAG_CHUNKED_RESPONSE;
+		req_header.size = sizeof(req_header) + sizeof(index);
+		iov[1].iov_base = &index;
+		iov[1].iov_len = sizeof(index);
+
+		res = qb_ipcc_sendv(conn, iov, 2);
+		if (res < 0)
+			return res;
+	}
+}
+
 
 MODULE = PVE::IPCC		PACKAGE = PVE::IPCC		
 
@@ -120,24 +233,15 @@ recache_connection:
 			XSRETURN_UNDEF;
 
 		conn_pid = cpid;
+		conn_legacy = 0;
 	}
 
-	int iov_len = 2;
-	struct iovec iov[iov_len];
+	SV *result = newSVpvs("");
+	int32_t error = 0;
 
-	struct qb_ipc_request_header req_header;
-
-	req_header.id = msgid;
-	req_header.size = sizeof(req_header) + len;
-
-	iov[0].iov_base = (char *)&req_header;
-	iov[0].iov_len = sizeof(req_header);
-	iov[1].iov_base = dataptr;
-	iov[1].iov_len = len;
-
-	int32_t ms_timeout = -1; // fixme:     
-	int res = qb_ipcc_sendv_recv(conn, iov, iov_len, ipcbuffer, sizeof(ipcbuffer), ms_timeout);
+	int res = ipcc_request(msgid, dataptr, len, result, &error);
 	if (res < 0) {
+		SvREFCNT_dec(result);
 		qb_ipcc_disconnect(conn);
 		conn = NULL;
 		// requests during cfs restart and the first thereafter will fail, retry
@@ -149,22 +253,14 @@ recache_connection:
 		XSRETURN_UNDEF;
 	}
 
-	struct qb_ipc_response_header *res_header;
-
-	res_header = (struct qb_ipc_response_header *)ipcbuffer;
-	int dsize = res_header->size - sizeof(struct qb_ipc_response_header);
-
-	if (res_header->error < 0) {
-		errno = -res_header->error;
+	if (error < 0 || SvCUR(result) == 0) {
+		SvREFCNT_dec(result);
+		errno = error < 0 ? -error : 0;
 		XSRETURN_UNDEF;
-	} else {
-		errno = 0;
-		if (dsize > 0) {
-			RETVAL = newSVpv(ipcbuffer + sizeof(struct qb_ipc_response_header), dsize);
-		} else {
-			XSRETURN_UNDEF;
-		}
 	}
+
+	errno = 0;
+	RETVAL = result;
 }
 OUTPUT: RETVAL
 
