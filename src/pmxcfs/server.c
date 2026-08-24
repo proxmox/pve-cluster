@@ -167,8 +167,8 @@ static int32_t s1_msg_process_fn(qb_ipcs_connection_t *c, void *data, size_t siz
         return 0;
     }
 
-    int32_t request_id __attribute__((aligned(8))) = req_pt->id;
-    int32_t request_size __attribute__((aligned(8))) = req_pt->size;
+    int32_t request_id = req_pt->id;
+    int32_t request_size = req_pt->size;
     cfs_debug("process msg:%d, size:%d", request_id, request_size);
 
     g_string_truncate(outbuf, 0);
