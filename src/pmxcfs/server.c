@@ -156,21 +156,9 @@ static int32_t s1_connection_closed_fn(qb_ipcs_connection_t *c) {
     return 0;
 }
 
-static int32_t s1_msg_process_fn(qb_ipcs_connection_t *c, void *data, size_t size) {
-    struct qb_ipc_request_header *req_pt = (struct qb_ipc_request_header *)data;
-
-    struct s1_context *ctx = (struct s1_context *)qb_ipcs_context_get(c);
-
-    if (!ctx) {
-        cfs_critical("qb_ipcs_context_get failed");
-        qb_ipcs_disconnect(c);
-        return 0;
-    }
-
-    int32_t request_id = req_pt->id;
-    int32_t request_size = req_pt->size;
-    cfs_debug("process msg:%d, size:%d", request_id, request_size);
-
+static int32_t s1_msg_handle_request(
+    struct s1_context *ctx, void *data, int32_t request_id, int32_t request_size
+) {
     g_string_truncate(outbuf, 0);
 
     int32_t result = -ECHRNG;
@@ -447,6 +435,25 @@ static int32_t s1_msg_process_fn(qb_ipcs_connection_t *c, void *data, size_t siz
         }
     }
 
+    return result;
+}
+
+static int32_t s1_msg_process_fn(qb_ipcs_connection_t *c, void *data, size_t size) {
+    struct qb_ipc_request_header *req_pt = (struct qb_ipc_request_header *)data;
+
+    struct s1_context *ctx = (struct s1_context *)qb_ipcs_context_get(c);
+
+    if (!ctx) {
+        cfs_critical("qb_ipcs_context_get failed");
+        qb_ipcs_disconnect(c);
+        return 0;
+    }
+
+    int32_t request_id = req_pt->id;
+    int32_t request_size = req_pt->size;
+    cfs_debug("process msg:%d, size:%d", request_id, request_size);
+
+    int32_t result = s1_msg_handle_request(ctx, data, request_id, request_size);
     cfs_debug("process result %d", result);
 
     int iov_len = 2;
