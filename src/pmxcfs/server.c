@@ -449,14 +449,23 @@ static int32_t s1_msg_process_fn(qb_ipcs_connection_t *c, void *data, size_t siz
 
     cfs_debug("process result %d", result);
 
+    int iov_len = 2;
+    struct iovec iov[iov_len];
+    struct qb_ipc_response_header res_header;
+    int32_t max_msg_size = qb_ipcs_connection_get_buffer_size(c);
+
+    size_t response_size = sizeof(res_header) + outbuf->len;
+    if (response_size > max_msg_size) {
+        cfs_critical(
+            "response for id %d is too large: %zu > %d", request_id, response_size, max_msg_size
+        );
+        result = -EMSGSIZE;
+    }
+
     /* Do not send the response body in case of an error */
     if (result < 0) {
         g_string_truncate(outbuf, 0);
     }
-
-    int iov_len = 2;
-    struct iovec iov[iov_len];
-    struct qb_ipc_response_header res_header;
 
     res_header.id = request_id;
     res_header.size = sizeof(res_header) + outbuf->len;
