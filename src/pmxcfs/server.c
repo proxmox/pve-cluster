@@ -457,14 +457,14 @@ static void s1_msg_send_response(qb_ipcs_connection_t *c, int32_t request_id, in
         g_string_truncate(outbuf, 0);
     }
 
-    res_header.id = request_id;
-    res_header.size = sizeof(res_header) + outbuf->len;
-    res_header.error = result;
-
     iov[0].iov_base = (char *)&res_header;
     iov[0].iov_len = sizeof(res_header);
     iov[1].iov_base = outbuf->str;
     iov[1].iov_len = outbuf->len;
+
+    res_header.id = request_id;
+    res_header.size = iov[0].iov_len + iov[1].iov_len;
+    res_header.error = result;
 
     ssize_t res = qb_ipcs_response_sendv(c, iov, iov_len);
     if (res < 0) {
