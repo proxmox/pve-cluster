@@ -56,18 +56,15 @@ static GCond server_stopped_cond;
 static GMutex server_started_mutex;
 
 typedef struct {
-    struct qb_ipc_request_header req_header;
     char name[256];
 } cfs_status_update_request_header_t;
 
 typedef struct {
-    struct qb_ipc_request_header req_header;
     char name[256];
     char nodename[256];
 } cfs_status_get_request_header_t;
 
 typedef struct {
-    struct qb_ipc_request_header req_header;
     uint8_t priority;
     uint8_t ident_len;
     uint8_t tag_len;
@@ -75,7 +72,6 @@ typedef struct {
 } cfs_log_msg_request_header_t;
 
 typedef struct {
-    struct qb_ipc_request_header req_header;
     uint32_t max_entries;
     uint32_t res1;
     uint32_t res2;
@@ -83,22 +79,15 @@ typedef struct {
 } cfs_log_get_request_header_t;
 
 typedef struct {
-    struct qb_ipc_request_header req_header;
     uint32_t vmid;
     char property[];
 } cfs_guest_config_propery_get_request_header_t;
 
 typedef struct {
-    struct qb_ipc_request_header req_header;
     uint32_t vmid;
     uint8_t num_props;
     char props[]; /* list of \0 terminated properties */
 } cfs_guest_config_properties_get_request_header_t;
-
-typedef struct {
-    struct qb_ipc_request_header req_header;
-    char token[];
-} cfs_verify_token_request_header_t;
 
 struct s1_context {
     int32_t client_pid;
@@ -164,7 +153,7 @@ static int32_t s1_msg_handle_request(
     int32_t result = -ECHRNG;
     if (request_id == CFS_IPC_GET_FS_VERSION) {
 
-        if (request_size != sizeof(struct qb_ipc_request_header)) {
+        if (request_size != 0) {
             result = -EINVAL;
         } else {
             result = cfs_create_version_msg(outbuf);
@@ -172,7 +161,7 @@ static int32_t s1_msg_handle_request(
 
     } else if (request_id == CFS_IPC_GET_CLUSTER_INFO) {
 
-        if (request_size != sizeof(struct qb_ipc_request_header)) {
+        if (request_size != 0) {
             result = -EINVAL;
         } else {
             result = cfs_create_memberlist_msg(outbuf);
@@ -180,7 +169,7 @@ static int32_t s1_msg_handle_request(
 
     } else if (request_id == CFS_IPC_GET_GUEST_LIST) {
 
-        if (request_size != sizeof(struct qb_ipc_request_header)) {
+        if (request_size != 0) {
             result = -EINVAL;
         } else {
             result = cfs_create_vmlist_msg(outbuf);
@@ -220,14 +209,14 @@ static int32_t s1_msg_handle_request(
         }
     } else if (request_id == CFS_IPC_GET_CONFIG) {
 
-        int pathlen = request_size - sizeof(struct qb_ipc_request_header);
+        int pathlen = request_size;
 
         if (pathlen <= 0) {
             result = -EINVAL;
         } else {
             /* make sure path is 0 terminated */
             ((char *)data)[request_size - 1] = 0;
-            char *path = (char *)data + sizeof(struct qb_ipc_request_header);
+            char *path = (char *)data;
 
             if (ctx->read_only && path_is_private(path)) {
                 result = -EPERM;
@@ -294,7 +283,7 @@ static int32_t s1_msg_handle_request(
         }
     } else if (request_id == CFS_IPC_GET_RRD_DUMP) {
 
-        if (request_size != sizeof(struct qb_ipc_request_header)) {
+        if (request_size != 0) {
             result = -EINVAL;
         } else {
             cfs_rrd_dump(outbuf);
@@ -385,19 +374,20 @@ static int32_t s1_msg_handle_request(
         }
     } else if (request_id == CFS_IPC_VERIFY_TOKEN) {
 
-        cfs_verify_token_request_header_t *rh = (cfs_verify_token_request_header_t *)data;
-        int tokenlen = request_size - G_STRUCT_OFFSET(cfs_verify_token_request_header_t, token) - 1;
+        /* the request body is the NUL-terminated token itself */
+        const char *token = data;
+        int tokenlen = request_size - 1;
 
         if (tokenlen <= 0) {
             cfs_debug("tokenlen <= 0, %d", tokenlen);
             result = -EINVAL;
-        } else if (memchr(rh->token, '\n', tokenlen) != NULL) {
+        } else if (memchr(token, '\n', tokenlen) != NULL) {
             cfs_debug("token contains newline");
             result = -EINVAL;
-        } else if (rh->token[tokenlen] != '\0') {
+        } else if (token[tokenlen] != '\0') {
             cfs_debug("token not NULL-terminated");
             result = -EINVAL;
-        } else if (strnlen(rh->token, tokenlen) != tokenlen) {
+        } else if (strnlen(token, tokenlen) != tokenlen) {
             cfs_debug("token contains NULL-byte");
             result = -EINVAL;
         } else {
@@ -414,7 +404,7 @@ static int32_t s1_msg_handle_request(
                 while (line != NULL) {
                     next_line = memchr(line, '\n', remaining);
                     linelen = next_line == NULL ? remaining : next_line - line;
-                    if (linelen == tokenlen && strncmp(line, rh->token, linelen) == 0) {
+                    if (linelen == tokenlen && strncmp(line, token, linelen) == 0) {
                         result = 0;
                         break;
                     }
@@ -485,7 +475,8 @@ static int32_t s1_msg_process_fn(qb_ipcs_connection_t *c, void *data, size_t siz
     }
 
     int32_t request_id = req_pt->id;
-    int32_t request_size = req_pt->size;
+    int32_t request_size = req_pt->size - sizeof(struct qb_ipc_request_header);
+    data = (uint8_t *)data + sizeof(struct qb_ipc_request_header);
     cfs_debug("process msg:%d, size:%d", request_id, request_size);
 
     int32_t result = s1_msg_handle_request(ctx, data, request_id, request_size);
