@@ -1232,7 +1232,7 @@ static inline const char *rrd_skip_data(const char *data, int count, char separa
 }
 
 static inline void checked_mkdir(char *path, int mode) {
-    if (!mkdir(path, mode) && errno != EEXIST) {
+    if (mkdir(path, mode) == -1 && errno != EEXIST) {
         cfs_message("could not create directory %s: %s", path, strerror(errno));
     }
 }
