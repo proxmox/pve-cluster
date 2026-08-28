@@ -1231,10 +1231,10 @@ static inline const char *rrd_skip_data(const char *data, int count, char separa
     return data;
 }
 
-static inline void checked_mkdir(char* path, int mode) {
+static inline void checked_mkdir(char *path, int mode) {
     if (!mkdir(path, mode) && errno != EEXIST) {
         cfs_message("could not create directory %s: %s", path, strerror(errno));
-    };
+    }
 }
 
 // The key and subdirectory format used up until PVE8 is 'pve{version}-{type}/{id}' with version
