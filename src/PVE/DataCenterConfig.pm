@@ -217,6 +217,13 @@ my $next_id_format = {
         default => 1000 * 1000, # lower than the maximum on purpose
         optional => 1,
     },
+    unique => {
+        type => 'boolean',
+        description => "Only suggest guest IDs that are neither currently in use"
+            . " nor have previously been used.",
+        default => 0,
+        optional => 1,
+    },
 };
 
 my $u2f_format = {
