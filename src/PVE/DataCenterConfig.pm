@@ -224,6 +224,14 @@ my $next_id_format = {
         default => 0,
         optional => 1,
     },
+    enforce => {
+        type => 'boolean',
+        description => "Reject IDs for new guests outside of the configured"
+            . " 'lower' and 'upper' boundaries and, with 'unique', IDs that"
+            . " were used before.",
+        default => 0,
+        optional => 1,
+    },
 };
 
 my $u2f_format = {
