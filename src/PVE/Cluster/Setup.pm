@@ -462,6 +462,70 @@ sub gen_pveca_cert {
     return 1;
 }
 
+# Keeping the key and the exact encoded subject lets node certificates issued by the previous CA
+# certificate chain up to the renewed one, and clients trusting the previous one accept new node
+# certificates until it expires. Returns the expiry of the previous one if it got renewed.
+sub renew_pveca_cert {
+    return undef if !-f $pveca_key_fn || !-f $pveca_cert_fn;
+
+    my $renewal_reason = sub {
+        my $min_days = $pvessl_cert_max_days + $pvessl_cert_days_before_ca;
+        if (PVE::Certificate::check_expiry($pveca_cert_fn, time() + $min_days * 24 * 60 * 60)) {
+            return 'expires within two years';
+        }
+        return undef;
+    };
+    my $reason = $renewal_reason->() or return undef;
+
+    my $old_expiry = PVE::Cluster::cfs_lock_domain(
+        'pve-root-ca',
+        undef,
+        sub {
+            return undef if !$renewal_reason->(); # another node renewed it in the meantime
+
+            my $old = PVE::Certificate::get_certificate_info($pveca_cert_fn);
+            my $tmp_fn = "$pveca_cert_fn.tmp.$$";
+            my $cmd = [
+                [
+                    'openssl', 'x509', '-x509toreq', # keeps the exact encoded subject
+                    '-in', $pveca_cert_fn, '-key', $pveca_key_fn,
+                ],
+                [
+                    'faketime', 'yesterday', # NOTE: wrap openssl with faketime to prevent bug #904
+                    'openssl', 'req', '-x509', '-in', '/dev/stdin', '-key', $pveca_key_fn,
+                    '-days', $pveca_cert_days,
+                    '-addext', 'keyUsage=critical,keyCertSign,cRLSign',
+                    '-out', $tmp_fn,
+                ],
+            ];
+            eval {
+                run_silent_cmd($cmd, timeout => $pveca_lock_cmd_timeout);
+                my $new = PVE::Certificate::get_certificate_info($tmp_fn);
+                if ($new->{subject} ne $old->{subject}) {
+                    die "subject of renewed certificate differs\n";
+                }
+                rename($tmp_fn, $pveca_cert_fn)
+                    or die "replacing '$pveca_cert_fn' failed - $!\n";
+            };
+            if (my $err = $@) {
+                unlink $tmp_fn;
+                die "renewing pve root certificate failed:\n$err";
+            }
+
+            return $old->{notafter};
+        },
+    );
+    die $@ if $@;
+
+    if ($old_expiry) {
+        my $deadline = localtime($old_expiry);
+        print "Renewed cluster CA certificate, as the previous one $reason. Clients that trust"
+            . " the previous one must import the renewed $pveca_cert_fn before $deadline\n";
+    }
+
+    return $old_expiry;
+}
+
 sub gen_pve_ssl_key {
     my ($nodename) = @_;
 
@@ -850,6 +914,8 @@ sub updatecerts_and_ssh {
     my $local_ip_address = PVE::Cluster::remote_node_ip($nodename);
 
     $p->("(re)generate node files");
+    eval { renew_pveca_cert() };
+    warn "unable to renew cluster CA certificate - $@" if $@;
     $p->("generate new node certificate") if $force_new_cert;
     gen_pve_node_files($nodename, $local_ip_address, $force_new_cert);
 
