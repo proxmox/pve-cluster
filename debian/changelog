@@ -1,3 +1,64 @@
+pve-cluster (9.1.7) trixie; urgency=medium
+
+  * pmxcfs: transfer IPC responses larger than 1 MiB in chunks. In very large
+    clusters with many thousands of guests, the guest list, the RRD metrics
+    dump or guest config properties can exceed that size, which made such
+    requests fail and could crash pmxcfs. Daemons that still use the previous
+    client library after the upgrade get a "Message too long" error for such
+    responses until they are restarted.
+
+  * pmxcfs: do not crash if an IPC response cannot be sent, for example to a
+    client that does not read its responses. The error handling freed the
+    client connection while libqb was still using it.
+
+  * pmxcfs: fix cluster log messages being rejected at random, depending on
+    leftover data from earlier requests of the same process.
+
+  * pmxcfs: keep the age of cluster locks when the lock table is rebuilt on
+    startup or during a resync. Stale HA or replication locks now expire after
+    120 seconds as intended, instead of their timer starting over.
+
+  * pmxcfs: treat a failed database transaction during a resync as failure.
+    Previously, a node could consider itself in sync without having applied
+    the updates it received.
+
+  * pmxcfs: speed up listing large directories and collecting the updates for
+    a cluster resync, both of which took quadratic time.
+
+  * pmxcfs: fix rare file system issues:
+    - reading an empty file that was enlarged with truncate, without writing
+      any data to it, crashed pmxcfs
+    - a rename that failed, for example for a non-empty source directory,
+      still removed the destination
+    - renaming an entry onto itself through a path with repeated slashes could
+      crash pmxcfs
+
+  * pmxcfs: harden the IPC interface against local clients in the www-data
+    group:
+    - parse requests from a private copy, as the shared memory they arrive in
+      stays writable for the client
+    - check request lengths before reading any of their fields
+    - recognize private files also through paths with repeated slashes, which
+      let read-only clients read them
+    - compare API tokens in constant time
+
+  * pmxcfs: harden the communication between cluster nodes:
+    - reject malformed messages whose lengths overflow or whose index and log
+      entries point outside the message
+    - reject rename messages without a target instead of crashing
+    - leave the cluster group when a node sends an empty state, instead of
+      hanging the resync
+    - do not drop cluster log entries of nodes whose name hashes differ only
+      in their upper half
+    - fix an out-of-bounds read while comparing indexes during a resync
+    - stop sending uninitialized stack memory to all nodes with every status
+      update
+
+  * pmxcfs: log real failures to create RRD directories, instead of possibly
+    logging a bogus error after creating one successfully.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 23 Oct 2026 17:32:28 +0200
+
 pve-cluster (9.1.6) trixie; urgency=medium
 
   * datacenter config: ignore an empty 'crs' setting instead of crashing the
