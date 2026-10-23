@@ -97,6 +97,7 @@ struct s1_context {
     uid_t uid;
     gid_t gid;
     gboolean read_only;
+    gboolean logged_bad_request;
     /* the rest of a chunked response, which the client did not fetch yet */
     GString *pending;
     size_t pending_offset;
@@ -250,16 +251,21 @@ static int32_t s1_msg_handle_request(
         cfs_log_msg_request_header_t *rh = (cfs_log_msg_request_header_t *)data;
 
         int datasize = request_size - G_STRUCT_OFFSET(cfs_log_msg_request_header_t, data);
-        int msg_len = datasize - rh->ident_len - rh->tag_len;
 
         if (ctx->read_only) {
             result = -EPERM;
-        } else if (msg_len < 1) {
+        } else if (datasize < 1) {
+            /* the ident and tag lengths are part of the request body, so do not read them
+             * before the request is known to be long enough to carry them */
+            result = -EINVAL;
+        } else if (rh->ident_len < 1 || rh->tag_len < 1 ||
+                   (datasize - rh->ident_len - rh->tag_len) < 1) {
             result = -EINVAL;
         } else {
             char *msg = rh->data;
-            if ((msg[rh->ident_len - 1] == 0) && (msg[rh->ident_len + rh->tag_len - 1] == 0) &&
-                (((char *)data)[request_size] == 0)) {
+            /* ident and tag have to bring their own terminator, the message text is terminated by
+             * the extra zero byte that the request copy always has */
+            if ((msg[rh->ident_len - 1] == 0) && (msg[rh->ident_len + rh->tag_len - 1] == 0)) {
 
                 char *ident = msg;
                 char *tag = msg + rh->ident_len;
@@ -333,7 +339,8 @@ static int32_t s1_msg_handle_request(
         cfs_guest_config_properties_get_request_header_t *rh =
             (cfs_guest_config_properties_get_request_header_t *)data;
 
-        size_t remaining =
+        /* keep this signed, a short request must not wrap around into a huge length */
+        ssize_t remaining =
             request_size - G_STRUCT_OFFSET(cfs_guest_config_properties_get_request_header_t, props);
 
         result = 0;
@@ -358,7 +365,7 @@ static int32_t s1_msg_handle_request(
                     result = -EINVAL;
                     break;
                 }
-                if (proplen == remaining || current[proplen] != '\0') {
+                if (proplen == (size_t)remaining || current[proplen] != '\0') {
                     cfs_debug("property not \\0 terminated");
                     result = -EINVAL;
                     break;
@@ -580,22 +587,49 @@ static int32_t s1_msg_process_fn(qb_ipcs_connection_t *c, void *data, size_t siz
         return 0;
     }
 
-    gboolean chunked = (req_pt->id & CFS_IPC_REQ_FLAG_CHUNKED_RESPONSE) != 0;
-    int32_t request_id = req_pt->id & ~CFS_IPC_REQ_FLAG_CHUNKED_RESPONSE;
-    int32_t request_size = req_pt->size - sizeof(struct qb_ipc_request_header);
-    data = (uint8_t *)data + sizeof(struct qb_ipc_request_header);
-    cfs_debug("process msg:%d, size:%d, chunked:%d", request_id, request_size, chunked);
+    /* read the header just once, the client can change it at any time, see below */
+    int32_t raw_id = req_pt->id;
+    int32_t raw_size = req_pt->size;
+
+    gboolean chunked = (raw_id & CFS_IPC_REQ_FLAG_CHUNKED_RESPONSE) != 0;
+    int32_t request_id = raw_id & ~CFS_IPC_REQ_FLAG_CHUNKED_RESPONSE;
+    cfs_debug("process msg:%d, size:%d, chunked:%d", request_id, raw_size, chunked);
+
+    /* the size is taken from the request header, which the client fully controls and libqb passes
+     * on unvalidated - bound it against the receive buffer before it is used to index into it */
+    int32_t max_request_size = qb_ipcs_connection_get_buffer_size(c);
+    gboolean size_valid = raw_size >= (int32_t)sizeof(struct qb_ipc_request_header) &&
+                          max_request_size >= 0 && raw_size <= max_request_size;
+    int32_t request_size =
+        size_valid ? raw_size - (int32_t)sizeof(struct qb_ipc_request_header) : 0;
+
+    /* for the shared memory transport 'data' points straight into the request ring, which the
+     * client keeps mapped writable - it can change any field between the check and the use, so
+     * parse the request body from a private copy. The extra trailing byte replaces the read one
+     * past the request that the terminator checks used to do on the ring. */
+    g_autofree char *request = size_valid ? g_malloc0((size_t)request_size + 1) : NULL;
+    if (request) {
+        memcpy(request, (char *)data + sizeof(struct qb_ipc_request_header), request_size);
+    }
 
     int32_t result;
-    if (chunked && request_id == CFS_IPC_GET_RESPONSE_CHUNK) {
-        result = s1_msg_send_pending_chunk(c, ctx, data, request_size);
+    if (!request) {
+        /* any client that may open the socket can send these in a loop, so log one per
+         * connection - enough to spot a broken client, too little to drown the log */
+        if (!ctx->logged_bad_request) {
+            ctx->logged_bad_request = TRUE;
+            cfs_critical("received request with invalid size %d", raw_size);
+        }
+        result = -EINVAL;
+    } else if (chunked && request_id == CFS_IPC_GET_RESPONSE_CHUNK) {
+        result = s1_msg_send_pending_chunk(c, ctx, request, request_size);
         if (result == 0) {
             return 0;
         }
     } else {
         /* any other request means the client gave up on the rest of a previous response */
         s1_context_drop_pending(ctx);
-        result = s1_msg_handle_request(ctx, data, request_id, request_size);
+        result = s1_msg_handle_request(ctx, request, request_id, request_size);
     }
     cfs_debug("process result %d", result);
 
