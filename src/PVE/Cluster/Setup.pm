@@ -80,6 +80,11 @@ my $pveca_cert_fn = "$pmxcfs_base_dir/pve-root-ca.pem";
 # and is used for CSRF prevention
 my $pvewww_key_fn = "$pmxcfs_base_dir/pve-www.key";
 
+my $pveca_cert_days = 3650;
+# some browsers reject certificates with a longer validity
+my $pvessl_cert_max_days = 2 * 365;
+my $pvessl_cert_days_before_ca = 2;
+
 # ssh related files
 my $ssh_host_rsa_id = "/etc/ssh/ssh_host_rsa_key.pub";
 my $ssh_cluster_known_hosts = "$pmxcfs_auth_dir/known_hosts";
@@ -435,7 +440,7 @@ sub gen_pveca_cert {
             'req',
             '-batch',
             '-days',
-            '3650',
+            $pveca_cert_days,
             '-new',
             '-x509',
             '-nodes',
@@ -544,13 +549,10 @@ sub gen_pve_ssl_cert {
         die "CA expires in less than 2 weeks, unable to generate certificate.\n";
     }
 
-    # let the certificate expire a little sooner that the ca, so subtract 2 days
-    $daysleft -= 2;
+    $daysleft -= $pvessl_cert_days_before_ca;
 
-    # we want the certificates to only last 2 years, since some browsers
-    # do not accept certificates with very long expiry time
-    if ($daysleft >= 2 * 365) {
-        $daysleft = 2 * 365;
+    if ($daysleft >= $pvessl_cert_max_days) {
+        $daysleft = $pvessl_cert_max_days;
     }
 
     eval {
