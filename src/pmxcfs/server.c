@@ -98,6 +98,7 @@ struct s1_context {
     gid_t gid;
     gboolean read_only;
     gboolean logged_bad_request;
+    gboolean logged_send_error;
     /* the rest of a chunked response, which the client did not fetch yet */
     GString *pending;
     size_t pending_offset;
@@ -511,6 +512,16 @@ static ssize_t s1_msg_send_chunk(
     return size;
 }
 
+/* A failed send only drops the response. Disconnecting the client here would free the connection,
+ * which libqb keeps using after the message callback returns. A client that reads each response
+ * before sending its next request never gets here, so log only once per connection. */
+static void s1_msg_send_failed(struct s1_context *ctx, int32_t request_id, ssize_t err) {
+    if (!ctx->logged_send_error) {
+        ctx->logged_send_error = TRUE;
+        cfs_critical("sending response for id %d failed: %s", request_id, strerror(-err));
+    }
+}
+
 static void s1_msg_send_response(
     qb_ipcs_connection_t *c,
     struct s1_context *ctx,
@@ -537,8 +548,7 @@ static void s1_msg_send_response(
 
     ssize_t sent = s1_msg_send_chunk(c, chunked, request_id, result, outbuf, 0, 0);
     if (sent < 0) {
-        cfs_critical("sending response for id %d failed: %s", request_id, strerror(-sent));
-        qb_ipcs_disconnect(c);
+        s1_msg_send_failed(ctx, request_id, sent);
         return;
     }
 
@@ -554,8 +564,8 @@ static void s1_msg_send_response(
     }
 }
 
-/* Sends the next chunk of the pending response. Returns 0 if a chunk was sent or the connection had
- * to be closed, or a negative errno value for an unexpected request. */
+/* Sends the next chunk of the pending response. Returns 0 if a chunk was sent or sending it failed,
+ * or a negative errno value for an unexpected request. */
 static int32_t s1_msg_send_pending_chunk(
     qb_ipcs_connection_t *c, struct s1_context *ctx, void *data, int32_t request_size
 ) {
@@ -576,9 +586,8 @@ static int32_t s1_msg_send_pending_chunk(
         c, TRUE, CFS_IPC_GET_RESPONSE_CHUNK, 0, ctx->pending, ctx->pending_offset, index
     );
     if (sent < 0) {
-        cfs_critical("sending response chunk %u failed: %s", index, strerror(-sent));
         s1_context_drop_pending(ctx);
-        qb_ipcs_disconnect(c);
+        s1_msg_send_failed(ctx, CFS_IPC_GET_RESPONSE_CHUNK, sent);
         return 0;
     }
 
@@ -598,8 +607,8 @@ static int32_t s1_msg_process_fn(qb_ipcs_connection_t *c, void *data, size_t siz
     struct s1_context *ctx = (struct s1_context *)qb_ipcs_context_get(c);
 
     if (!ctx) {
+        /* do not disconnect from within the message callback, see s1_msg_send_failed() */
         cfs_critical("qb_ipcs_context_get failed");
-        qb_ipcs_disconnect(c);
         return 0;
     }
 
