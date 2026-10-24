@@ -684,6 +684,85 @@ __PACKAGE__->register_method({
 });
 
 __PACKAGE__->register_method({
+    name => 'rotate_ca',
+    path => 'rotate_ca',
+    method => 'POST',
+    description =>
+        "Replace the cluster CA with a new key and certificate, for example after the key"
+        . " got exposed, and issue new node certificates on all online nodes.",
+    parameters => {
+        additionalProperties => 0,
+        properties => {},
+    },
+    returns => { type => 'null' },
+    code => sub {
+        my ($param) = @_;
+
+        PVE::Cluster::check_cfs_quorum();
+
+        print "generating new cluster CA\n";
+        PVE::Cluster::Setup::rotate_pveca();
+
+        PVE::Cluster::cfs_update(1);
+        my $members = PVE::Cluster::get_members() // {};
+        my $local_node = PVE::INotify::nodename();
+        my $nodes = [$local_node, grep { $_ ne $local_node } sort keys %$members];
+
+        # every node issues its own certificate, as only it knows all of its names
+        my $failed = [];
+        for my $node (@$nodes) {
+            my $status = eval { PVE::Cluster::Setup::pve_ssl_cert_status($node) };
+            if (my $err = $@) {
+                warn "checking node certificate on '$node' failed - $err";
+                push @$failed, $node;
+                next;
+            }
+            my $issued_by = $status ? $status->{'issued-by'} : '';
+            if ($issued_by eq 'current-ca') {
+                print "node certificate on '$node' is from the new CA already\n";
+                next;
+            } elsif ($issued_by eq 'other' && $status->{notafter} > time()) {
+                print "keeping node certificate on '$node', as no cluster CA issued it\n";
+                next;
+            }
+
+            print "issuing new node certificate on '$node'\n";
+            eval {
+                my $ssh = [];
+                if ($node ne $local_node) {
+                    die "node is offline\n" if !$members->{$node}->{online};
+                    $ssh = PVE::SSHInfo::ssh_info_to_command(PVE::SSHInfo::get_ssh_info($node));
+                }
+                # SSH can hang before updatecerts starts its own timeout
+                my $cmd = [@$ssh, 'pvecm', 'updatecerts', '--force'];
+                run_command($cmd, outfunc => sub { }, timeout => 120);
+                run_command(
+                    [@$ssh, 'systemctl', 'reload-or-restart', 'pveproxy'],
+                    timeout => 60,
+                );
+            };
+            if (my $err = $@) {
+                warn "issuing new node certificate on '$node' failed - $err";
+                push @$failed, $node;
+            }
+        }
+
+        print "Replace the previous cluster CA with the new /etc/pve/pve-root-ca.pem on all"
+            . " clients that trust it. SPICE consoles of running VMs fail until the VM is"
+            . " restarted or migrated.\n";
+
+        if (scalar(@$failed)) {
+            my $failed_list = join(', ', @$failed);
+            die "Run 'pvecm updatecerts --force' and 'systemctl reload-or-restart pveproxy' on"
+                . " $failed_list. Up-to-date nodes also do so on their own with the next start of"
+                . " pveproxy or the daily update.\n";
+        }
+
+        return undef;
+    },
+});
+
+__PACKAGE__->register_method({
     name => 'mtunnel',
     path => 'mtunnel',
     method => 'POST',
@@ -817,6 +896,9 @@ our $cmddef = {
     expected => [__PACKAGE__, 'expected', ['expected']],
     updatecerts => [__PACKAGE__, 'updatecerts', []],
     mtunnel => [__PACKAGE__, 'mtunnel', ['extra-args']],
+    ca => {
+        rotate => [__PACKAGE__, 'rotate_ca', []],
+    },
     qdevice => {
         setup => [__PACKAGE__, 'setup_qdevice', ['address']],
         remove => [__PACKAGE__, 'remove_qdevice', []],
