@@ -549,6 +549,32 @@ sub renew_pveca_cert {
     return $old_expiry;
 }
 
+sub rotate_pveca {
+    my $tmp_key_fn = "$pveca_key_fn.tmp.$$";
+    my $tmp_cert_fn = "$pveca_cert_fn.tmp.$$";
+    eval {
+        $generate_pveca_key->($tmp_key_fn);
+        $generate_pveca_cert->($tmp_key_fn, $tmp_cert_fn);
+
+        PVE::Cluster::cfs_lock_domain(
+            'pve-root-ca',
+            undef,
+            sub {
+                rename($tmp_key_fn, $pveca_key_fn)
+                    or die "replacing '$pveca_key_fn' failed - $!\n";
+                # key and certificate cannot be replaced at once, rotating again fixes a mismatch
+                rename($tmp_cert_fn, $pveca_cert_fn)
+                    or die "replacing '$pveca_cert_fn' failed - $!, rotate again\n";
+            },
+        );
+        die $@ if $@;
+    };
+    if (my $err = $@) {
+        unlink $tmp_key_fn, $tmp_cert_fn;
+        die "rotating cluster CA failed:\n$err";
+    }
+}
+
 # Returns who issued the node certificate, the 'current-ca', a 'replaced-ca' or an 'other' issuer,
 # and its expiry. A certificate from another issuer was placed there by an admin and must be kept.
 sub pve_ssl_cert_status {
