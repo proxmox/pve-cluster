@@ -473,6 +473,17 @@ sub renew_pveca_cert {
         if (PVE::Certificate::check_expiry($pveca_cert_fn, time() + $min_days * 24 * 60 * 60)) {
             return 'expires within two years';
         }
+
+        my $key_usage;
+        my $cmd = ['openssl', 'x509', '-noout', '-ext', 'keyUsage', '-in', $pveca_cert_fn];
+        PVE::Tools::run_command(
+            $cmd,
+            outfunc => sub { $key_usage = 1 },
+            errfunc => sub { },
+            timeout => $pveca_lock_cmd_timeout,
+        );
+        return 'lacks the keyUsage extension that strict TLS clients require' if !$key_usage;
+
         return undef;
     };
     my $reason = $renewal_reason->() or return undef;
