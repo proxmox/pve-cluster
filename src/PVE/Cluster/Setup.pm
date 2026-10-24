@@ -410,22 +410,16 @@ sub gen_auth_key {
     die "$@\n" if $@;
 }
 
-sub gen_pveca_key {
+my $generate_pveca_key = sub {
+    my ($key_fn) = @_;
 
-    return if -f $pveca_key_fn;
-
-    eval { run_silent_cmd(['openssl', 'genrsa', '-out', $pveca_key_fn, '4096']); };
+    eval { run_silent_cmd(['openssl', 'genrsa', '-out', $key_fn, '4096']); };
 
     die "unable to generate pve ca key:\n$@" if $@;
-}
+};
 
-sub gen_pveca_cert {
-
-    if (-f $pveca_key_fn && -f $pveca_cert_fn) {
-        return 0;
-    }
-
-    gen_pveca_key();
+my $generate_pveca_cert = sub {
+    my ($key_fn, $cert_fn) = @_;
 
     # we try to generate an unique 'subject' to avoid browser problems (reused serial numbers, ..)
     my $uuid;
@@ -449,15 +443,33 @@ sub gen_pveca_cert {
             '-addext',
             'keyUsage=critical,keyCertSign,cRLSign',
             '-key',
-            $pveca_key_fn,
+            $key_fn,
             '-out',
-            $pveca_cert_fn,
+            $cert_fn,
             '-subj',
             "/CN=Proxmox Virtual Environment/OU=$uuid_str/O=PVE Cluster Manager CA/",
         ]);
     };
 
     die "generating pve root certificate failed:\n$@" if $@;
+};
+
+sub gen_pveca_key {
+
+    return if -f $pveca_key_fn;
+
+    $generate_pveca_key->($pveca_key_fn);
+}
+
+sub gen_pveca_cert {
+
+    if (-f $pveca_key_fn && -f $pveca_cert_fn) {
+        return 0;
+    }
+
+    gen_pveca_key();
+
+    $generate_pveca_cert->($pveca_key_fn, $pveca_cert_fn);
 
     return 1;
 }
