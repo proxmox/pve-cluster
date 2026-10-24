@@ -537,6 +537,27 @@ sub renew_pveca_cert {
     return $old_expiry;
 }
 
+# Returns who issued the node certificate, the 'current-ca', a 'replaced-ca' or an 'other' issuer,
+# and its expiry. A certificate from another issuer was placed there by an admin and must be kept.
+sub pve_ssl_cert_status {
+    my ($nodename) = @_;
+
+    my $pvessl_cert_fn = "$pmxcfs_base_dir/nodes/$nodename/pve-ssl.pem";
+    return undef if !-f $pvessl_cert_fn;
+
+    my $cert = PVE::Certificate::get_certificate_info($pvessl_cert_fn);
+    my $issuer = $cert->{issuer};
+
+    my $issued_by = 'other';
+    if ($issuer eq PVE::Certificate::get_certificate_info($pveca_cert_fn)->{subject}) {
+        $issued_by = 'current-ca';
+    } elsif ($issuer =~ m!^/CN=Proxmox Virtual Environment/OU=[^/]+/O=PVE Cluster Manager CA$!) {
+        $issued_by = 'replaced-ca';
+    }
+
+    return { 'issued-by' => $issued_by, notafter => $cert->{notafter} };
+}
+
 sub gen_pve_ssl_key {
     my ($nodename) = @_;
 
@@ -927,6 +948,14 @@ sub updatecerts_and_ssh {
     $p->("(re)generate node files");
     eval { renew_pveca_cert() };
     warn "unable to renew cluster CA certificate - $@" if $@;
+    if (!$force_new_cert) {
+        my $status = eval { pve_ssl_cert_status($nodename) };
+        warn "unable to check node certificate - $@" if $@;
+        if ($status && $status->{'issued-by'} eq 'replaced-ca') {
+            print "node certificate was issued by a replaced cluster CA, generating a new one\n";
+            $force_new_cert = 1;
+        }
+    }
     $p->("generate new node certificate") if $force_new_cert;
     gen_pve_node_files($nodename, $local_ip_address, $force_new_cert);
 
