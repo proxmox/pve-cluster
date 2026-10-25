@@ -53,12 +53,12 @@ my $pmxcfs_auth_dir = PVE::Cluster::auth_dir();
 
 # only write output if something fails
 sub run_silent_cmd {
-    my ($cmd) = @_;
+    my ($cmd, %param) = @_;
 
     my $outbuf = '';
     my $record = sub { $outbuf .= shift . "\n"; };
 
-    eval { PVE::Tools::run_command($cmd, outfunc => $record, errfunc => $record) };
+    eval { PVE::Tools::run_command($cmd, outfunc => $record, errfunc => $record, %param) };
 
     if (my $err = $@) {
         print STDERR $outbuf;
@@ -84,6 +84,8 @@ my $pveca_cert_days = 3650;
 # some browsers reject certificates with a longer validity
 my $pvessl_cert_max_days = 2 * 365;
 my $pvessl_cert_days_before_ca = 2;
+# without a timeout of its own, run_command clears the alarm that keeps locked code within the lock
+my $pveca_lock_cmd_timeout = 30;
 
 # ssh related files
 my $ssh_host_rsa_id = "/etc/ssh/ssh_host_rsa_key.pub";
@@ -539,31 +541,37 @@ sub gen_pve_ssl_cert {
         die "unable to generate pve certificate request:\n$err";
     }
 
-    update_serial("0000000000000000") if !-f $pveca_srl_fn;
+    # the lock also covers the serial file that all nodes share
+    PVE::Cluster::cfs_lock_domain(
+        'pve-root-ca',
+        undef,
+        sub {
+            update_serial("0000000000000000") if !-f $pveca_srl_fn;
 
-    # get ca expiry
-    my $cainfo = PVE::Certificate::get_certificate_info($pveca_cert_fn);
-    my $daysleft = int(($cainfo->{notafter} - time()) / (24 * 60 * 60));
+            # get ca expiry
+            my $cainfo = PVE::Certificate::get_certificate_info($pveca_cert_fn);
+            my $daysleft = int(($cainfo->{notafter} - time()) / (24 * 60 * 60));
 
-    if ($daysleft < 14) {
-        die "CA expires in less than 2 weeks, unable to generate certificate.\n";
-    }
+            if ($daysleft < 14) {
+                die "CA expires in less than 2 weeks, unable to generate certificate.\n";
+            }
 
-    $daysleft -= $pvessl_cert_days_before_ca;
+            $daysleft -= $pvessl_cert_days_before_ca;
 
-    if ($daysleft >= $pvessl_cert_max_days) {
-        $daysleft = $pvessl_cert_max_days;
-    }
+            if ($daysleft >= $pvessl_cert_max_days) {
+                $daysleft = $pvessl_cert_max_days;
+            }
 
-    eval {
-        run_silent_cmd([
-            'faketime', 'yesterday', # NOTE: wrap openssl with faketime to prevent bug #904
-            'openssl', 'x509', '-req', '-in', $reqfn, '-days', $daysleft, '-out',
-            $pvessl_cert_fn,
-            '-CAkey', $pveca_key_fn, '-CA', $pveca_cert_fn, '-CAserial', $pveca_srl_fn,
-            '-copy_extensions', 'copyall',
-        ]);
-    };
+            my $cmd = [
+                'faketime', 'yesterday', # NOTE: wrap openssl with faketime to prevent bug #904
+                'openssl', 'x509', '-req', '-in', $reqfn, '-days', $daysleft, '-out',
+                $pvessl_cert_fn,
+                '-CAkey', $pveca_key_fn, '-CA', $pveca_cert_fn, '-CAserial', $pveca_srl_fn,
+                '-copy_extensions', 'copyall',
+            ];
+            run_silent_cmd($cmd, timeout => $pveca_lock_cmd_timeout);
+        },
+    );
     my $err = $@;
 
     unlink $reqfn or $!{ENOENT} or warn "failed to clean up '$reqfn' - $!";
