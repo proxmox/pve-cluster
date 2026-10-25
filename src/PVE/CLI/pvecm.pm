@@ -654,6 +654,10 @@ __PACKAGE__->register_method({
         my ($_res, $got_timeout) = PVE::Tools::run_fork_with_timeout(
             80, # cope with slow HW with headroom for manager service 90s start timeout (bz#5510)
             sub {
+                # the forked child exits without flushing, which loses buffered output to a pipe
+                # or the journal
+                $| = 1;
+
                 PVE::Cluster::Setup::generate_local_files();
 
                 for (my $i = 0; !PVE::Cluster::check_cfs_quorum(1); $i++) {
