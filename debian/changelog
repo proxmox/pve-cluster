@@ -1,3 +1,45 @@
+pve-cluster (9.1.8) trixie; urgency=medium
+
+  * cluster CA: renew the CA certificate once it would expire within the
+    two-year lifetime of a node certificate, keeping its key and subject.
+    Nothing renewed the ten-year CA certificate so far, so in its last weeks
+    the node certificate got renewed every day, and with less than two weeks
+    left no new one could be issued at all. Node certificates issued before
+    stay valid, and clients that trust the previous CA certificate keep working
+    until it expires. The renewal runs with 'pvecm updatecerts', which pveproxy
+    also runs on start, and logs the date by which such clients need the
+    renewed /etc/pve/pve-root-ca.pem.
+
+  * cluster CA: also renew a CA certificate that lacks the keyUsage extension,
+    which the fix for #6701 only added to newly created CAs. Strict TLS
+    clients, like Python 3.13 and newer and tools built on it such as Ansible,
+    reject such a CA. On clusters set up before that fix, this renewal happens
+    once after the upgrade. Clients that trust the CA keep working, and
+    importing the renewed certificate lets strict clients verify the nodes.
+
+  * node certificates: issue them under a cluster-wide lock, so that nodes
+    renewing at the same time cannot get the same serial number, which
+    browsers can reject, and so that no node signs while the CA gets renewed
+    or replaced.
+
+  * node certificates: let 'pvecm updatecerts' issue a new one if the current
+    one comes from a cluster CA that got replaced, for example by hand. As
+    pveproxy runs this on start, a node that missed the replacement catches up
+    once it is back. Certificates from other issuers are left alone.
+
+  * pvecm: add the 'ca rotate' command to replace the cluster CA key and
+    certificate, for example after the key got exposed. It lets every online
+    node issue a new node certificate and lists the nodes it could not reach.
+    Unlike the renewal, there is no overlap with the previous CA: replace it
+    with the new one in the trust store of clients, as keeping it would still
+    accept certificates signed with the old key. SPICE consoles of running VMs
+    fail until the VM is restarted or migrated.
+
+  * pvecm updatecerts: keep the output when it does not go to a terminal, like
+    the journal on pveproxy start, where it got lost before.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 27 Oct 2026 14:40:14 +0100
+
 pve-cluster (9.1.7) trixie; urgency=medium
 
   * pmxcfs: transfer IPC responses larger than 1 MiB in chunks. In very large
