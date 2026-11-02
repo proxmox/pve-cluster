@@ -833,7 +833,6 @@ void _get_property_values(
     const char *const conf_end = conf + conf_size;
     char *line = conf;
     size_t remaining_size = conf_size;
-    uint8_t count = 0;
 
     if (conf_size == 0) {
         return;
@@ -859,16 +858,14 @@ void _get_property_values(
             goto next;
         }
 
+        // a later line overrides an earlier one, like in the Perl config parsers, so do not stop
+        // before the end of the section
         size_t line_len = next_newline - line;
         for (uint8_t i = 0; i < num_props; i++) {
             char *value = _get_property_value_from_line(line, line_len, props[i], strlen(props[i]));
             if (value != NULL) {
-                count += (found[i] != NULL) & 0x1; // count newly found lines
                 found[i] = value;
             }
-        }
-        if (count == num_props) {
-            return; // found all
         }
     next:
         line = next_newline + 1;

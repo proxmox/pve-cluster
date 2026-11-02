@@ -132,6 +132,51 @@ START_TEST(test_guest_config_properties_json) {
 }
 END_TEST
 
+static void write_guest_config(guint32 vmid, const char *conf) {
+    char *path = g_strdup_printf("nodes/testnode/qemu-server/%u.conf", vmid);
+
+    memdb_tree_entry_t *te = memdb_getattr(memdb, "nodes");
+    if (!te) {
+        ck_assert(memdb_mkdir(memdb, "nodes", 0, 1234) == 0);
+        ck_assert(memdb_mkdir(memdb, "nodes/testnode", 0, 1234) == 0);
+        ck_assert(memdb_mkdir(memdb, "nodes/testnode/qemu-server", 0, 1234) == 0);
+    }
+    memdb_tree_entry_free(te);
+
+    ck_assert(memdb_create(memdb, path, 0, 1234) == 0);
+    ck_assert(memdb_write(memdb, path, 0, 1234, conf, strlen(conf), 0, 1) == strlen(conf));
+    g_free(path);
+}
+
+static void assert_guest_properties(guint32 vmid, const char **props, int count, const char *json) {
+    GString *str = g_string_new(NULL);
+    ck_assert(cfs_create_guest_conf_properties_msg(str, memdb, props, count, vmid) == 0);
+    ck_assert_msg(strcmp(str->str, json) == 0, "unexpected reply: %s", str->str);
+    g_string_free(str, TRUE);
+}
+
+/* the same values the Perl config parser sees: the last occurrence of the top-level section */
+START_TEST(test_guest_config_properties_last_wins) {
+    const char *meta[] = {"meta"};
+    const char *lock_meta[] = {"lock", "meta"};
+
+    write_guest_config(101, "meta: uid=1\nmeta: uid=2\nmeta: uid=3\n[snap]\nmeta: uid=4\n");
+    assert_guest_properties(101, meta, 1, "{\n\"101\":{\"meta\": \"uid=3\"}\n}\n");
+
+    /* another property repeating must not end the search early */
+    write_guest_config(102, "lock: a\nlock: b\nlock: c\nmeta: uid=1\n");
+    assert_guest_properties(
+        102, lock_meta, 2, "{\n\"102\":{\"lock\": \"c\",\"meta\": \"uid=1\"}\n}\n"
+    );
+
+    /* the last line counts without a newline too */
+    write_guest_config(103, "lock: a\nmeta: uid=1");
+    assert_guest_properties(103, meta, 1, "{\n\"103\":{\"meta\": \"uid=1\"}\n}\n");
+    write_guest_config(104, "meta: uid=1");
+    assert_guest_properties(104, meta, 1, "{\n\"104\":{\"meta\": \"uid=1\"}\n}\n");
+}
+END_TEST
+
 /* not in status.h, it is only called by the kvstore delivery */
 gboolean cfs_kvstore_node_set(uint32_t nodeid, const char *key, gconstpointer data, size_t len);
 
@@ -456,6 +501,8 @@ static Suite *memdb_suite(void) {
     add_test(s, test_guest_config_properties_json, "guest_config_properties_json");
 
     add_test(s, test_version_and_members_json, "version_and_members_json");
+
+    add_test(s, test_guest_config_properties_last_wins, "guest_config_properties_last_wins");
 
     add_test(s, test_indextest1, "indextest1");
 
