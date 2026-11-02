@@ -132,6 +132,49 @@ START_TEST(test_guest_config_properties_json) {
 }
 END_TEST
 
+/* not in status.h, it is only called by the kvstore delivery */
+gboolean cfs_kvstore_node_set(uint32_t nodeid, const char *key, gconstpointer data, size_t len);
+
+/* a quote, a backslash, a control character and a byte that is not valid UTF-8 */
+#define ODD "a\"b\\c\001d\xff"
+#define ODD_JSON "a\\\"b\\\\c\\u0001d\xef\xbf\xbd"
+
+static void assert_json_bytes(GString *str) {
+    ck_assert(g_utf8_validate(str->str, str->len, NULL));
+    for (gsize i = 0; i < str->len; i++) {
+        ck_assert((unsigned char)str->str[i] >= 0x20 || str->str[i] == '\n');
+    }
+}
+
+START_TEST(test_version_and_members_json) {
+    cfs_clinfo_t *clinfo = cfs_clinfo_new("cl" ODD, 1);
+    cfs_clinfo_add_node(clinfo, cfs_clnode_new("testnode", 1, 1));
+    cfs_clinfo_add_node(clinfo, cfs_clnode_new("n" ODD, 2, 1));
+    cfs_status_set_clinfo(clinfo);
+
+    const char ip[] = "10.0.0.1" ODD;
+    ck_assert(cfs_status_set("k" ODD, "x", 1) == 0);
+    ck_assert(cfs_status_set("nodeip", (gpointer)ip, sizeof(ip)) == 0);
+    ck_assert(cfs_kvstore_node_set(2, "r" ODD, "y", 1));
+
+    GString *str = g_string_new(NULL);
+
+    ck_assert(cfs_create_version_msg(str) == 0);
+    assert_json_bytes(str);
+    ck_assert(strstr(str->str, "\"k" ODD_JSON "\": 0") != NULL);
+    ck_assert(strstr(str->str, "\"n" ODD_JSON "\": {\n\"r" ODD_JSON "\": 0") != NULL);
+
+    g_string_truncate(str, 0);
+    ck_assert(cfs_create_memberlist_msg(str) == 0);
+    assert_json_bytes(str);
+    ck_assert(strstr(str->str, "\"name\": \"cl" ODD_JSON "\"") != NULL);
+    ck_assert(strstr(str->str, "\"n" ODD_JSON "\": { \"id\": 2") != NULL);
+    ck_assert(strstr(str->str, "\"ip\": \"10.0.0.1" ODD_JSON "\"") != NULL);
+
+    g_string_free(str, TRUE);
+}
+END_TEST
+
 START_TEST(test_truncate_grow) {
     const char *fn = "/f1";
     time_t ctime = 1234;
@@ -411,6 +454,8 @@ static Suite *memdb_suite(void) {
     add_test(s, test_path_is_private, "path_is_private");
 
     add_test(s, test_guest_config_properties_json, "guest_config_properties_json");
+
+    add_test(s, test_version_and_members_json, "version_and_members_json");
 
     add_test(s, test_indextest1, "indextest1");
 

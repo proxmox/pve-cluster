@@ -125,6 +125,8 @@ static memdb_change_t memdb_change_array[] = {
 
 static GMutex mutex;
 
+static void _g_str_append_json_string(GString *str, const char *s);
+
 typedef struct {
     time_t start_time;
 
@@ -319,15 +321,16 @@ int cfs_create_memberlist_msg(GString *str) {
     }
 
     if (nodecount) {
-        g_string_append_printf(str, "\"nodename\": \"%s\",\n", cfs.nodename);
-        g_string_append_printf(str, "\"version\": %u,\n", cfs_status.clinfo_version);
+        g_string_append(str, "\"nodename\": ");
+        _g_str_append_json_string(str, cfs.nodename);
+        g_string_append_printf(str, ",\n\"version\": %u,\n", cfs_status.clinfo_version);
 
         g_string_append_printf(str, "\"cluster\": { ");
+        g_string_append(str, "\"name\": ");
+        _g_str_append_json_string(str, clinfo->cluster_name);
         g_string_append_printf(
-            str,
-            "\"name\": \"%s\", \"version\": %d, "
-            "\"nodes\": %d, \"quorate\": %d ",
-            clinfo->cluster_name, clinfo->cman_version, nodecount, cfs_status.quorate
+            str, ", \"version\": %d, \"nodes\": %d, \"quorate\": %d ", clinfo->cman_version,
+            nodecount, cfs_status.quorate
         );
 
         g_string_append_printf(str, "},\n");
@@ -347,22 +350,25 @@ int cfs_create_memberlist_msg(GString *str) {
             }
             i++;
 
+            g_string_append(str, "  ");
+            _g_str_append_json_string(str, node->name);
             g_string_append_printf(
-                str, "  \"%s\": { \"id\": %d, \"online\": %d", node->name, node->nodeid,
-                node->online
+                str, ": { \"id\": %d, \"online\": %d", node->nodeid, node->online
             );
 
             char *ip = (char *)g_hash_table_lookup(cfs_status.iphash, node->name);
             if (ip) {
-                g_string_append_printf(str, ", \"ip\": \"%s\"", ip);
+                g_string_append(str, ", \"ip\": ");
+                _g_str_append_json_string(str, ip);
             }
 
             g_string_append_printf(str, "}");
         }
         g_string_append_printf(str, "\n  }\n");
     } else {
-        g_string_append_printf(str, "\"nodename\": \"%s\",\n", cfs.nodename);
-        g_string_append_printf(str, "\"version\": %u\n", cfs_status.clinfo_version);
+        g_string_append(str, "\"nodename\": ");
+        _g_str_append_json_string(str, cfs.nodename);
+        g_string_append_printf(str, ",\n\"version\": %u\n", cfs_status.clinfo_version);
     }
 
     g_string_append_printf(str, "}\n");
@@ -535,7 +541,8 @@ static void dump_kvstore_versions(GString *str, GHashTable *kvhash, const char *
     GHashTableIter iter;
     gpointer key, value;
 
-    g_string_append_printf(str, "\"%s\": {\n", nodename);
+    _g_str_append_json_string(str, nodename);
+    g_string_append(str, ": {\n");
 
     g_hash_table_iter_init(&iter, ht);
 
@@ -546,7 +553,8 @@ static void dump_kvstore_versions(GString *str, GHashTable *kvhash, const char *
             g_string_append_printf(str, ",\n");
         }
         i++;
-        g_string_append_printf(str, "\"%s\": %u", entry->key, entry->version);
+        _g_str_append_json_string(str, entry->key);
+        g_string_append_printf(str, ": %u", entry->version);
     }
 
     g_string_append_printf(str, "}\n");
