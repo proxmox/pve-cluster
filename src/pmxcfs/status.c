@@ -875,17 +875,54 @@ void _get_property_values(
     return;
 }
 
-static void _g_str_append_kv_jsonescaped(GString *str, const char *k, const char *v) {
-    g_string_append_printf(str, "\"%s\": \"", k);
+/* Appends s as JSON string. Config files may contain anything, so control characters get escaped
+ * and every byte that does not start a valid UTF-8 sequence becomes U+FFFD, else a single such
+ * line makes the whole reply invalid for the JSON parser of the client. */
+static void _g_str_append_json_string(GString *str, const char *s) {
+    const char *end = s + strlen(s);
 
-    for (; *v; v++) {
-        if (*v == '\\' || *v == '"') {
-            g_string_append_c(str, '\\');
+    g_string_append_c(str, '"');
+
+    while (s < end) {
+        unsigned char c = *s;
+
+        if (c >= 0x80) {
+            gunichar uc = g_utf8_get_char_validated(s, end - s);
+            if (uc == (gunichar)-1 || uc == (gunichar)-2) {
+                g_string_append(str, "\xef\xbf\xbd");
+                s++;
+            } else {
+                const char *next = g_utf8_next_char(s);
+                g_string_append_len(str, s, next - s);
+                s = next;
+            }
+            continue;
         }
-        g_string_append_c(str, *v);
+
+        if (c == '"' || c == '\\') {
+            g_string_append_c(str, '\\');
+            g_string_append_c(str, c);
+        } else if (c == '\n') {
+            g_string_append(str, "\\n");
+        } else if (c == '\r') {
+            g_string_append(str, "\\r");
+        } else if (c == '\t') {
+            g_string_append(str, "\\t");
+        } else if (c < 0x20) {
+            g_string_append_printf(str, "\\u%04x", c);
+        } else {
+            g_string_append_c(str, c);
+        }
+        s++;
     }
 
     g_string_append_c(str, '"');
+}
+
+static void _g_str_append_kv_jsonescaped(GString *str, const char *k, const char *v) {
+    _g_str_append_json_string(str, k);
+    g_string_append(str, ": ");
+    _g_str_append_json_string(str, v);
 }
 
 int _print_found_properties(

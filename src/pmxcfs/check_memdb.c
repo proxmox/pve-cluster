@@ -80,6 +80,58 @@ START_TEST(test_path_is_private) {
 }
 END_TEST
 
+START_TEST(test_guest_config_properties_json) {
+    time_t ctime = 1234;
+    const char conf[] =
+        "tab: a\tb\n"
+        "cr: a\rb\n"
+        "ctrl: a\001b\x1f"
+        "c\n"
+        "del: a\x7f"
+        "b\n"
+        "utf: caf\xc3\xa9 \xe2\x82\xac\n"
+        "bad: a\xff"
+        "b\xe2\x82"
+        "c\xc0\xaf"
+        "d\n"
+        "quote: a\"b\\c\n";
+    const char *props[] = {"tab", "cr", "ctrl", "del", "utf", "bad", "quote"};
+    const char *expected =
+        "{\n"
+        "\"100\":{"
+        "\"tab\": \"a\\tb\","
+        "\"cr\": \"a\\rb\","
+        "\"ctrl\": \"a\\u0001b\\u001fc\","
+        "\"del\": \"a\x7f"
+        "b\","
+        "\"utf\": \"caf\xc3\xa9 \xe2\x82\xac\","
+        "\"bad\": \"a\xef\xbf\xbd"
+        "b\xef\xbf\xbd\xef\xbf\xbd"
+        "c\xef\xbf\xbd\xef\xbf\xbd"
+        "d\","
+        "\"quote\": \"a\\\"b\\\\c\"}"
+        "\n}\n";
+
+    ck_assert(memdb_mkdir(memdb, "nodes", 0, ctime) == 0);
+    ck_assert(memdb_mkdir(memdb, "nodes/testnode", 0, ctime) == 0);
+    ck_assert(memdb_mkdir(memdb, "nodes/testnode/qemu-server", 0, ctime) == 0);
+    ck_assert(memdb_create(memdb, "nodes/testnode/qemu-server/100.conf", 0, ctime) == 0);
+    ck_assert(
+        memdb_write(
+            memdb, "nodes/testnode/qemu-server/100.conf", 0, ctime, conf, sizeof(conf) - 1, 0, 1
+        ) == sizeof(conf) - 1
+    );
+
+    GString *str = g_string_new(NULL);
+    ck_assert(
+        cfs_create_guest_conf_properties_msg(str, memdb, props, G_N_ELEMENTS(props), 100) == 0
+    );
+    ck_assert_msg(strcmp(str->str, expected) == 0, "unexpected reply: %s", str->str);
+    ck_assert(g_utf8_validate(str->str, str->len, NULL));
+    g_string_free(str, TRUE);
+}
+END_TEST
+
 START_TEST(test_truncate_grow) {
     const char *fn = "/f1";
     time_t ctime = 1234;
@@ -357,6 +409,8 @@ static Suite *memdb_suite(void) {
     add_test(s, test_truncate_grow, "truncate_grow");
 
     add_test(s, test_path_is_private, "path_is_private");
+
+    add_test(s, test_guest_config_properties_json, "guest_config_properties_json");
 
     add_test(s, test_indextest1, "indextest1");
 
