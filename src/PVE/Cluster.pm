@@ -942,8 +942,15 @@ sub assert_min_cluster_version {
 
     my $nodestat = get_node_kv('version-info');
     my $nodelist = get_nodelist();
+    my $members = get_members();
 
     for my $node (sort @$nodelist) {
+        # pmxcfs keeps the last data a node broadcast after it went offline
+        if ($members && $members->{$node} && !$members->{$node}->{online}) {
+            die "cannot execute operation: cluster node '$node' is offline. All nodes must be"
+                . " online to verify cluster-wide feature support.\n";
+        }
+
         my $raw_json = $nodestat->{$node};
 
         if (!defined($raw_json)) {
