@@ -7,7 +7,7 @@ use PVE::Cluster qw(cfs_register_file cfs_read_file cfs_lock_file cfs_write_file
 use PVE::INotify;
 use PVE::Tools;
 
-use Proxmox::RS::Notify;
+use PVE::RS::Notify;
 
 cfs_register_file(
     'notifications.cfg', \&parse_notification_config, \&write_notification_config,
@@ -49,7 +49,7 @@ sub read_config {
     my $config = cfs_read_file('notifications.cfg');
     my $priv_config = cfs_read_file('priv/notifications.cfg');
 
-    my $notification_config = Proxmox::RS::Notify->parse_config($config, $priv_config);
+    my $notification_config = PVE::RS::Notify->parse_config($config, $priv_config);
 
     return $notification_config;
 }
