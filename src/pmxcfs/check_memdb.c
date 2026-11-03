@@ -26,6 +26,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "cfs-plug-memdb.h"
 #include "cfs-utils.h"
 #include "memdb.h"
 #include "status.h"
@@ -217,6 +218,87 @@ START_TEST(test_version_and_members_json) {
     ck_assert(strstr(str->str, "\"ip\": \"10.0.0.1" ODD_JSON "\"") != NULL);
 
     g_string_free(str, TRUE);
+}
+END_TEST
+
+START_TEST(test_path_is_cluster_id) {
+    ck_assert(path_is_cluster_id("cluster-id"));
+    ck_assert(path_is_cluster_id("/cluster-id"));
+    ck_assert(path_is_cluster_id("//cluster-id/"));
+
+    ck_assert(!path_is_cluster_id(""));
+    ck_assert(!path_is_cluster_id("/"));
+    ck_assert(!path_is_cluster_id("cluster-i"));
+    ck_assert(!path_is_cluster_id("cluster-id.new"));
+    ck_assert(!path_is_cluster_id("cluster-id/x"));
+    ck_assert(!path_is_cluster_id("nodes/n1/cluster-id"));
+}
+END_TEST
+
+START_TEST(test_cluster_id_fuse_read_only) {
+    time_t ctime = 1234;
+    const char *id = "abcdefghijklmnopqrst\n";
+    gpointer data;
+    struct fuse_file_info fi = {0};
+    struct fuse_file_info fi_write = {.flags = O_WRONLY};
+    struct fuse_file_info fi_trunc = {.flags = O_RDONLY | O_TRUNC};
+    struct fuse_file_info fi_append = {.flags = O_RDONLY | O_APPEND};
+    struct timespec tv[2] = {{.tv_sec = 42}, {.tv_sec = 42}};
+    struct stat stbuf;
+
+    cfs_plug_t *plug = (cfs_plug_t *)cfs_plug_memdb_new("memdb", memdb, NULL);
+    ck_assert(plug != NULL);
+
+    ck_assert(plug->ops->create(plug, "cluster-id", 0644, &fi) == -EACCES);
+    ck_assert(plug->ops->mkdir(plug, "cluster-id", 0755) == -EACCES);
+    ck_assert(memdb_read(memdb, "cluster-id", &data) == -ENOENT);
+
+    /* pmxcfs itself goes to the memdb directly */
+    ck_assert(memdb_create(memdb, "cluster-id", 0, ctime) == 0);
+    ck_assert(memdb_write(memdb, "cluster-id", 0, ctime, id, 21, 0, 1) == 21);
+
+    memdb_tree_entry_t *before = memdb_getattr(memdb, "cluster-id");
+    ck_assert(before != NULL);
+
+    ck_assert(plug->ops->open(plug, "cluster-id", &fi) == 0);
+    ck_assert(plug->ops->open(plug, "cluster-id", &fi_write) == -EACCES);
+    ck_assert(plug->ops->open(plug, "cluster-id", &fi_trunc) == -EACCES);
+    ck_assert(plug->ops->open(plug, "cluster-id", &fi_append) == -EACCES);
+    ck_assert(plug->ops->write(plug, "cluster-id", "x", 1, 0, &fi) == -EACCES);
+    ck_assert(plug->ops->truncate(plug, "cluster-id", 0) == -EACCES);
+    ck_assert(plug->ops->unlink(plug, "cluster-id") == -EACCES);
+    ck_assert(plug->ops->rename(plug, "cluster-id", "moved") == -EACCES);
+    ck_assert(plug->ops->mkdir(plug, "cluster-id", 0755) == -EACCES);
+    ck_assert(plug->ops->utimens(plug, "cluster-id", tv) == -EACCES);
+
+    ck_assert(plug->ops->create(plug, "other", 0644, &fi) == 0);
+    ck_assert(plug->ops->write(plug, "other", "x", 1, 0, &fi) == 1);
+    ck_assert(plug->ops->rename(plug, "other", "cluster-id") == -EACCES);
+
+    ck_assert(memdb_read(memdb, "cluster-id", &data) == 21);
+    ck_assert(memcmp(data, id, 21) == 0);
+    g_free(data);
+
+    /* not even the metadata changed */
+    memdb_tree_entry_t *after = memdb_getattr(memdb, "cluster-id");
+    ck_assert(after != NULL);
+    ck_assert(after->version == before->version);
+    ck_assert(after->mtime == before->mtime);
+    memdb_tree_entry_free(before);
+    memdb_tree_entry_free(after);
+
+    cfs_set_quorate(1, TRUE);
+    ck_assert(plug->ops->getattr(plug, "cluster-id", &stbuf) == 0);
+    ck_assert((stbuf.st_mode & 0777) == 0444);
+    ck_assert(plug->ops->getattr(plug, "other", &stbuf) == 0);
+    ck_assert((stbuf.st_mode & 0777) == 0666);
+
+    /* a directory at the path, as a node without the check can create, stays removable */
+    ck_assert(memdb_delete(memdb, "cluster-id", 0, ctime) == 0);
+    ck_assert(memdb_mkdir(memdb, "cluster-id", 0, ctime) == 0);
+    ck_assert(plug->ops->rmdir(plug, "cluster-id") == 0);
+
+    plug->destroy_plug(plug);
 }
 END_TEST
 
@@ -503,6 +585,10 @@ static Suite *memdb_suite(void) {
     add_test(s, test_version_and_members_json, "version_and_members_json");
 
     add_test(s, test_guest_config_properties_last_wins, "guest_config_properties_last_wins");
+
+    add_test(s, test_path_is_cluster_id, "path_is_cluster_id");
+
+    add_test(s, test_cluster_id_fuse_read_only, "cluster_id_fuse_read_only");
 
     add_test(s, test_indextest1, "indextest1");
 

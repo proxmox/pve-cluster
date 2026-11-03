@@ -129,6 +129,10 @@ static int cfs_plug_memdb_getattr(cfs_plug_t *plug, const char *path, struct sta
 
     if (te) {
         tree_entry_stat(te, stbuf, cfs_is_quorate());
+        /* user space can change neither the content nor the stored metadata of the ID file */
+        if (path_is_cluster_id(path)) {
+            stbuf->st_mode &= ~(S_IWUSR | S_IWGRP | S_IWOTH);
+        }
         memdb_tree_entry_free(te);
         return 0;
     }
@@ -185,6 +189,12 @@ static int cfs_plug_memdb_open(cfs_plug_t *plug, const char *path, struct fuse_f
     g_return_val_if_fail(plug->ops == &cfs_ops, PARAM_CHECK_ERRNO);
     g_return_val_if_fail(path != NULL, PARAM_CHECK_ERRNO);
     g_return_val_if_fail(fi != NULL, PARAM_CHECK_ERRNO);
+
+    /* only affects local user space, dcdb applies the operations of other nodes directly */
+    if (path_is_cluster_id(path) &&
+        ((fi->flags & O_ACCMODE) != O_RDONLY || (fi->flags & (O_TRUNC | O_APPEND)))) {
+        return -EACCES;
+    }
 
     memdb_tree_entry_t *te;
 
@@ -255,6 +265,10 @@ static int cfs_plug_memdb_write(
     g_return_val_if_fail(path != NULL, PARAM_CHECK_ERRNO);
     g_return_val_if_fail(buf != NULL, PARAM_CHECK_ERRNO);
 
+    if (path_is_cluster_id(path)) {
+        return -EACCES;
+    }
+
     int res;
 
     cfs_plug_memdb_t *mdb = (cfs_plug_memdb_t *)plug;
@@ -275,6 +289,10 @@ static int cfs_plug_memdb_truncate(cfs_plug_t *plug, const char *path, off_t siz
     g_return_val_if_fail(plug != NULL, PARAM_CHECK_ERRNO);
     g_return_val_if_fail(plug->ops == &cfs_ops, PARAM_CHECK_ERRNO);
     g_return_val_if_fail(path != NULL, PARAM_CHECK_ERRNO);
+
+    if (path_is_cluster_id(path)) {
+        return -EACCES;
+    }
 
     int res;
 
@@ -298,6 +316,10 @@ cfs_plug_memdb_create(cfs_plug_t *plug, const char *path, mode_t mode, struct fu
     g_return_val_if_fail(path != NULL, PARAM_CHECK_ERRNO);
     g_return_val_if_fail(fi != NULL, PARAM_CHECK_ERRNO);
 
+    if (path_is_cluster_id(path)) {
+        return -EACCES;
+    }
+
     int res;
 
     cfs_plug_memdb_t *mdb = (cfs_plug_memdb_t *)plug;
@@ -318,6 +340,10 @@ static int cfs_plug_memdb_mkdir(cfs_plug_t *plug, const char *path, mode_t mode)
     g_return_val_if_fail(plug->ops == &cfs_ops, PARAM_CHECK_ERRNO);
     g_return_val_if_fail(path != NULL, PARAM_CHECK_ERRNO);
 
+    if (path_is_cluster_id(path)) {
+        return -EACCES;
+    }
+
     int res;
 
     cfs_plug_memdb_t *mdb = (cfs_plug_memdb_t *)plug;
@@ -336,6 +362,10 @@ static int cfs_plug_memdb_rmdir(cfs_plug_t *plug, const char *path) {
     g_return_val_if_fail(plug != NULL, PARAM_CHECK_ERRNO);
     g_return_val_if_fail(plug->ops == &cfs_ops, PARAM_CHECK_ERRNO);
     g_return_val_if_fail(path != NULL, PARAM_CHECK_ERRNO);
+
+    /* no cluster ID check: the kernel refuses rmdir on the regular file, and a directory that a
+     * node without the check created at that path must stay removable, as it keeps the ID from
+     * being written */
 
     int res;
 
@@ -357,6 +387,10 @@ static int cfs_plug_memdb_rename(cfs_plug_t *plug, const char *from, const char 
     g_return_val_if_fail(from != NULL, PARAM_CHECK_ERRNO);
     g_return_val_if_fail(to != NULL, PARAM_CHECK_ERRNO);
 
+    if (path_is_cluster_id(from) || path_is_cluster_id(to)) {
+        return -EACCES;
+    }
+
     int res;
 
     cfs_plug_memdb_t *mdb = (cfs_plug_memdb_t *)plug;
@@ -375,6 +409,10 @@ static int cfs_plug_memdb_unlink(cfs_plug_t *plug, const char *path) {
     g_return_val_if_fail(plug != NULL, PARAM_CHECK_ERRNO);
     g_return_val_if_fail(plug->ops == &cfs_ops, PARAM_CHECK_ERRNO);
     g_return_val_if_fail(path != NULL, PARAM_CHECK_ERRNO);
+
+    if (path_is_cluster_id(path)) {
+        return -EACCES;
+    }
 
     int res;
 
@@ -395,6 +433,10 @@ static int cfs_plug_memdb_utimens(cfs_plug_t *plug, const char *path, const stru
     g_return_val_if_fail(plug->ops == &cfs_ops, PARAM_CHECK_ERRNO);
     g_return_val_if_fail(path != NULL, PARAM_CHECK_ERRNO);
     g_return_val_if_fail(tv != NULL, PARAM_CHECK_ERRNO);
+
+    if (path_is_cluster_id(path)) {
+        return -EACCES;
+    }
 
     int res;
 

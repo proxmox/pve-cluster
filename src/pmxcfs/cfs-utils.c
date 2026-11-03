@@ -339,3 +339,11 @@ gboolean path_is_lockdir(const char *path) {
 
     return (strncmp(path, "priv/lock/", 10) == 0) && path[10];
 }
+
+gboolean path_is_cluster_id(const char *path) {
+    size_t len;
+    const char *component = path_next_component(&path, &len);
+
+    return component && path_component_is(component, len, CFS_CLUSTER_ID_FN) &&
+           !path_next_component(&path, &len);
+}

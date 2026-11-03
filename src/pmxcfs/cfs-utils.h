@@ -34,6 +34,8 @@
 #define VARLIBDIR "/var/lib/pve-cluster"
 #define RUNDIR "/run/pve-cluster"
 
+#define CFS_CLUSTER_ID_FN "cluster-id"
+
 #define CFS_MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define CFS_MIN(a, b) (((a) < (b)) ? (a) : (b))
 
@@ -97,5 +99,7 @@ gboolean path_is_private(const char *path);
 gboolean path_is_lxc_conf(const char *path);
 
 gboolean path_is_lockdir(const char *path);
+
+gboolean path_is_cluster_id(const char *path);
 
 #endif /* _PVE_CFS_UTILS_H_ */
