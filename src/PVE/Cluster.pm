@@ -973,4 +973,21 @@ sub assert_min_cluster_version {
     return 1;
 }
 
+sub get_node_pvecfg_version {
+    my ($node) = @_;
+
+    my $nodes_version_info = get_node_kv('version-info', $node);
+    return if !$nodes_version_info->{$node};
+
+    my $version_info = decode_json($nodes_version_info->{$node});
+    return $version_info->{version};
+}
+
+sub node_pvecfg_version_at_least {
+    my ($node, $major, $minor, $release) = @_;
+
+    my $version = get_node_pvecfg_version($node);
+    return $version && pvecfg_min_version($version, $major, $minor, $release);
+}
+
 1;
