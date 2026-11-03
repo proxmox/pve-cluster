@@ -19,8 +19,10 @@
 */
 
 #include <check.h>
+#include <dirent.h>
 #include <errno.h>
 #include <glib.h>
+#include <sqlite3.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,6 +30,7 @@
 
 #include "cfs-plug-memdb.h"
 #include "cfs-utils.h"
+#include "cluster-id.h"
 #include "memdb.h"
 #include "status.h"
 
@@ -299,6 +302,181 @@ START_TEST(test_cluster_id_fuse_read_only) {
     ck_assert(plug->ops->rmdir(plug, "cluster-id") == 0);
 
     plug->destroy_plug(plug);
+}
+END_TEST
+
+START_TEST(test_cluster_id_is_valid) {
+    ck_assert(cluster_id_is_valid("abcdefghijklmnopqrst\n", 21));
+    ck_assert(cluster_id_is_valid("uvwxyz234567abcdefgh\n", 21));
+    ck_assert(cluster_id_is_valid("abcdefghijklmnopqrst", 20));
+
+    ck_assert(!cluster_id_is_valid(NULL, 21));
+    ck_assert(!cluster_id_is_valid("", 0));
+    ck_assert(!cluster_id_is_valid("abcdefghijklmno", 15));
+    ck_assert(!cluster_id_is_valid("abcdefghijklmnop", 16));
+    ck_assert(!cluster_id_is_valid("abcdefghijklmnop\n", 17));
+    ck_assert(!cluster_id_is_valid("abcdefghijklmnopqrs\n", 20));
+    ck_assert(!cluster_id_is_valid("abcdefghijklmnopqrstu", 21));
+    ck_assert(!cluster_id_is_valid("abcdefghijklmnopqrstu\n", 22));
+    ck_assert(!cluster_id_is_valid("abcdefghijklmnopqrst\n\n", 22));
+    ck_assert(!cluster_id_is_valid("abcdefghijklmnopqrst ", 21));
+    ck_assert(!cluster_id_is_valid("Abcdefghijklmnopqrst\n", 21));
+    ck_assert(!cluster_id_is_valid("abcdefghijklmnopqrs1\n", 21));
+    ck_assert(!cluster_id_is_valid("abcdefghijklmnopqrs8\n", 21));
+    ck_assert(!cluster_id_is_valid("abcdefgh\0jklmnopqrst\n", 21));
+}
+END_TEST
+
+START_TEST(test_cluster_id_generate) {
+    char id1[CLUSTER_ID_FILE_SIZE], id2[CLUSTER_ID_FILE_SIZE];
+
+    ck_assert(cluster_id_generate(id1));
+    ck_assert(cluster_id_generate(id2));
+
+    ck_assert(cluster_id_is_valid(id1, sizeof(id1)));
+    ck_assert(cluster_id_is_valid(id2, sizeof(id2)));
+    ck_assert(memcmp(id1, id2, sizeof(id1)) != 0);
+}
+END_TEST
+
+START_TEST(test_cluster_id_state) {
+    time_t ctime = 1234;
+
+    ck_assert(cluster_id_state(memdb) == CLUSTER_ID_MISSING);
+
+    ck_assert(memdb_create(memdb, "cluster-id", 0, ctime) == 0);
+    ck_assert(cluster_id_state(memdb) == CLUSTER_ID_INVALID);
+
+    ck_assert(memdb_write(memdb, "cluster-id", 0, ctime, "abcdefghijklmnopqrst\n", 21, 0, 1) == 21);
+    ck_assert(cluster_id_state(memdb) == CLUSTER_ID_VALID);
+
+    ck_assert(memdb_write(memdb, "cluster-id", 0, ctime, "foo", 3, 0, 1) == 3);
+    ck_assert(cluster_id_state(memdb) == CLUSTER_ID_INVALID);
+
+    ck_assert(memdb_delete(memdb, "cluster-id", 0, ctime) == 0);
+    ck_assert(memdb_mkdir(memdb, "cluster-id", 0, ctime) == 0);
+    ck_assert(cluster_id_state(memdb) == CLUSTER_ID_NOT_A_FILE);
+}
+END_TEST
+
+START_TEST(test_cluster_id_standalone) {
+    time_t ctime = 1234;
+    gpointer data;
+    int len;
+
+    cluster_id_ensure_standalone(memdb);
+    len = memdb_read(memdb, "cluster-id", &data);
+    ck_assert(len == CLUSTER_ID_FILE_SIZE);
+    ck_assert(cluster_id_is_valid(data, len));
+
+    /* an existing ID is kept */
+    char id[CLUSTER_ID_FILE_SIZE];
+    memcpy(id, data, sizeof(id));
+    g_free(data);
+
+    cluster_id_ensure_standalone(memdb);
+    ck_assert(memdb_read(memdb, "cluster-id", &data) == CLUSTER_ID_FILE_SIZE);
+    ck_assert(memcmp(data, id, sizeof(id)) == 0);
+    g_free(data);
+
+    /* an empty file is what a crash between creating and writing leaves behind, it gets filled */
+    ck_assert(memdb_delete(memdb, "cluster-id", 0, ctime) == 0);
+    ck_assert(memdb_create(memdb, "cluster-id", 0, ctime) == 0);
+
+    cluster_id_ensure_standalone(memdb);
+    len = memdb_read(memdb, "cluster-id", &data);
+    ck_assert(len == CLUSTER_ID_FILE_SIZE);
+    ck_assert(cluster_id_is_valid(data, len));
+    g_free(data);
+
+    /* so is invalid content */
+    ck_assert(memdb_write(memdb, "cluster-id", 0, ctime, "foo\n", 4, 0, 1) == 4);
+
+    cluster_id_ensure_standalone(memdb);
+    len = memdb_read(memdb, "cluster-id", &data);
+    ck_assert(len == CLUSTER_ID_FILE_SIZE);
+    ck_assert(cluster_id_is_valid(data, len));
+    g_free(data);
+
+    /* a valid ID without newline is kept as is */
+    ck_assert(memdb_write(memdb, "cluster-id", 0, ctime, "abcdefghijklmnopqrst", 20, 0, 1) == 20);
+
+    cluster_id_ensure_standalone(memdb);
+    ck_assert(memdb_read(memdb, "cluster-id", &data) == 20);
+    ck_assert(memcmp(data, "abcdefghijklmnopqrst", 20) == 0);
+    g_free(data);
+
+    /* an ID with only 16 characters is malformed like anything else and gets replaced */
+    ck_assert(memdb_write(memdb, "cluster-id", 0, ctime, "abcdefghijklmnop\n", 17, 0, 1) == 17);
+
+    cluster_id_ensure_standalone(memdb);
+    len = memdb_read(memdb, "cluster-id", &data);
+    ck_assert(len == CLUSTER_ID_FILE_SIZE);
+    ck_assert(cluster_id_is_valid(data, len));
+    g_free(data);
+
+    /* a directory is left for the admin and does not stop the start */
+    ck_assert(memdb_delete(memdb, "cluster-id", 0, ctime) == 0);
+    ck_assert(memdb_mkdir(memdb, "cluster-id", 0, ctime) == 0);
+
+    cluster_id_ensure_standalone(memdb);
+    memdb_tree_entry_t *te = memdb_getattr(memdb, "cluster-id");
+    ck_assert(te != NULL);
+    ck_assert(te->type == DT_DIR);
+    memdb_tree_entry_free(te);
+}
+END_TEST
+
+static void sql_exec(const char *statement) {
+    sqlite3 *db = NULL;
+    ck_assert(sqlite3_open(TESTDB, &db) == SQLITE_OK);
+    ck_assert(sqlite3_exec(db, statement, NULL, NULL, NULL) == SQLITE_OK);
+    ck_assert(sqlite3_close(db) == SQLITE_OK);
+}
+
+/* Storing fails for the rows of the ID file that match the condition. The start goes on without a
+ * readable ID, and the next start with a working database stores one. */
+static void check_standalone_store_failure(const char *condition) {
+    char *trigger = g_strdup_printf(
+        "CREATE TRIGGER fail_cluster_id BEFORE INSERT ON tree WHEN NEW.name = 'cluster-id'%s "
+        "BEGIN SELECT RAISE(FAIL, 'injected failure'); END;",
+        condition
+    );
+    sql_exec(trigger);
+    g_free(trigger);
+
+    cluster_id_ensure_standalone(memdb);
+    ck_assert(memdb->errors);
+    ck_assert(cluster_id_state(memdb) != CLUSTER_ID_VALID);
+
+    gpointer data = NULL;
+    ck_assert(memdb_read(memdb, "cluster-id", &data) <= 0);
+    g_free(data);
+
+    memdb_close(memdb);
+    sql_exec("DROP TRIGGER fail_cluster_id;");
+    memdb = memdb_open(TESTDB);
+    ck_assert(memdb != NULL);
+
+    ck_assert(cluster_id_state(memdb) != CLUSTER_ID_VALID);
+    cluster_id_ensure_standalone(memdb);
+    ck_assert(cluster_id_state(memdb) == CLUSTER_ID_VALID);
+}
+
+START_TEST(test_cluster_id_standalone_create_failure) { check_standalone_store_failure(""); }
+END_TEST
+
+/* creating the empty file works, storing the ID fails */
+START_TEST(test_cluster_id_standalone_write_failure) {
+    check_standalone_store_failure(" AND length(NEW.data) > 0");
+}
+END_TEST
+
+START_TEST(test_cluster_id_standalone_replace_failure) {
+    ck_assert(memdb_create(memdb, "cluster-id", 0, 1234) == 0);
+    ck_assert(memdb_write(memdb, "cluster-id", 0, 1234, "foo\n", 4, 0, 1) == 4);
+
+    check_standalone_store_failure("");
 }
 END_TEST
 
@@ -589,6 +767,22 @@ static Suite *memdb_suite(void) {
     add_test(s, test_path_is_cluster_id, "path_is_cluster_id");
 
     add_test(s, test_cluster_id_fuse_read_only, "cluster_id_fuse_read_only");
+
+    add_test(s, test_cluster_id_is_valid, "cluster_id_is_valid");
+
+    add_test(s, test_cluster_id_generate, "cluster_id_generate");
+
+    add_test(s, test_cluster_id_state, "cluster_id_state");
+
+    add_test(s, test_cluster_id_standalone, "cluster_id_standalone");
+
+    add_test(s, test_cluster_id_standalone_create_failure, "cluster_id_standalone_create_failure");
+
+    add_test(s, test_cluster_id_standalone_write_failure, "cluster_id_standalone_write_failure");
+
+    add_test(
+        s, test_cluster_id_standalone_replace_failure, "cluster_id_standalone_replace_failure"
+    );
 
     add_test(s, test_indextest1, "indextest1");
 

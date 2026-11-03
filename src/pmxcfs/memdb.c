@@ -961,6 +961,23 @@ int memdb_write(
     return memdb_pwrite(memdb, path, writer, mtime, data, count, offset, truncate, FALSE);
 }
 
+void memdb_clear_unstored(memdb_t *memdb, const char *path) {
+    g_return_if_fail(memdb != NULL);
+    g_return_if_fail(path != NULL);
+
+    g_mutex_lock(&memdb->mutex);
+
+    memdb_tree_entry_t *te, *parent;
+    if (memdb->errors && (te = memdb_lookup_path(memdb, path, &parent)) && te->type == DT_REG) {
+        g_free(te->data.value);
+        te->data.value = NULL;
+        te->size = 0;
+        record_memdb_change(path);
+    }
+
+    g_mutex_unlock(&memdb->mutex);
+}
+
 memdb_tree_entry_t *memdb_getattr(memdb_t *memdb, const char *path) {
     g_return_val_if_fail(memdb != NULL, NULL);
     g_return_val_if_fail(path != NULL, NULL);

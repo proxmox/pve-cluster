@@ -48,6 +48,7 @@
 #include "cfs-plug-memdb.h"
 #include "cfs-plug.h"
 #include "cfs-utils.h"
+#include "cluster-id.h"
 #include "confdb.h"
 #include "dcdb.h"
 #include "dfsm.h"
@@ -912,6 +913,9 @@ int main(int argc, char *argv[]) {
     } else {
         cfs_debug("using local mode (corosync.conf does not exist)");
         cfs_set_quorate(1, TRUE);
+        /* only without a corosync.conf, forced local mode on a cluster node must not generate an ID
+         * of its own */
+        cluster_id_ensure_standalone(memdb);
     }
     if (conf_data) {
         g_free(conf_data);

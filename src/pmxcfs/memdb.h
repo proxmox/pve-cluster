@@ -134,6 +134,10 @@ int memdb_write(
     gboolean truncate
 );
 
+/* Empties a file in memory only, once the memdb is in its error state. A failed write can leave
+ * content in the tree that the database lacks, and the memdb refuses all later writes. */
+void memdb_clear_unstored(memdb_t *memdb, const char *path);
+
 memdb_tree_entry_t *memdb_getattr(memdb_t *memdb, const char *path);
 
 int memdb_rename(memdb_t *memdb, const char *from, const char *to, guint32 writer, guint32 mtime);
