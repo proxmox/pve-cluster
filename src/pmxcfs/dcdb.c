@@ -99,7 +99,8 @@ dcdb_parse_unlock_request(const void *msg, size_t msg_len, const char **path, co
     return TRUE;
 }
 
-int dcdb_send_fuse_message(
+/* waits for the local delivery and its result only if rp is set */
+static cs_error_t dcdb_send_fuse_message_full(
     dfsm_t *dfsm,
     dcdb_message_t msg_type,
     const char *path,
@@ -107,7 +108,8 @@ int dcdb_send_fuse_message(
     const char *buf,
     guint32 size,
     guint32 offset,
-    guint32 flags
+    guint32 flags,
+    dfsm_result_t *rp
 ) {
     struct iovec iov[8];
 
@@ -137,6 +139,19 @@ int dcdb_send_fuse_message(
     iov[7].iov_base = (char *)buf;
     iov[7].iov_len = size;
 
+    return dfsm_send_message_sync(dfsm, msg_type, iov, 8, rp);
+}
+
+int dcdb_send_fuse_message(
+    dfsm_t *dfsm,
+    dcdb_message_t msg_type,
+    const char *path,
+    const char *to,
+    const char *buf,
+    guint32 size,
+    guint32 offset,
+    guint32 flags
+) {
     dfsm_result_t rc;
     memset(&rc, 0, sizeof(rc));
     rc.result = -EBUSY;
@@ -145,7 +160,7 @@ int dcdb_send_fuse_message(
         return -EACCES;
     }
 
-    if (dfsm_send_message_sync(dfsm, msg_type, iov, 8, &rc)) {
+    if (dcdb_send_fuse_message_full(dfsm, msg_type, path, to, buf, size, offset, flags, &rc)) {
         return rc.result;
     }
 
