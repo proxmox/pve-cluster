@@ -1,3 +1,16 @@
+pve-cluster (9.1.9) trixie; urgency=medium
+
+  * cluster: add a helper that asserts that all cluster nodes are online and
+    run at least a given version. This allows rolling out changes to the
+    format of cluster-wide configuration files safely in mixed-version
+    clusters, without older nodes truncating new entries.
+
+  * notify: load the notification bindings from libpve-rs-perl as
+    PVE::RS::Notify, which supports notification matchers with nested match
+    expressions.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 04 Nov 2026 22:29:13 +0100
+
 pve-cluster (9.1.8) trixie; urgency=medium
 
   * cluster CA: renew the CA certificate once it would expire within the
