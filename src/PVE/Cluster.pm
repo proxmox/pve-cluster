@@ -54,6 +54,7 @@ my $observed = {
     'replication.cfg' => 1,
     'corosync.conf' => 1,
     'corosync.conf.new' => 1,
+    'cluster-id' => 1,
     'firewall/cluster.fw' => 1,
     'user.cfg' => 1,
     'domains.cfg' => 1,
@@ -602,6 +603,21 @@ sub cfs_write_file {
     }
 
     PVE::Tools::file_set_contents($fsname, $raw, undef, $force_utf8);
+}
+
+my $parse_cluster_id = sub {
+    my ($filename, $raw) = @_;
+
+    return undef if !defined($raw);
+    return $raw =~ m/^([a-z2-7]{20})\n?\z/ ? $1 : undef;
+};
+
+cfs_register_file('cluster-id', $parse_cluster_id);
+
+# Returns the ID of the cluster, or of the node if it is standalone, undef if there is none yet. IPC
+# errors other than a missing file are raised, like for other pmxcfs reads.
+sub get_cluster_id {
+    return cfs_read_file('cluster-id');
 }
 
 my $cfs_lock = sub {

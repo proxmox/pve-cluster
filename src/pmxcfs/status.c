@@ -80,6 +80,7 @@ typedef struct {
 static memdb_change_t memdb_change_array[] = {
     {.path = "corosync.conf"},
     {.path = "corosync.conf.new"},
+    {.path = "cluster-id"},
     {.path = "storage.cfg"},
     {.path = "user.cfg"},
     {.path = "domains.cfg"},
