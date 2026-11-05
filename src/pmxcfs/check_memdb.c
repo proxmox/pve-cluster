@@ -480,6 +480,36 @@ START_TEST(test_cluster_id_standalone_replace_failure) {
 }
 END_TEST
 
+START_TEST(test_cluster_id_unlink_forced_local_mode) {
+    cfs_plug_t *plug = (cfs_plug_t *)cfs_plug_memdb_new("memdb", memdb, NULL);
+    ck_assert(plug != NULL);
+
+    ck_assert(memdb_create(memdb, "cluster-id", 0, 1234) == 0);
+    ck_assert(memdb_write(memdb, "cluster-id", 0, 1234, "abcdefghijklmnopqrst\n", 21, 0, 1) == 21);
+
+    ck_assert(memdb_create(memdb, "other", 0, 1234) == 0);
+
+    ck_assert(plug->ops->unlink(plug, "cluster-id") == -EACCES);
+    ck_assert(plug->ops->rename(plug, "cluster-id", ".fuse_hidden01") == -EACCES);
+
+    cfs.force_local_mode = TRUE;
+    ck_assert(plug->ops->truncate(plug, "cluster-id", 0) == -EACCES);
+    ck_assert(plug->ops->rename(plug, "other", "cluster-id") == -EACCES);
+
+    /* what libfuse does on unlink while the file is open */
+    ck_assert(plug->ops->rename(plug, "cluster-id", ".fuse_hidden01") == 0);
+    ck_assert(memdb_getattr(memdb, "cluster-id") == NULL);
+
+    ck_assert(memdb_create(memdb, "cluster-id", 0, 1234) == 0);
+    ck_assert(plug->ops->unlink(plug, "cluster-id") == 0);
+    ck_assert(memdb_getattr(memdb, "cluster-id") == NULL);
+
+    cfs.force_local_mode = FALSE;
+
+    plug->destroy_plug(plug);
+}
+END_TEST
+
 START_TEST(test_truncate_grow) {
     const char *fn = "/f1";
     time_t ctime = 1234;
@@ -767,6 +797,8 @@ static Suite *memdb_suite(void) {
     add_test(s, test_path_is_cluster_id, "path_is_cluster_id");
 
     add_test(s, test_cluster_id_fuse_read_only, "cluster_id_fuse_read_only");
+
+    add_test(s, test_cluster_id_unlink_forced_local_mode, "cluster_id_unlink_forced_local_mode");
 
     add_test(s, test_cluster_id_is_valid, "cluster_id_is_valid");
 

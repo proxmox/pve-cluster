@@ -812,6 +812,8 @@ int main(int argc, char *argv[]) {
         update_qb_log_settings();
     }
 
+    cfs.force_local_mode = force_local_mode;
+
     struct utsname utsname;
     if (uname(&utsname) != 0) {
         cfs_critical("Unable to read local node name");

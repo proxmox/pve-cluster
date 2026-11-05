@@ -387,7 +387,9 @@ static int cfs_plug_memdb_rename(cfs_plug_t *plug, const char *from, const char 
     g_return_val_if_fail(from != NULL, PARAM_CHECK_ERRNO);
     g_return_val_if_fail(to != NULL, PARAM_CHECK_ERRNO);
 
-    if (path_is_cluster_id(from) || path_is_cluster_id(to)) {
+    /* Moving it away is allowed in forced local mode, like unlinking it: libfuse unlinks a file
+     * that is still open by renaming it. */
+    if ((path_is_cluster_id(from) && !cfs.force_local_mode) || path_is_cluster_id(to)) {
         return -EACCES;
     }
 
@@ -410,7 +412,9 @@ static int cfs_plug_memdb_unlink(cfs_plug_t *plug, const char *path) {
     g_return_val_if_fail(plug->ops == &cfs_ops, PARAM_CHECK_ERRNO);
     g_return_val_if_fail(path != NULL, PARAM_CHECK_ERRNO);
 
-    if (path_is_cluster_id(path)) {
+    /* Unlinking it in forced local mode is how a node that got separated from its cluster gets an
+     * ID of its own: its next start without a corosync.conf generates a new one. */
+    if (path_is_cluster_id(path) && !cfs.force_local_mode) {
         return -EACCES;
     }
 

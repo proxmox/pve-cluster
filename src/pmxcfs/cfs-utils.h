@@ -44,6 +44,7 @@ typedef struct {
     char *ip;
     gid_t gid;
     int debug;
+    gboolean force_local_mode;
 } cfs_t;
 
 extern cfs_t cfs;
