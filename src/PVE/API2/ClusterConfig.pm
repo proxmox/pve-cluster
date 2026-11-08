@@ -641,6 +641,7 @@ __PACKAGE__->register_method({
             password => {
                 description => "Superuser (root) password of peer node.",
                 type => 'string',
+                sensitive => 1,
                 maxLength => 128,
             },
         }),
