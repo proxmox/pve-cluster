@@ -22,6 +22,9 @@ $policy = $parse->('disallow-expiry-extension=1,require-privilege-separation=1')
 is($policy->{'disallow-expiry-extension'}, 1, 'disallow-expiry-extension is parsed');
 is($policy->{'require-privilege-separation'}, 1, 'require-privilege-separation is parsed');
 
+$policy = $parse->('max-lifetime=86400,default-to-max-lifetime=1')->{'token-policy'};
+is($policy->{'default-to-max-lifetime'}, 1, 'default-to-max-lifetime is parsed');
+
 is($parse->(undef)->{'token-policy'}, undef, 'an absent token-policy is not invented');
 
 # an unusable policy has to be dropped, never half applied, and must not take the rest of the

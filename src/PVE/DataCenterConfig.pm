@@ -309,6 +309,14 @@ my $token_policy_format = {
             . " repeatedly. Shortening the expiration date or setting one on a token that has"
             . " none remains possible, and tokens can still be deleted and recreated.",
     },
+    'default-to-max-lifetime' => {
+        type => 'boolean',
+        optional => 1,
+        default => 0,
+        description => "Give API tokens created without an expiration date the maximum"
+            . " lifetime instead of rejecting them, for example for tools unaware of the policy."
+            . " Has no effect without 'max-lifetime'.",
+    },
     'require-privilege-separation' => {
         type => 'boolean',
         optional => 1,
