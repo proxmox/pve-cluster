@@ -317,6 +317,14 @@ my $token_policy_format = {
             . " lifetime instead of rejecting them, for example for tools unaware of the policy."
             . " Has no effect without 'max-lifetime'.",
     },
+    'allow-extension-on-regenerate' => {
+        type => 'boolean',
+        optional => 1,
+        default => 0,
+        description => "Allow extending the expiration date of an existing API token when its"
+            . " secret is regenerated in the same request, despite 'disallow-expiry-extension'."
+            . " The maximum lifetime still applies.",
+    },
     'require-privilege-separation' => {
         type => 'boolean',
         optional => 1,
