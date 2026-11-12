@@ -99,6 +99,29 @@ dcdb_parse_unlock_request(const void *msg, size_t msg_len, const char **path, co
     return TRUE;
 }
 
+static const char *dcdb_message_name(dcdb_message_t msg_type) {
+    switch (msg_type) {
+    case DCDB_MESSAGE_CFS_WRITE:
+        return "write";
+    case DCDB_MESSAGE_CFS_MKDIR:
+        return "mkdir";
+    case DCDB_MESSAGE_CFS_DELETE:
+        return "delete";
+    case DCDB_MESSAGE_CFS_RENAME:
+        return "rename";
+    case DCDB_MESSAGE_CFS_CREATE:
+        return "create";
+    case DCDB_MESSAGE_CFS_MTIME:
+        return "mtime update";
+    case DCDB_MESSAGE_CFS_UNLOCK_REQUEST:
+        return "unlock request";
+    case DCDB_MESSAGE_CFS_UNLOCK:
+        return "unlock";
+    }
+
+    return "operation";
+}
+
 /* waits for the local delivery and its result only if rp is set */
 static cs_error_t dcdb_send_fuse_message_full(
     dfsm_t *dfsm,
@@ -154,17 +177,24 @@ int dcdb_send_fuse_message(
 ) {
     dfsm_result_t rc;
     memset(&rc, 0, sizeof(rc));
-    rc.result = -EBUSY;
 
     if (!cfs_is_quorate()) {
         return -EACCES;
     }
 
-    if (dcdb_send_fuse_message_full(dfsm, msg_type, path, to, buf, size, offset, flags, &rc)) {
+    dcdb_send_fuse_message_full(dfsm, msg_type, path, to, buf, size, offset, flags, &rc);
+
+    if (rc.outcome == DFSM_OUTCOME_PROCESSED) {
         return rc.result;
+    } else if (rc.outcome == DFSM_OUTCOME_UNKNOWN) {
+        cfs_critical(
+            "could not confirm the %s of '%s', other nodes might have applied it",
+            dcdb_message_name(msg_type), path
+        );
+        return -EIO;
     }
 
-    return -EACCES;
+    return -EBUSY;
 }
 
 static gboolean dcdb_parse_fuse_message(

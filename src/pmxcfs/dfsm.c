@@ -130,7 +130,10 @@ struct dfsm {
     GCond sync_cond;
     GHashTable *results;
     uint64_t msgcount;
-    uint64_t msgcount_rcvd;
+
+    /* only used by the loop thread */
+    gboolean state_sent; /* own state for the current sync round went out */
+    dfsm_mode_t mode_before_leave;
 
     /* state verification */
     guchar csum[32];
@@ -149,12 +152,45 @@ gboolean dfsm_nodeid_is_local(dfsm_t *dfsm, uint32_t nodeid, uint32_t pid) {
     return (nodeid == dfsm->nodeid && pid == dfsm->pid);
 }
 
-static void dfsm_send_sync_message_abort(dfsm_t *dfsm) {
+/* Resolve all pending synchronous messages, none of which can come back to this member anymore.
+ *
+ * Every member needs the state of all others to finish a sync round. While this member still owes
+ * its state, nobody processes its messages, they stay queued until it is gone and then get dropped
+ * as coming from a non-member. Only messages that came back while it waited for updates got
+ * processed by the synced members right away. */
+static void dfsm_release_pending(dfsm_t *dfsm) {
     g_return_if_fail(dfsm != NULL);
 
+    dfsm_mode_t mode = dfsm_get_mode(dfsm);
+    if (mode >= DFSM_ERROR_MODE_START) {
+        mode = dfsm->mode_before_leave;
+    }
+    gboolean state_owed = mode == DFSM_MODE_START_SYNC && !dfsm->state_sent;
+
     g_mutex_lock(&dfsm->sync_mutex);
-    dfsm->msgcount_rcvd = dfsm->msgcount;
+
+    GHashTableIter iter;
+    gpointer value;
+    g_hash_table_iter_init(&iter, dfsm->results);
+    while (g_hash_table_iter_next(&iter, NULL, &value)) {
+        dfsm_result_t *rp = (dfsm_result_t *)value;
+
+        if (rp->outcome == DFSM_OUTCOME_PENDING) {
+            rp->outcome = state_owed && !rp->delivered_unsynced ? DFSM_OUTCOME_NOT_APPLIED
+                                                                : DFSM_OUTCOME_UNKNOWN;
+        }
+    }
+
     g_cond_broadcast(&dfsm->sync_cond);
+    g_mutex_unlock(&dfsm->sync_mutex);
+}
+
+static void dfsm_record_delivered_unsynced(dfsm_t *dfsm, uint64_t msg_count) {
+    g_mutex_lock(&dfsm->sync_mutex);
+    dfsm_result_t *rp = (dfsm_result_t *)g_hash_table_lookup(dfsm->results, &msg_count);
+    if (rp) {
+        rp->delivered_unsynced = TRUE;
+    }
     g_mutex_unlock(&dfsm->sync_mutex);
 }
 
@@ -164,28 +200,56 @@ dfsm_record_local_result(dfsm_t *dfsm, uint64_t msg_count, int msg_result, gbool
     g_return_if_fail(dfsm->results != NULL);
 
     g_mutex_lock(&dfsm->sync_mutex);
-    dfsm_result_t *rp = (dfsm_result_t *)g_hash_table_lookup(dfsm->results, &msg_count);
-    if (rp) {
-        rp->result = msg_result;
-        rp->processed = processed;
+
+    GHashTableIter iter;
+    gpointer value;
+    g_hash_table_iter_init(&iter, dfsm->results);
+    while (g_hash_table_iter_next(&iter, NULL, &value)) {
+        dfsm_result_t *rp = (dfsm_result_t *)value;
+
+        if (rp->msgcount == msg_count) {
+            rp->result = msg_result;
+            /* failing to process it makes this member leave, while others might succeed */
+            rp->outcome = processed ? DFSM_OUTCOME_PROCESSED : DFSM_OUTCOME_UNKNOWN;
+        } else if (rp->msgcount < msg_count && rp->outcome == DFSM_OUTCOME_PENDING) {
+            /* this member processes its own messages in send order, so an older one that is
+             * still pending got lost before corosync ordered it, unless it came back while this
+             * member waited for updates, in which case the synced members processed it */
+            rp->outcome = rp->delivered_unsynced ? DFSM_OUTCOME_UNKNOWN : DFSM_OUTCOME_NOT_APPLIED;
+        }
     }
-    dfsm->msgcount_rcvd = msg_count;
+
     g_cond_broadcast(&dfsm->sync_cond);
     g_mutex_unlock(&dfsm->sync_mutex);
 }
 
-static cs_error_t
-dfsm_send_message_full(dfsm_t *dfsm, struct iovec *iov, unsigned int len, int retry) {
+/* libqb queues a message for corosync before waking corosync up, and reports a failed wake up
+ * although corosync still sends the queued message later. These errors all come from before the
+ * message got queued, except for the kernel failing to allocate a socket buffer for the wake up,
+ * which libcpg reports as CS_ERR_TRY_AGAIN just like a full queue or flow control. That takes a
+ * failed memory allocation, while giving up on flow control is common when corosync stalls, so
+ * CS_ERR_TRY_AGAIN still counts as not queued. */
+static gboolean dfsm_cpg_send_failed_early(cs_error_t result) {
+    return result == CS_ERR_TRY_AGAIN || result == CS_ERR_BAD_HANDLE ||
+           result == CS_ERR_INVALID_PARAM || result == CS_ERR_TOO_BIG;
+}
+
+/* maybe_sent, if set, tells whether corosync might send the message despite a failure */
+static cs_error_t dfsm_send_message_full(
+    dfsm_t *dfsm, struct iovec *iov, unsigned int len, int retry, gboolean *maybe_sent
+) {
     g_return_val_if_fail(dfsm != NULL, CS_ERR_INVALID_PARAM);
     g_return_val_if_fail(!len || iov != NULL, CS_ERR_INVALID_PARAM);
 
     struct timespec tvreq = {.tv_sec = 0, .tv_nsec = 100000000};
     cs_error_t result;
+    gboolean refused;
     int retries = 0;
 loop:
     g_mutex_lock(&dfsm->cpg_mutex);
     /* only send when joined, Corosync will otherwise silently drop messages. */
-    if (!dfsm->joined) {
+    refused = !dfsm->joined;
+    if (refused) {
         result = CS_ERR_NOT_EXIST;
     } else {
         result = cpg_mcast_joined(dfsm->cpg_handle, CPG_TYPE_AGREED, iov, len);
@@ -210,11 +274,16 @@ loop:
         cfs_dom_critical(dfsm->log_domain, "cpg_send_message failed: %s", cs_strerror(result));
     }
 
+    if (maybe_sent) {
+        *maybe_sent = result == CS_OK || (!refused && !dfsm_cpg_send_failed_early(result));
+    }
+
     return result;
 }
 
-static cs_error_t
-dfsm_send_state_message_full(dfsm_t *dfsm, uint16_t type, struct iovec *iov, unsigned int len) {
+static cs_error_t dfsm_send_state_message_full(
+    dfsm_t *dfsm, uint16_t type, struct iovec *iov, unsigned int len, gboolean *maybe_sent
+) {
     g_return_val_if_fail(dfsm != NULL, CS_ERR_INVALID_PARAM);
     g_return_val_if_fail(DFSM_VALID_STATE_MESSAGE(type), CS_ERR_INVALID_PARAM);
     g_return_val_if_fail(!len || iov != NULL, CS_ERR_INVALID_PARAM);
@@ -237,15 +306,15 @@ dfsm_send_state_message_full(dfsm_t *dfsm, uint16_t type, struct iovec *iov, uns
         real_iov[i + 1] = iov[i];
     }
 
-    return dfsm_send_message_full(dfsm, real_iov, len + 1, 1);
+    return dfsm_send_message_full(dfsm, real_iov, len + 1, 1, maybe_sent);
 }
 
 cs_error_t dfsm_send_update(dfsm_t *dfsm, struct iovec *iov, unsigned int len) {
-    return dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_UPDATE, iov, len);
+    return dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_UPDATE, iov, len, NULL);
 }
 
 cs_error_t dfsm_send_update_complete(dfsm_t *dfsm) {
-    return dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_UPDATE_COMPLETE, NULL, 0);
+    return dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_UPDATE_COMPLETE, NULL, 0, NULL);
 }
 
 cs_error_t dfsm_send_message(dfsm_t *dfsm, uint16_t msgtype, struct iovec *iov, int len) {
@@ -262,6 +331,9 @@ cs_error_t dfsm_send_message_sync(
     /* abort sending if we are in an abnormal state */
     if (dfsm_get_mode(dfsm) >= DFSM_ERROR_MODE_START) {
         cfs_dom_debug(dfsm->log_domain, "error mode - refusing to send message");
+        if (rp) {
+            rp->outcome = DFSM_OUTCOME_NOT_APPLIED;
+        }
         g_mutex_unlock(&dfsm->sync_mutex);
         return CS_ERR_NOT_EXIST;
     }
@@ -270,7 +342,8 @@ cs_error_t dfsm_send_message_sync(
     uint64_t msgcount = ++dfsm->msgcount;
     if (rp) {
         rp->msgcount = msgcount;
-        rp->processed = 0;
+        rp->outcome = DFSM_OUTCOME_PENDING;
+        rp->delivered_unsynced = FALSE;
         g_hash_table_replace(dfsm->results, &rp->msgcount, rp);
     }
 
@@ -291,23 +364,24 @@ cs_error_t dfsm_send_message_sync(
         real_iov[i + 1] = iov[i];
     }
 
-    cs_error_t result = dfsm_send_message_full(dfsm, real_iov, len + 1, 1);
+    gboolean maybe_sent;
+    cs_error_t result = dfsm_send_message_full(dfsm, real_iov, len + 1, 1, &maybe_sent);
+
+    if (result != CS_OK && rp) {
+        g_hash_table_remove(dfsm->results, &rp->msgcount);
+        rp->outcome = maybe_sent ? DFSM_OUTCOME_UNKNOWN : DFSM_OUTCOME_NOT_APPLIED;
+    }
 
     g_mutex_unlock(&dfsm->sync_mutex);
 
     if (result != CS_OK) {
-        if (rp) {
-            g_mutex_lock(&dfsm->sync_mutex);
-            g_hash_table_remove(dfsm->results, &rp->msgcount);
-            g_mutex_unlock(&dfsm->sync_mutex);
-        }
         return result;
     }
 
     if (rp) {
         g_mutex_lock(&dfsm->sync_mutex);
 
-        while (dfsm->msgcount_rcvd < msgcount && dfsm_get_mode(dfsm) < DFSM_ERROR_MODE_START) {
+        while (rp->outcome == DFSM_OUTCOME_PENDING) {
             g_cond_wait(&dfsm->sync_cond, &dfsm->sync_mutex);
         }
 
@@ -315,7 +389,7 @@ cs_error_t dfsm_send_message_sync(
 
         g_mutex_unlock(&dfsm->sync_mutex);
 
-        return rp->processed ? CS_OK : CS_ERR_FAILED_OPERATION;
+        return rp->outcome == DFSM_OUTCOME_PROCESSED ? CS_OK : CS_ERR_FAILED_OPERATION;
     }
 
     return CS_OK;
@@ -332,7 +406,8 @@ static gboolean dfsm_send_checksum(dfsm_t *dfsm) {
     iov[1].iov_base = dfsm->csum;
     iov[1].iov_len = sizeof(dfsm->csum);
 
-    gboolean res = (dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_VERIFY, iov, len) == CS_OK);
+    gboolean res =
+        (dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_VERIFY, iov, len, NULL) == CS_OK);
 
     return res;
 }
@@ -470,6 +545,9 @@ static void dfsm_set_mode(dfsm_t *dfsm, dfsm_mode_t new_mode) {
     if (dfsm->mode != new_mode) {
         if (new_mode < DFSM_ERROR_MODE_START ||
             (dfsm->mode < DFSM_ERROR_MODE_START || new_mode >= dfsm->mode)) {
+            if (dfsm->mode < DFSM_ERROR_MODE_START && new_mode >= DFSM_ERROR_MODE_START) {
+                dfsm->mode_before_leave = dfsm->mode;
+            }
             dfsm->mode = new_mode;
             changed = 1;
         }
@@ -482,7 +560,7 @@ static void dfsm_set_mode(dfsm_t *dfsm, dfsm_mode_t new_mode) {
 
     if (new_mode >= DFSM_ERROR_MODE_START) {
         /* abort waiting for sync messages to arrive if we are in an abnormal state */
-        dfsm_send_sync_message_abort(dfsm);
+        dfsm_release_pending(dfsm);
     }
 
     if (new_mode == DFSM_MODE_START) {
@@ -652,6 +730,10 @@ static void dfsm_cpg_deliver_callback(
             if (!dfsm_queue_add_message(dfsm, nodeid, pid, header->count, msg, msg_len)) {
                 goto leave;
             }
+
+            if (mode == DFSM_MODE_UPDATE && dfsm_nodeid_is_local(dfsm, nodeid, pid)) {
+                dfsm_record_delivered_unsynced(dfsm, header->count);
+            }
         } else {
 
             int msg_res = -1;
@@ -812,6 +894,7 @@ static void dfsm_cpg_deliver_callback(
             );
 
             dfsm->sync_epoch = header->epoch;
+            dfsm->state_sent = FALSE;
 
             dfsm_release_sync_resources(dfsm, NULL, 0);
 
@@ -829,7 +912,9 @@ static void dfsm_cpg_deliver_callback(
             iov[0].iov_base = state;
             iov[0].iov_len = state_len;
 
-            result = dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_STATE, iov, 1);
+            gboolean maybe_sent;
+            result = dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_STATE, iov, 1, &maybe_sent);
+            dfsm->state_sent = maybe_sent;
 
             if (state) {
                 g_free(state);
@@ -996,7 +1081,7 @@ static gboolean dfsm_resend_queue(dfsm_t *dfsm) {
             iov[0].iov_base = qm->msg;
             iov[0].iov_len = qm->msg_len;
 
-            if ((result = dfsm_send_message_full(dfsm, iov, 1, 1)) != CS_OK) {
+            if ((result = dfsm_send_message_full(dfsm, iov, 1, 1, NULL)) != CS_OK) {
                 res = FALSE;
                 break;
             }
@@ -1118,6 +1203,7 @@ static void dfsm_cpg_confchg_callback(
     }
 
     dfsm->we_are_member = 0;
+    dfsm->state_sent = FALSE;
 
     /* create new epoch */
     dfsm->local_epoch_counter++;
@@ -1198,7 +1284,8 @@ static void dfsm_cpg_confchg_callback(
 
         dfsm_set_mode(dfsm, DFSM_MODE_START_SYNC);
         if (lowest_nodeid == dfsm->nodeid) {
-            if (dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_SYNC_START, NULL, 0) != CS_OK) {
+            if (dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_SYNC_START, NULL, 0, NULL) !=
+                CS_OK) {
                 cfs_dom_critical(dfsm->log_domain, "failed to send SYNC_START message");
                 goto leave;
             }
@@ -1333,7 +1420,7 @@ cs_error_t dfsm_verify_request(dfsm_t *dfsm) {
     cfs_debug("send verify request %016" PRIX64, dfsm->csum_counter);
 
     cs_error_t result;
-    result = dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_VERIFY_REQUEST, iov, len);
+    result = dfsm_send_state_message_full(dfsm, DFSM_MESSAGE_VERIFY_REQUEST, iov, len, NULL);
 
     if (result != CS_OK) {
         cfs_dom_critical(dfsm->log_domain, "failed to send VERIFY_REQUEST message");
@@ -1380,7 +1467,7 @@ cs_error_t dfsm_initialize(dfsm_t *dfsm, int *fd) {
 
     /* remove old messages */
     dfsm_free_message_queue(dfsm);
-    dfsm_send_sync_message_abort(dfsm);
+    dfsm_release_pending(dfsm);
 
     g_mutex_lock(&dfsm->cpg_mutex);
     dfsm->joined = FALSE;
@@ -1499,7 +1586,7 @@ loop:
 gboolean dfsm_finalize(dfsm_t *dfsm) {
     g_return_val_if_fail(dfsm != NULL, FALSE);
 
-    dfsm_send_sync_message_abort(dfsm);
+    dfsm_release_pending(dfsm);
 
     if (dfsm->joined) {
         dfsm_leave(dfsm);

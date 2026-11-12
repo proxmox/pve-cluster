@@ -105,10 +105,24 @@ typedef struct {
     dfsm_synced_fn_t dfsm_synced_fn;
 } dfsm_callbacks_t;
 
+/* what became of a message sent with dfsm_send_message_sync */
+typedef enum {
+    DFSM_OUTCOME_PENDING = 0,
+    /* this member processed it, the result is valid */
+    DFSM_OUTCOME_PROCESSED,
+    /* no member processed it, and none will, with one rare exception described at
+     * dfsm_cpg_send_failed_early */
+    DFSM_OUTCOME_NOT_APPLIED,
+    /* this member could not confirm it, while others might process it */
+    DFSM_OUTCOME_UNKNOWN,
+} dfsm_outcome_t;
+
 typedef struct {
     uint64_t msgcount;
     int result; /* we only have integer results for now */
-    int processed;
+    dfsm_outcome_t outcome;
+    /* internal: came back while this member waited for updates, so synced members processed it */
+    gboolean delivered_unsynced;
 } dfsm_result_t;
 
 dfsm_t *dfsm_new(
@@ -139,7 +153,11 @@ void dfsm_set_errormode(dfsm_t *dfsm);
 
 cs_error_t dfsm_send_message(dfsm_t *dfsm, uint16_t msgtype, struct iovec *iov, int len);
 
-/* only call this from another thread - else you get blocked forever */
+/* only call this from another thread - else you get blocked forever
+ *
+ * Without rp, CS_OK only means that the message was sent. With rp, it returns CS_OK once this
+ * member processed the message, with its result in rp. Otherwise rp->outcome tells whether other
+ * members might still process it. */
 cs_error_t dfsm_send_message_sync(
     dfsm_t *dfsm, uint16_t msgtype, struct iovec *iov, int len, dfsm_result_t *rp
 );
