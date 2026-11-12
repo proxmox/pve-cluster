@@ -204,7 +204,7 @@ loop:
         cfs_dom_message(dfsm->log_domain, "cpg_send_message retried %d times", retries);
     }
 
-    if (result != CS_OK && (!retry || result != CS_ERR_TRY_AGAIN)) {
+    if (result != CS_OK) {
         cfs_dom_critical(dfsm->log_domain, "cpg_send_message failed: %s", cs_strerror(result));
     }
 
@@ -287,8 +287,6 @@ cs_error_t dfsm_send_message_sync(
     g_mutex_unlock(&dfsm->sync_mutex);
 
     if (result != CS_OK) {
-        cfs_dom_critical(dfsm->log_domain, "cpg_send_message failed: %s", cs_strerror(result));
-
         if (rp) {
             g_mutex_lock(&dfsm->sync_mutex);
             g_hash_table_remove(dfsm->results, &rp->msgcount);
