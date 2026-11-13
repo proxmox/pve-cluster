@@ -366,7 +366,15 @@ static void dfsm_free_sync_queue(dfsm_t *dfsm) {
 }
 
 static gint message_queue_sort_fn(gconstpointer a, gconstpointer b, gpointer user_data) {
-    return ((dfsm_queued_message_t *)a)->msg_count - ((dfsm_queued_message_t *)b)->msg_count;
+    uint64_t count1 = ((const dfsm_queued_message_t *)a)->msg_count;
+    uint64_t count2 = ((const dfsm_queued_message_t *)b)->msg_count;
+
+    /* a 64 bit difference does not fit the int return value, so compare instead */
+    if (count1 != count2) {
+        return count1 < count2 ? -1 : 1;
+    }
+
+    return 0;
 }
 
 static dfsm_node_info_t *dfsm_node_info_lookup(dfsm_t *dfsm, uint32_t nodeid, uint32_t pid) {
