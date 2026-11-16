@@ -187,7 +187,12 @@ dfsm_send_message_full(dfsm_t *dfsm, struct iovec *iov, unsigned int len, int re
     int retries = 0;
 loop:
     g_mutex_lock(&dfsm->cpg_mutex);
-    result = cpg_mcast_joined(dfsm->cpg_handle, CPG_TYPE_AGREED, iov, len);
+    /* only send when joined, Corosync will otherwise silently drop messages. */
+    if (!dfsm->joined) {
+        result = CS_ERR_NOT_EXIST;
+    } else {
+        result = cpg_mcast_joined(dfsm->cpg_handle, CPG_TYPE_AGREED, iov, len);
+    }
     g_mutex_unlock(&dfsm->cpg_mutex);
     if (retry && result == CS_ERR_TRY_AGAIN) {
         nanosleep(&tvreq, NULL);
@@ -1362,7 +1367,9 @@ cs_error_t dfsm_initialize(dfsm_t *dfsm, int *fd) {
     dfsm_free_message_queue(dfsm);
     dfsm_send_sync_message_abort(dfsm);
 
+    g_mutex_lock(&dfsm->cpg_mutex);
     dfsm->joined = FALSE;
+    g_mutex_unlock(&dfsm->cpg_mutex);
     dfsm->we_are_member = 0;
 
     dfsm_set_mode(dfsm, DFSM_MODE_START);
@@ -1425,6 +1432,9 @@ cs_error_t dfsm_join(dfsm_t *dfsm) {
 loop:
     g_mutex_lock(&dfsm->cpg_mutex);
     result = cpg_join(dfsm->cpg_handle, &dfsm->cpg_group_name);
+    if (result == CS_OK) {
+        dfsm->joined = TRUE;
+    }
     g_mutex_unlock(&dfsm->cpg_mutex);
     if (result == CS_ERR_TRY_AGAIN) {
         nanosleep(&tvreq, NULL);
@@ -1440,7 +1450,6 @@ loop:
         return result;
     }
 
-    dfsm->joined = TRUE;
     return TRUE;
 }
 
@@ -1455,6 +1464,9 @@ cs_error_t dfsm_leave(dfsm_t *dfsm) {
 loop:
     g_mutex_lock(&dfsm->cpg_mutex);
     result = cpg_leave(dfsm->cpg_handle, &dfsm->cpg_group_name);
+    if (result == CS_OK) {
+        dfsm->joined = FALSE;
+    }
     g_mutex_unlock(&dfsm->cpg_mutex);
     if (result == CS_ERR_TRY_AGAIN) {
         nanosleep(&tvreq, NULL);
@@ -1470,8 +1482,6 @@ loop:
         return result;
     }
 
-    dfsm->joined = FALSE;
-
     return TRUE;
 }
 
@@ -1485,9 +1495,11 @@ gboolean dfsm_finalize(dfsm_t *dfsm) {
     }
 
     if (dfsm->cpg_handle) {
+        g_mutex_lock(&dfsm->cpg_mutex);
         cpg_finalize(dfsm->cpg_handle);
         dfsm->cpg_handle = 0;
         dfsm->joined = FALSE;
+        g_mutex_unlock(&dfsm->cpg_mutex);
         dfsm->we_are_member = 0;
     }
 
