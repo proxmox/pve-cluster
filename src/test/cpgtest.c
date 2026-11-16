@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2009 Proxmox Server Solutions GmbH
+  Copyright (C) 2009 - 2026 Proxmox Server Solutions GmbH
 
   Copyright: This program is under GNU GPL, the GNU General Public License.
 
