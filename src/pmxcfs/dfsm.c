@@ -666,10 +666,10 @@ static void dfsm_cpg_deliver_callback(
             );
 
             if (nodeid == dfsm->nodeid && pid == dfsm->pid) {
-                dfsm_record_local_result(dfsm, header->count, msg_res, res);
+                dfsm_record_local_result(dfsm, header->count, msg_res, res > 0);
             }
 
-            if (res < 0) {
+            if (res <= 0) {
                 goto leave;
             }
         }
