@@ -18,11 +18,7 @@
 
 */
 
-/* NOTE: we try to keep the CPG handle as long as possible, because
- * calling cpg_initialize/cpg_finalize multiple times from the
- * same process confuses corosync.
- * Note: CS_ERR_LIBRARY is returned when corosync died
- */
+/* Note: CS_ERR_LIBRARY is returned when corosync died */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -1376,6 +1372,12 @@ cs_error_t dfsm_initialize(dfsm_t *dfsm, int *fd) {
     g_return_val_if_fail(dfsm != NULL, CS_ERR_INVALID_PARAM);
     g_return_val_if_fail(fd != NULL, CS_ERR_INVALID_PARAM);
 
+    /* An old connection can still hold callbacks from before leaving the group, which must not
+     * get handled as part of the next membership, so never join on it again. */
+    if (dfsm->cpg_handle) {
+        dfsm_finalize(dfsm);
+    }
+
     /* remove old messages */
     dfsm_free_message_queue(dfsm);
     dfsm_send_sync_message_abort(dfsm);
@@ -1389,33 +1391,29 @@ cs_error_t dfsm_initialize(dfsm_t *dfsm, int *fd) {
 
     cs_error_t result;
 
-    if (dfsm->cpg_handle == 0) {
-        if ((result = cpg_initialize(&dfsm->cpg_handle, dfsm->cpg_callbacks)) != CS_OK) {
-            if (result == CS_ERR_LIBRARY) {
-                cfs_dom_critical(
-                    dfsm->log_domain, "cpg_initialize failed: %s (failed to connect to corosync)",
-                    cs_strerror(result)
-                );
-            } else {
-                cfs_dom_critical(
-                    dfsm->log_domain, "cpg_initialize failed: %s", cs_strerror(result)
-                );
-            }
-            goto err_no_finalize;
+    if ((result = cpg_initialize(&dfsm->cpg_handle, dfsm->cpg_callbacks)) != CS_OK) {
+        if (result == CS_ERR_LIBRARY) {
+            cfs_dom_critical(
+                dfsm->log_domain, "cpg_initialize failed: %s (failed to connect to corosync)",
+                cs_strerror(result)
+            );
+        } else {
+            cfs_dom_critical(dfsm->log_domain, "cpg_initialize failed: %s", cs_strerror(result));
         }
+        goto err_no_finalize;
+    }
 
-        if ((result = cpg_local_get(dfsm->cpg_handle, &dfsm->nodeid)) != CS_OK) {
-            cfs_dom_critical(dfsm->log_domain, "cpg_local_get failed: %s", cs_strerror(result));
-            goto err_finalize;
-        }
+    if ((result = cpg_local_get(dfsm->cpg_handle, &dfsm->nodeid)) != CS_OK) {
+        cfs_dom_critical(dfsm->log_domain, "cpg_local_get failed: %s", cs_strerror(result));
+        goto err_finalize;
+    }
 
-        dfsm->pid = getpid();
+    dfsm->pid = getpid();
 
-        result = cpg_context_set(dfsm->cpg_handle, dfsm);
-        if (result != CS_OK) {
-            cfs_dom_critical(dfsm->log_domain, "cpg_context_set failed: %s", cs_strerror(result));
-            goto err_finalize;
-        }
+    result = cpg_context_set(dfsm->cpg_handle, dfsm);
+    if (result != CS_OK) {
+        cfs_dom_critical(dfsm->log_domain, "cpg_context_set failed: %s", cs_strerror(result));
+        goto err_finalize;
     }
 
     result = cpg_fd_get(dfsm->cpg_handle, fd);
