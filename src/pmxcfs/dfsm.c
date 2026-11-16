@@ -145,6 +145,7 @@ struct dfsm {
 
 static gboolean dfsm_deliver_queue(dfsm_t *dfsm);
 static gboolean dfsm_deliver_sync_queue(dfsm_t *dfsm);
+static dfsm_mode_t dfsm_get_mode(dfsm_t *dfsm);
 
 gboolean dfsm_nodeid_is_local(dfsm_t *dfsm, uint32_t nodeid, uint32_t pid) {
     g_return_val_if_fail(dfsm != NULL, FALSE);
@@ -262,6 +263,13 @@ cs_error_t dfsm_send_message_sync(
     g_return_val_if_fail(!len || iov != NULL, CS_ERR_INVALID_PARAM);
 
     g_mutex_lock(&dfsm->sync_mutex);
+    /* abort sending if we are in an abnormal state */
+    if (dfsm_get_mode(dfsm) >= DFSM_ERROR_MODE_START) {
+        cfs_dom_debug(dfsm->log_domain, "error mode - refusing to send message");
+        g_mutex_unlock(&dfsm->sync_mutex);
+        return CS_ERR_NOT_EXIST;
+    }
+
     /* note: hold lock until message is sent - to guarantee ordering */
     uint64_t msgcount = ++dfsm->msgcount;
     if (rp) {
@@ -303,7 +311,7 @@ cs_error_t dfsm_send_message_sync(
     if (rp) {
         g_mutex_lock(&dfsm->sync_mutex);
 
-        while (dfsm->msgcount_rcvd < msgcount) {
+        while (dfsm->msgcount_rcvd < msgcount && dfsm_get_mode(dfsm) < DFSM_ERROR_MODE_START) {
             g_cond_wait(&dfsm->sync_cond, &dfsm->sync_mutex);
         }
 
@@ -474,6 +482,11 @@ static void dfsm_set_mode(dfsm_t *dfsm, dfsm_mode_t new_mode) {
 
     if (!changed) {
         return;
+    }
+
+    if (new_mode >= DFSM_ERROR_MODE_START) {
+        /* abort waiting for sync messages to arrive if we are in an abnormal state */
+        dfsm_send_sync_message_abort(dfsm);
     }
 
     if (new_mode == DFSM_MODE_START) {
