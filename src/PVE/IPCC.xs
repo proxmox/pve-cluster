@@ -100,7 +100,7 @@ retry_connection:
 
 	if (cfs_restart_flag_fd >= 0) close(cfs_restart_flag_fd);
 
-	/* the calls since the failed connect can have changed errno */
+	/* keep the connect error, the cleanup above can clobber errno */
 	if (!connection)
 		errno = connect_errno;
 
