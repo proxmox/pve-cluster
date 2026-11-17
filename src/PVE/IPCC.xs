@@ -51,11 +51,17 @@ static int conn_legacy;
 
 static char ipcbuffer[MAX_MSG_SIZE];
 
+/* 0 and ENOENT are valid answers of pmxcfs, so never report them when the transport fails */
+static int transport_errno(int err) {
+	return (err <= 0 || err == ENOENT) ? ENOTCONN : err;
+}
+
 static qb_ipcc_connection_t *init_connection() {
 
 	static qb_ipcc_connection_t *connection = NULL;
 	struct timespec retry_timeout, now;
 	int cfs_restart_flag_fd = -1;
+	int connect_errno = 0;
 
 	// check if pmxcfs is currently restarting
 	if ((cfs_restart_flag_fd = open(RESTART_FLAG_FILE, 0)) > 0) {
@@ -70,6 +76,7 @@ retry_connection:
 	connection = qb_ipcc_connect(PCS_SOCKET_NAME, MAX_MSG_SIZE);
 
 	if (!connection) {
+		connect_errno = errno;
 		if (cfs_restart_flag_fd >= 0) {
 			// cfs restarting and hopefully back soon, poll
 			clock_gettime(CLOCK_MONOTONIC, &now);
@@ -92,6 +99,10 @@ retry_connection:
 	}
 
 	if (cfs_restart_flag_fd >= 0) close(cfs_restart_flag_fd);
+
+	/* the calls since the failed connect can have changed errno */
+	if (!connection)
+		errno = connect_errno;
 
 	return connection;
 }
@@ -229,8 +240,10 @@ CODE:
 recache_connection:
 		conn = init_connection();
 
-		if (!conn)
+		if (!conn) {
+			errno = transport_errno(errno);
 			XSRETURN_UNDEF;
+		}
 
 		conn_pid = cpid;
 		conn_legacy = 0;
@@ -249,7 +262,7 @@ recache_connection:
 			retried_cache_connection = 1;
 			goto recache_connection;
 		}
-		errno = -res;
+		errno = transport_errno(-res);
 		XSRETURN_UNDEF;
 	}
 
