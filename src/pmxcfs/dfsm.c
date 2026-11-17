@@ -112,6 +112,8 @@ struct dfsm {
     gpointer data;
 
     gboolean joined;
+    /* a send refused while not joined got logged since the last join, protected with cpg_mutex */
+    gboolean refusal_logged;
 
     /* mode is protected with mode_mutex */
     GMutex mode_mutex;
@@ -243,7 +245,7 @@ static cs_error_t dfsm_send_message_full(
 
     struct timespec tvreq = {.tv_sec = 0, .tv_nsec = 100000000};
     cs_error_t result;
-    gboolean refused;
+    gboolean refused, note_refusal = FALSE;
     int retries = 0;
 loop:
     g_mutex_lock(&dfsm->cpg_mutex);
@@ -251,6 +253,10 @@ loop:
     refused = !dfsm->joined;
     if (refused) {
         result = CS_ERR_NOT_EXIST;
+        /* expected while setting up the connection again, so only note the first one */
+        if (!dfsm->refusal_logged) {
+            dfsm->refusal_logged = note_refusal = TRUE;
+        }
     } else {
         result = cpg_mcast_joined(dfsm->cpg_handle, CPG_TYPE_AGREED, iov, len);
     }
@@ -270,7 +276,9 @@ loop:
         cfs_dom_message(dfsm->log_domain, "cpg_send_message retried %d times", retries);
     }
 
-    if (result != CS_OK) {
+    if (note_refusal) {
+        cfs_dom_message(dfsm->log_domain, "not sending messages while not joined to the CPG group");
+    } else if (!refused && result != CS_OK) {
         cfs_dom_critical(dfsm->log_domain, "cpg_send_message failed: %s", cs_strerror(result));
     }
 
@@ -1532,6 +1540,7 @@ loop:
     result = cpg_join(dfsm->cpg_handle, &dfsm->cpg_group_name);
     if (result == CS_OK) {
         dfsm->joined = TRUE;
+        dfsm->refusal_logged = FALSE;
     }
     g_mutex_unlock(&dfsm->cpg_mutex);
     if (result == CS_ERR_TRY_AGAIN) {
