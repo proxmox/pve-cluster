@@ -1,3 +1,52 @@
+pve-cluster (9.1.10) trixie; urgency=medium
+
+  * fix #8325: pmxcfs: fail writes to /etc/pve instead of hanging
+    indefinitely while the node is not joined to the cluster file system
+    group, for example while it rejoins after network trouble, or once it
+    decided to leave the group because of an error. A hanging write could
+    block everything waiting on the same cfs lock.
+
+  * pmxcfs: report writes that other nodes might still have applied as I/O
+    error (EIO) and log their path, instead of failing them with EBUSY or a
+    misleading result, as if they never happened. This can happen, for
+    example, when the node loses its cluster connection while a write is in
+    flight.
+
+  * pmxcfs: rejoin the cluster file system group right away after leaving
+    it, for example after a failed synchronization, instead of only after
+    about six seconds, by always using a new corosync connection for joining.
+
+  * pmxcfs: reduce log noise during cluster communication trouble by logging
+    each failed message send only once, and only the first send refused while
+    not joined instead of every single one.
+
+  * pmxcfs: always produce valid JSON for guest config property, version and
+    members replies. A manually edited guest config, a status key or a node
+    name with control characters or invalid UTF-8 could break reading
+    properties for all guests in /cluster/resources, or cluster status updates
+    on all nodes.
+
+  * pmxcfs: report the last occurrence of a guest config property in the main
+    section, like the Perl parsers do, and no longer miss a requested property
+    when another one is repeated in a manually edited config.
+
+  * pmxcfs: fix the processing order of queued messages whose counters are
+    more than 2^31 apart. After very long pmxcfs uptimes on nodes with many
+    guests, this could leave a status value stale until its next update, or
+    drop an RRD sample.
+
+  * datacenter config: next-id: add 'unique' and 'enforce' options, and
+    register the 'virtual-guest/used-guest-ids' cluster file for recording
+    guest IDs that were used before. With 'unique', the /cluster/nextid API
+    skips such IDs when suggesting the next free one. With 'enforce', IDs for
+    new guests outside of explicitly configured 'lower' and 'upper' boundaries
+    get rejected, and with 'unique' also previously used IDs.
+
+  * cluster: add helpers to query and check the Proxmox VE version a node
+    runs, for use in version checks for container migration and HA.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 17 Nov 2026 02:26:30 +0100
+
 pve-cluster (9.1.9) trixie; urgency=medium
 
   * cluster: add a helper that asserts that all cluster nodes are online and
