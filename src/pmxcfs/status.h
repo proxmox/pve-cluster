@@ -76,6 +76,12 @@ void cfs_set_quorum_members(const uint32_t *nodeids, size_t count);
 /* a copy of them, to free with g_free() */
 uint32_t *cfs_get_quorum_members(size_t *count);
 
+/* number of nodes in the corosync configuration, 0 while not known yet */
+guint cfs_clinfo_node_count(void);
+
+/* whether the node is in the corosync configuration */
+gboolean cfs_clinfo_has_node(uint32_t nodeid);
+
 GHashTable *vmlist_hash_new(void);
 
 gboolean vmlist_hash_insert_vm(

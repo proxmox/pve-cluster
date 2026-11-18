@@ -2002,6 +2002,26 @@ gboolean cfs_is_quorate(void) {
     return res;
 }
 
+guint cfs_clinfo_node_count(void) {
+    g_mutex_lock(&mutex);
+    guint count = 0;
+    if (cfs_status.clinfo && cfs_status.clinfo->nodes_byid) {
+        count = g_hash_table_size(cfs_status.clinfo->nodes_byid);
+    }
+    g_mutex_unlock(&mutex);
+
+    return count;
+}
+
+gboolean cfs_clinfo_has_node(uint32_t nodeid) {
+    g_mutex_lock(&mutex);
+    gboolean found = cfs_status.clinfo && cfs_status.clinfo->nodes_byid &&
+                     g_hash_table_contains(cfs_status.clinfo->nodes_byid, &nodeid);
+    g_mutex_unlock(&mutex);
+
+    return found;
+}
+
 void cfs_set_quorum_members(const uint32_t *nodeids, size_t count) {
     g_return_if_fail(!count || nodeids != NULL);
 

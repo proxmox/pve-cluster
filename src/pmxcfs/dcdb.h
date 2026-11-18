@@ -29,7 +29,10 @@
 #define DCDB_CPG_GROUP_NAME "pve_dcdb_v1"
 /* please increase protocol version if you want to stop older nodes */
 #define DCDB_PROTOCOL_VERSION 1
-#define DCDB_VERIFY_TIME (60 * 60)
+/* Seconds between the timer ticks of the dcdb service. Only a completed sync runs the in-sync check
+ * right away, any other change it depends on waits for the next tick. Long compared to the delivery
+ * of a message, so that a tick rarely repeats what the previous one sent. */
+#define DCDB_CHECK_TIME 10
 
 typedef enum {
     DCDB_MESSAGE_CFS_WRITE = 1,

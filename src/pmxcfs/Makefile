@@ -17,7 +17,7 @@ ARFLAGS = crs
 .c.o:
 	$(CC) $(CFLAGS) -c -o $@ $< -MMD -MT $@ -MF $@.d
 
-all: pmxcfs create_pmxcfs_db logtest check_memdb
+all: pmxcfs create_pmxcfs_db logtest check_memdb check_dcdb
 
 libpmxcfs.a: logger.o loop.o server.o status.o confdb.o quorum.o dcdb.o dfsm.o
 libpmxcfs.a: cfs-plug.o cfs-plug-memdb.o cfs-plug-link.o cfs-plug-func.o
@@ -41,6 +41,9 @@ logtest2: logtest2.o libpmxcfs.a
 check_memdb: check_memdb.o libpmxcfs.a
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(shell pkg-config --libs check)
 
+check_dcdb: check_dcdb.o libpmxcfs.a
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(shell pkg-config --libs check)
+
 pmxcfs.8:
 
 -include /usr/share/pve-doc-generator/pve-doc-generator.mk
@@ -57,11 +60,12 @@ format:
 	git ls-files ':/src/pmxcfs/*.[ch]' | xargs -n2 -P0 -- clang-format -i
 
 .PHONY: check
-check: check_memdb
+check: check_memdb check_dcdb
 	./check_memdb
+	./check_dcdb
 
 .PHONY: clean
 clean:
-	rm -f *.o *.o.d *.a pmxcfs create_pmxcfs_db check_memdb logtest pmxcfs.8
+	rm -f *.o *.o.d *.a pmxcfs create_pmxcfs_db check_memdb check_dcdb logtest pmxcfs.8
 
 -include *.o.d

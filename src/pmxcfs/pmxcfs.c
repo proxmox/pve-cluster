@@ -1026,7 +1026,7 @@ int main(int argc, char *argv[]) {
         cfs_loop_add_service(corosync_loop, service_confdb, QB_LOOP_MED);
 
         service_dcdb = service_dfsm_new(dcdb);
-        cfs_service_set_timer(service_dcdb, DCDB_VERIFY_TIME);
+        cfs_service_set_timer(service_dcdb, DCDB_CHECK_TIME);
 
         cfs_loop_add_service(corosync_loop, service_dcdb, QB_LOOP_MED);
 

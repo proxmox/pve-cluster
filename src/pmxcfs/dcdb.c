@@ -38,6 +38,7 @@
 #include <unistd.h>
 
 #include "cfs-utils.h"
+#include "cluster-id.h"
 #include "dcdb.h"
 #include "loop.h"
 #include "status.h"
@@ -985,6 +986,145 @@ leave:
     goto ret;
 }
 
+/* state of the cluster ID generation, loop thread only */
+typedef struct {
+    /* Kept until the file holds a valid ID. An attempt can run before the messages of an earlier
+     * attempt got delivered, it then sends the same ID again and not a new one. */
+    char pending_id[CLUSTER_ID_FILE_SIZE];
+    gboolean have_pending_id;
+    /* why the last check did not generate, to log only changes */
+    char *blocked_reason;
+} cluster_id_gen_t;
+
+static cluster_id_gen_t cluster_id_gen;
+
+static void set_blocked_reason(char *reason) {
+    if (reason && g_strcmp0(reason, cluster_id_gen.blocked_reason) != 0) {
+        cfs_message("not generating a cluster ID yet, %s", reason);
+    }
+
+    g_free(cluster_id_gen.blocked_reason);
+    cluster_id_gen.blocked_reason = reason;
+}
+
+/* An ID is only generated while more than half of the configured nodes are in the corosync
+ * membership and all of those are in sync in this group. Majorities of the same configured node
+ * set overlap. Together with normal database transfer on join, this prevents a stale minority from
+ * generating an ID before it synchronizes with the other nodes. Counting nodes rather than relying
+ * on quorum alone keeps this guarantee with a QDevice, two_node, last_man_standing or lowered
+ * expected votes, at the price of not generating while half of the nodes or more are down. Returns
+ * why generating is blocked, NULL if it is not. */
+static char *generation_blocker(dfsm_t *dfsm) {
+    size_t members_len;
+    g_autofree uint32_t *members = cfs_get_quorum_members(&members_len);
+
+    if (!members_len || !cfs_is_quorate()) {
+        return g_strdup("not quorate");
+    }
+
+    guint nodes = cfs_clinfo_node_count();
+    if (!nodes) {
+        return g_strdup("the configured nodes are not known");
+    }
+
+    /* by node ID, the membership can still hold a node that got removed from the configuration */
+    size_t configured = 0;
+    for (size_t i = 0; i < members_len; i++) {
+        if (cfs_clinfo_has_node(members[i])) {
+            configured++;
+        }
+    }
+
+    if (configured * 2 <= nodes) {
+        return g_strdup_printf(
+            "only %zu of %u configured nodes are in the corosync membership", configured, nodes
+        );
+    }
+
+    GString *missing = NULL;
+    for (size_t i = 0; i < members_len; i++) {
+        if (!dfsm_nodeid_is_member(dfsm, members[i])) {
+            if (!missing) {
+                missing = g_string_new(NULL);
+            } else {
+                g_string_append(missing, ", ");
+            }
+            g_string_append_printf(missing, "%u", members[i]);
+        }
+    }
+
+    if (missing) {
+        char *reason = g_strdup_printf(
+            "node ID(s) %s of the corosync membership are not in the pmxcfs group", missing->str
+        );
+        g_string_free(missing, TRUE);
+        return reason;
+    }
+
+    return NULL;
+}
+
+/* Generates the cluster ID if it is missing or invalid and nothing blocks that. This is the only
+ * place that decides it, and it only looks at the current state: it runs right after each sync and
+ * then on every timer tick while in sync, so nothing has to call it when the quorum, the
+ * membership, the configured nodes or the file change, or when sending failed. It can run again
+ * before the messages of an earlier run got delivered.
+ *
+ * Only the node with the lowest ID generates the cluster ID, like only that node expires locks, so
+ * that no two nodes write different IDs. The loop thread cannot wait for the result of its own
+ * messages, so CREATE and WRITE go out back to back, the messages of one sender stay in order. */
+static void dcdb_ensure_cluster_id(dfsm_t *dfsm, gpointer data) {
+    g_return_if_fail(dfsm != NULL);
+    g_return_if_fail(data != NULL);
+
+    memdb_t *memdb = (memdb_t *)data;
+
+    if (!dfsm_lowest_nodeid(dfsm)) {
+        return;
+    }
+
+    cluster_id_state_t state = cluster_id_state(memdb);
+    if (state == CLUSTER_ID_VALID) {
+        cluster_id_gen.have_pending_id = FALSE;
+        set_blocked_reason(NULL);
+        return;
+    }
+
+    if (state == CLUSTER_ID_NOT_A_FILE) {
+        set_blocked_reason(g_strdup_printf("'%s' is not a regular file", CFS_CLUSTER_ID_FN));
+        return;
+    }
+
+    char *reason = generation_blocker(dfsm);
+    set_blocked_reason(reason);
+    if (reason) {
+        return;
+    }
+
+    if (!cluster_id_gen.have_pending_id) {
+        if (!cluster_id_generate(cluster_id_gen.pending_id)) {
+            return;
+        }
+        cluster_id_gen.have_pending_id = TRUE;
+    }
+
+    if (state == CLUSTER_ID_MISSING &&
+        dcdb_send_fuse_message_full(
+            dfsm, DCDB_MESSAGE_CFS_CREATE, CFS_CLUSTER_ID_FN, NULL, NULL, 0, 0, 0, NULL
+        ) != CS_OK) {
+        return;
+    }
+
+    if (dcdb_send_fuse_message_full(
+            dfsm, DCDB_MESSAGE_CFS_WRITE, CFS_CLUSTER_ID_FN, NULL, cluster_id_gen.pending_id,
+            CLUSTER_ID_FILE_SIZE, 0, 1, NULL
+        ) != CS_OK) {
+        return;
+    }
+
+    cfs_message("generating cluster ID %.*s", CLUSTER_ID_LEN, cluster_id_gen.pending_id);
+}
+
 static dfsm_callbacks_t dcdb_dfsm_callbacks = {
     .dfsm_deliver_fn = dcdb_deliver,
     .dfsm_get_state_fn = dcdb_get_state,
@@ -993,6 +1133,7 @@ static dfsm_callbacks_t dcdb_dfsm_callbacks = {
     .dfsm_commit_fn = dcdb_commit,
     .dfsm_cleanup_fn = dcdb_cleanup,
     .dfsm_checksum_fn = dcdb_checksum,
+    .dfsm_in_sync_fn = dcdb_ensure_cluster_id,
 };
 
 dfsm_t *dcdb_new(memdb_t *memdb) {
