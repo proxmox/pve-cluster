@@ -1,3 +1,21 @@
+pve-cluster (9.1.11) trixie; urgency=medium
+
+  * ipcc: report a failed connection to pmxcfs as an error. Callers could
+    mistake it for an empty answer or for a file that does not exist, for
+    example when reading a config to learn whether it exists.
+
+  * datacenter config: add the 'token-policy' option for a cluster-wide API
+    token policy, as compliance rules like PCI DSS, SOC 2 or ISO 27001 often
+    mandate bounded credential lifetimes. It can require an expiration date,
+    bound the maximum lifetime, forbid extending the expiration date of
+    existing tokens, and require privilege separation. Optionally, tokens
+    created without an expiration date get the maximum lifetime instead of
+    being rejected, and a token can be extended while regenerating its
+    secret. pve-access-control enforces the policy on token creation and
+    update, existing tokens stay untouched.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 18 Nov 2026 02:07:50 +0100
+
 pve-cluster (9.1.10) trixie; urgency=medium
 
   * fix #8325: pmxcfs: fail writes to /etc/pve instead of hanging
