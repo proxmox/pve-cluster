@@ -41,6 +41,11 @@ typedef struct {
     quorum_handle_t handle;
 } qs_private_t;
 
+static void quorum_set(uint32_t quorate, gboolean quiet, const uint32_t *nodeids, size_t count) {
+    cfs_set_quorate(quorate, quiet);
+    cfs_set_quorum_members(nodeids, count);
+}
+
 static void quorum_notification_fn(
     quorum_handle_t handle,
     uint32_t quorate,
@@ -64,7 +69,7 @@ static void quorum_notification_fn(
         return;
     }
 
-    cfs_set_quorate(quorate, FALSE);
+    quorum_set(quorate, FALSE, view_list, view_list_entries);
 }
 
 static quorum_callbacks_t quorum_callbacks = {
@@ -80,7 +85,7 @@ static gboolean service_quorum_finalize(cfs_service_t *service, gpointer context
 
     cs_error_t result;
 
-    cfs_set_quorate(0, TRUE);
+    quorum_set(0, TRUE, NULL, 0);
 
     result = quorum_finalize(handle);
     private->handle = 0;
@@ -150,7 +155,7 @@ static int service_quorum_initialize(cfs_service_t *service, gpointer context) {
     return quorum_fd;
 
 err_finalize:
-    cfs_set_quorate(0, FALSE);
+    quorum_set(0, FALSE, NULL, 0);
     quorum_finalize(handle);
 err_reset_handle:
     private
@@ -185,7 +190,7 @@ loop:
 
     cfs_critical("quorum_dispatch failed: %s", cs_strerror(result));
 
-    cfs_set_quorate(0, FALSE);
+    quorum_set(0, FALSE, NULL, 0);
     quorum_finalize(handle);
     private->handle = 0;
     return FALSE;

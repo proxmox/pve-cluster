@@ -132,6 +132,8 @@ typedef struct {
     time_t start_time;
 
     uint32_t quorate;
+    uint32_t *quorum_members;
+    size_t quorum_members_len;
 
     cfs_clinfo_t *clinfo;
     uint32_t clinfo_version;
@@ -1995,6 +1997,27 @@ dfsm_t *cfs_status_dfsm_new(void) {
 gboolean cfs_is_quorate(void) {
     g_mutex_lock(&mutex);
     gboolean res = cfs_status.quorate;
+    g_mutex_unlock(&mutex);
+
+    return res;
+}
+
+void cfs_set_quorum_members(const uint32_t *nodeids, size_t count) {
+    g_return_if_fail(!count || nodeids != NULL);
+
+    g_mutex_lock(&mutex);
+    g_free(cfs_status.quorum_members);
+    cfs_status.quorum_members = count ? g_memdup2(nodeids, count * sizeof(*nodeids)) : NULL;
+    cfs_status.quorum_members_len = count;
+    g_mutex_unlock(&mutex);
+}
+
+uint32_t *cfs_get_quorum_members(size_t *count) {
+    g_return_val_if_fail(count != NULL, NULL);
+
+    g_mutex_lock(&mutex);
+    *count = cfs_status.quorum_members_len;
+    uint32_t *res = g_memdup2(cfs_status.quorum_members, *count * sizeof(*res));
     g_mutex_unlock(&mutex);
 
     return res;

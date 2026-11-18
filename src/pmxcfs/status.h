@@ -69,6 +69,13 @@ void cfs_set_quorate(uint32_t quorate, gboolean quiet);
 
 gboolean cfs_is_quorate(void);
 
+/* the node IDs of the corosync membership as of the last quorum notification, none while not
+ * connected to corosync */
+void cfs_set_quorum_members(const uint32_t *nodeids, size_t count);
+
+/* a copy of them, to free with g_free() */
+uint32_t *cfs_get_quorum_members(size_t *count);
+
 GHashTable *vmlist_hash_new(void);
 
 gboolean vmlist_hash_insert_vm(
