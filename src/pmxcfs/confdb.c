@@ -109,6 +109,14 @@ static cs_error_t cmap_read_clusternodes(cmap_handle_t handle, cfs_clinfo_t *cli
         }
     }
 
+    // the iteration ends with CS_ERR_NO_SECTIONS, anything else means that nodes are missing
+    if (result != CS_ERR_NO_SECTIONS) {
+        cfs_critical("cmap_iter_next failed %s", cs_strerror(result));
+        free(name);
+        cmap_iter_finalize(handle, iter);
+        return result;
+    }
+
     if (name && nodeid) {
         cfs_clnode_t *clnode = cfs_clnode_new(name, nodeid, votes);
         cfs_clinfo_add_node(clinfo, clnode);
