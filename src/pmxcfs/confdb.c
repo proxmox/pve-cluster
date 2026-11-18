@@ -107,14 +107,17 @@ static cs_error_t cmap_read_clusternodes(cmap_handle_t handle, cfs_clinfo_t *cli
                 cfs_critical("cmap_get %s failed %s", key_name, cs_strerror(result));
             }
         }
+
+        // stop at the first key that cannot be read, the node list would be wrong without it
+        if (result != CS_OK) {
+            goto fail;
+        }
     }
 
     // the iteration ends with CS_ERR_NO_SECTIONS, anything else means that nodes are missing
     if (result != CS_ERR_NO_SECTIONS) {
         cfs_critical("cmap_iter_next failed %s", cs_strerror(result));
-        free(name);
-        cmap_iter_finalize(handle, iter);
-        return result;
+        goto fail;
     }
 
     if (name && nodeid) {
@@ -129,6 +132,11 @@ static cs_error_t cmap_read_clusternodes(cmap_handle_t handle, cfs_clinfo_t *cli
         return result;
     }
 
+    return result;
+
+fail:
+    free(name);
+    cmap_iter_finalize(handle, iter);
     return result;
 }
 
@@ -281,7 +289,11 @@ static int service_cmap_initialize(cfs_service_t *service, gpointer context) {
         return -1;
     }
 
-    cmap_read_config(handle);
+    // return an error so that the initialization, and with it this read, gets repeated
+    if (cmap_read_config(handle) != CS_OK) {
+        service_cmap_finalize(service, context);
+        return -1;
+    }
 
     return cmap_fd;
 }
