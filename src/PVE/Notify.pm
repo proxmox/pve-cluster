@@ -64,8 +64,22 @@ sub write_config {
 
 my $send_notification = sub {
     my ($severity, $template_name, $template_data, $fields, $config) = @_;
-    $config = read_config() if !defined($config);
-    $config->send($severity, $template_name, $template_data, $fields);
+
+    my $recipient = undef;
+
+    if (defined($config)) {
+        if (ref($config) eq 'PVE::RS::Notify') {
+            # Old style with explicitly provided config, call send directly.
+            $config->send($severity, $template_name, $template_data, $fields);
+            return;
+        } else {
+            # New style email-based recipient, set the recipient to the provided config
+            # and try to send via queue.
+            $recipient = $config;
+        }
+    }
+
+    PVE::RS::Notify::enqueue($severity, $template_name, $template_data, $fields, $recipient);
 };
 
 sub notify {
