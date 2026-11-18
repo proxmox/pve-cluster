@@ -124,6 +124,7 @@ struct dfsm {
     uint32_t local_epoch_counter;
     dfsm_sync_epoch_t sync_epoch;
     uint32_t lowest_nodeid;
+    gboolean in_sync; /* see dfsm_in_sync_fn */
     GSequence *msg_queue;
     GList *sync_queue;
 
@@ -609,6 +610,27 @@ gboolean dfsm_restartable(dfsm_t *dfsm) {
 
 void dfsm_set_errormode(dfsm_t *dfsm) { dfsm_set_mode(dfsm, DFSM_MODE_ERROR); }
 
+static void dfsm_notify_in_sync(dfsm_t *dfsm) {
+    g_return_if_fail(dfsm != NULL);
+    g_return_if_fail(dfsm->sync_info != NULL);
+
+    if (dfsm->in_sync || dfsm_get_mode(dfsm) != DFSM_MODE_SYNCED) {
+        return;
+    }
+
+    for (int i = 0; i < dfsm->sync_info->node_count; i++) {
+        if (!dfsm->sync_info->nodes[i].synced) {
+            return;
+        }
+    }
+
+    dfsm->in_sync = TRUE;
+
+    if (dfsm->dfsm_callbacks->dfsm_in_sync_fn) {
+        dfsm->dfsm_callbacks->dfsm_in_sync_fn(dfsm, dfsm->data);
+    }
+}
+
 static void dfsm_release_sync_resources(
     dfsm_t *dfsm, const struct cpg_address *member_list, size_t member_list_entries
 ) {
@@ -802,6 +824,8 @@ static void dfsm_cpg_deliver_callback(
                 goto leave;
             }
 
+            dfsm_notify_in_sync(dfsm);
+
             return;
 
         } else if (base_header->type == DFSM_MESSAGE_VERIFY_REQUEST) {
@@ -990,6 +1014,8 @@ static void dfsm_cpg_deliver_callback(
                         goto leave;
                     }
 
+                    dfsm_notify_in_sync(dfsm);
+
                 } else {
                     dfsm_set_mode(dfsm, DFSM_MODE_UPDATE);
 
@@ -1039,6 +1065,8 @@ static void dfsm_cpg_deliver_callback(
             }
 
             dfsm_release_sync_resources(dfsm, NULL, 0);
+
+            dfsm_notify_in_sync(dfsm);
 
             return;
         }
@@ -1212,6 +1240,7 @@ static void dfsm_cpg_confchg_callback(
 
     dfsm->we_are_member = 0;
     dfsm->state_sent = FALSE;
+    dfsm->in_sync = FALSE;
 
     /* create new epoch */
     dfsm->local_epoch_counter++;
@@ -1304,6 +1333,7 @@ static void dfsm_cpg_confchg_callback(
         if (!dfsm_deliver_queue(dfsm)) {
             goto leave;
         }
+        dfsm_notify_in_sync(dfsm);
     }
 
     if (dfsm->dfsm_callbacks->dfsm_confchg_fn) {
@@ -1388,6 +1418,31 @@ gboolean dfsm_is_initialized(dfsm_t *dfsm) {
     g_return_val_if_fail(dfsm != NULL, FALSE);
 
     return (dfsm->cpg_handle != 0) ? TRUE : FALSE;
+}
+
+static void dfsm_check_in_sync(dfsm_t *dfsm) {
+    g_return_if_fail(dfsm != NULL);
+
+    if (dfsm->in_sync && dfsm_get_mode(dfsm) == DFSM_MODE_SYNCED &&
+        dfsm->dfsm_callbacks->dfsm_in_sync_fn) {
+        dfsm->dfsm_callbacks->dfsm_in_sync_fn(dfsm, dfsm->data);
+    }
+}
+
+gboolean dfsm_nodeid_is_member(dfsm_t *dfsm, uint32_t nodeid) {
+    g_return_val_if_fail(dfsm != NULL, FALSE);
+
+    if (!dfsm->sync_info) {
+        return FALSE;
+    }
+
+    for (int i = 0; i < dfsm->sync_info->node_count; i++) {
+        if (dfsm->sync_info->nodes[i].nodeid == nodeid) {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
 }
 
 gboolean dfsm_lowest_nodeid(dfsm_t *dfsm) {
@@ -1481,6 +1536,7 @@ cs_error_t dfsm_initialize(dfsm_t *dfsm, int *fd) {
     dfsm->joined = FALSE;
     g_mutex_unlock(&dfsm->cpg_mutex);
     dfsm->we_are_member = 0;
+    dfsm->in_sync = FALSE;
 
     dfsm_set_mode(dfsm, DFSM_MODE_START);
 
@@ -1608,6 +1664,7 @@ gboolean dfsm_finalize(dfsm_t *dfsm) {
         dfsm->joined = FALSE;
         g_mutex_unlock(&dfsm->cpg_mutex);
         dfsm->we_are_member = 0;
+        dfsm->in_sync = FALSE;
     }
 
     return TRUE;
@@ -1656,8 +1713,12 @@ void dfsm_destroy(dfsm_t *dfsm) {
     g_free(dfsm);
 }
 
+/* seconds between the data verifications of a service, whose timer can tick more often */
+#define DFSM_VERIFY_TIME (60 * 60)
+
 typedef struct {
     dfsm_t *dfsm;
+    time_t last_verify;
 } service_dfsm_private_t;
 
 static gboolean service_dfsm_finalize(cfs_service_t *service, gpointer context) {
@@ -1758,7 +1819,13 @@ static void service_dfsm_timer(cfs_service_t *service, gpointer context) {
 
     g_return_if_fail(dfsm != NULL);
 
-    dfsm_verify_request(dfsm);
+    time_t now = time(NULL);
+    if (now - private->last_verify >= DFSM_VERIFY_TIME) {
+        private->last_verify = now;
+        dfsm_verify_request(dfsm);
+    }
+
+    dfsm_check_in_sync(dfsm);
 }
 
 static cfs_service_callbacks_t cfs_dfsm_callbacks = {
@@ -1779,6 +1846,7 @@ cfs_service_t *service_dfsm_new(dfsm_t *dfsm) {
     }
 
     private->dfsm = dfsm;
+    private->last_verify = time(NULL);
 
     service = cfs_service_new(&cfs_dfsm_callbacks, dfsm->log_domain, private);
 

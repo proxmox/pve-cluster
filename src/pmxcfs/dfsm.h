@@ -79,6 +79,8 @@ typedef int (*dfsm_process_state_update_fn_t)(
 
 typedef void (*dfsm_synced_fn_t)(dfsm_t *dfsm);
 
+typedef void (*dfsm_in_sync_fn_t)(dfsm_t *dfsm, gpointer data);
+
 /* return values:
  * res < 0    ... serious error, leave group
  * res >=  0  ... OK
@@ -103,6 +105,11 @@ typedef struct {
     dfsm_process_update_fn_t dfsm_process_update_fn;
     dfsm_checksum_fn_t dfsm_checksum_fn;
     dfsm_synced_fn_t dfsm_synced_fn;
+    /* Called whenever this node has marked all members as synced and delivered the messages queued
+     * meanwhile, so that the local state matches the one of all members: first right after a sync,
+     * then again on every service timer tick while that holds. dfsm_synced_fn runs earlier, when
+     * the local node enters the synced mode and before the queued messages are delivered. */
+    dfsm_in_sync_fn_t dfsm_in_sync_fn;
 } dfsm_callbacks_t;
 
 /* what became of a message sent with dfsm_send_message_sync */
@@ -167,6 +174,9 @@ cs_error_t dfsm_send_update(dfsm_t *dfsm, struct iovec *iov, unsigned int len);
 cs_error_t dfsm_send_update_complete(dfsm_t *dfsm);
 
 gboolean dfsm_lowest_nodeid(dfsm_t *dfsm);
+
+/* whether a process of that node is a member of the current group, loop thread only */
+gboolean dfsm_nodeid_is_member(dfsm_t *dfsm, uint32_t nodeid);
 
 gboolean dfsm_nodeid_is_local(dfsm_t *dfsm, uint32_t nodeid, uint32_t pid);
 
