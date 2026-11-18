@@ -1,3 +1,23 @@
+pve-cluster (9.1.12) trixie; urgency=medium
+
+  * pmxcfs: confdb: keep the previously known node list if reading the nodes
+    of the corosync configuration fails midway, instead of publishing the
+    partial list as if it were complete.
+
+  * datacenter config: require the 'consent-text' option to be base64
+    encoded, as the web interface did not show it otherwise anyway. An
+    existing value that is not base64 encoded is ignored, with a warning on
+    each read of the configuration.
+
+  * notify: send notifications through the notification queue of the node,
+    from which the new pve-notify-worker service sends them. Callers like the
+    HA manager no longer block on slow notification targets, and processes
+    running as www-data can send notifications too. The log messages about
+    sending a notification thus end up in the journal of pve-notify-worker
+    instead of the task log.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 18 Nov 2026 21:43:17 +0100
+
 pve-cluster (9.1.11) trixie; urgency=medium
 
   * ipcc: report a failed connection to pmxcfs as an error. Callers could
