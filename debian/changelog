@@ -1,3 +1,22 @@
+pve-cluster (9.1.13) trixie; urgency=medium
+
+  * pmxcfs: give every cluster and every standalone node a cluster ID, a random
+    identifier in the file '/etc/pve/cluster-id'. Tools like backup software can
+    use it to tell installations apart, for example if several clusters share
+    one backup target.
+    - a standalone node generates the ID when pmxcfs starts. A cluster generates
+      it once all nodes are in sync and more than half of the configured nodes
+      are present, so that two parts of a cluster cannot end up with different
+      IDs.
+    - only pmxcfs can change the file. To give a node that got separated from
+      its cluster an ID of its own, remove the file in forced local mode.
+
+  * pmxcfs: do not use the node list of the corosync configuration if reading
+    one of its keys fails, for example because a reload removed the key at that
+    moment. A node could be missing from the list, or have no votes, before.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 19 Nov 2026 23:35:52 +0100
+
 pve-cluster (9.1.12) trixie; urgency=medium
 
   * pmxcfs: confdb: keep the previously known node list if reading the nodes
