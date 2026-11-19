@@ -157,7 +157,8 @@ sub setup_sshd_config {
         $conf .= "\nPermitRootLogin yes\n";
     }
 
-    PVE::Tools::file_set_contents($ssh_system_server_config, $conf);
+    my $mode = (stat($ssh_system_server_config))[2] & 07777;
+    PVE::Tools::file_set_contents($ssh_system_server_config, $conf, $mode);
 
     PVE::Tools::run_command(['systemctl', 'reload-or-restart', 'sshd']);
 }
