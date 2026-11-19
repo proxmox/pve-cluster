@@ -150,13 +150,24 @@ sub setup_sshd_config {
 
     my $conf = PVE::Tools::file_get_contents($ssh_system_server_config);
 
-    return if $conf =~ m/^PermitRootLogin\s+yes\s*$/m;
+    # split off global section from the rest of config. the global section is everything before the
+    # first `Match` (`man sshd_config(5)`):
+    #
+    # > Introduces a conditional block. If all of the criteria on the Match line are satisfied, the
+    # > keywords on the following lines override those set in the global section of the config file,
+    # > until either another Match line or the end of the file.
+    my ($global, $separator, $rest) = split(/^(\h*Match(?:\h|=))/mi, $conf, 2);
+    $global //= ''; # split returns an empty list for an empty file
+    $rest = defined($separator) ? $separator . $rest : '';
 
-    if ($conf !~ s/^#?PermitRootLogin.*$/PermitRootLogin yes/m) {
-        chomp $conf;
-        $conf .= "\nPermitRootLogin yes\n";
+    return if $global =~ m/^\h*PermitRootLogin(?:\h*=\h*|\h+)(\S+)/mi && lc($1) eq 'yes';
+
+    if ($global !~ s/^(?:\h*#)*\h*PermitRootLogin.*$/PermitRootLogin yes/mi) {
+        chomp $global;
+        $global .= "\nPermitRootLogin yes\n";
     }
 
+    $conf = $global . $rest;
     my $mode = (stat($ssh_system_server_config))[2] & 07777;
     PVE::Tools::file_set_contents($ssh_system_server_config, $conf, $mode);
 
