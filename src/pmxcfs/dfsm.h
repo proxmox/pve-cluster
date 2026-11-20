@@ -169,6 +169,10 @@ cs_error_t dfsm_send_message_sync(
     dfsm_t *dfsm, uint16_t msgtype, struct iovec *iov, int len, dfsm_result_t *rp
 );
 
+/* Like dfsm_send_message, but returns CS_ERR_TRY_AGAIN at once if corosync applies flow control,
+ * instead of retrying for up to ten seconds. For callers that try again later anyway. */
+cs_error_t dfsm_send_message_once(dfsm_t *dfsm, uint16_t msgtype, struct iovec *iov, int len);
+
 cs_error_t dfsm_send_update(dfsm_t *dfsm, struct iovec *iov, unsigned int len);
 
 cs_error_t dfsm_send_update_complete(dfsm_t *dfsm);

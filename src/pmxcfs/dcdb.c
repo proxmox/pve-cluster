@@ -123,7 +123,8 @@ static const char *dcdb_message_name(dcdb_message_t msg_type) {
     return "operation";
 }
 
-/* waits for the local delivery and its result only if rp is set */
+/* Waits for the local delivery and its result only if rp is set. Without retry, rp must be NULL,
+ * see dfsm_send_message_once. */
 static cs_error_t dcdb_send_fuse_message_full(
     dfsm_t *dfsm,
     dcdb_message_t msg_type,
@@ -133,8 +134,11 @@ static cs_error_t dcdb_send_fuse_message_full(
     guint32 size,
     guint32 offset,
     guint32 flags,
-    dfsm_result_t *rp
+    dfsm_result_t *rp,
+    gboolean retry
 ) {
+    g_return_val_if_fail(retry || rp == NULL, CS_ERR_INVALID_PARAM);
+
     struct iovec iov[8];
 
     iov[0].iov_base = (char *)&size;
@@ -163,6 +167,10 @@ static cs_error_t dcdb_send_fuse_message_full(
     iov[7].iov_base = (char *)buf;
     iov[7].iov_len = size;
 
+    if (!retry) {
+        return dfsm_send_message_once(dfsm, msg_type, iov, 8);
+    }
+
     return dfsm_send_message_sync(dfsm, msg_type, iov, 8, rp);
 }
 
@@ -183,7 +191,7 @@ int dcdb_send_fuse_message(
         return -EACCES;
     }
 
-    dcdb_send_fuse_message_full(dfsm, msg_type, path, to, buf, size, offset, flags, &rc);
+    dcdb_send_fuse_message_full(dfsm, msg_type, path, to, buf, size, offset, flags, &rc, TRUE);
 
     if (rc.outcome == DFSM_OUTCOME_PROCESSED) {
         return rc.result;
@@ -1072,7 +1080,9 @@ static char *generation_blocker(dfsm_t *dfsm) {
  *
  * Only the node with the lowest ID generates the cluster ID, like only that node expires locks, so
  * that no two nodes write different IDs. The loop thread cannot wait for the result of its own
- * messages, so CREATE and WRITE go out back to back, the messages of one sender stay in order. */
+ * messages, so CREATE and WRITE go out back to back, the messages of one sender stay in order.
+ * Sends refused under flow control are not retried, as that would block the loop thread. The next
+ * timer tick tries again. */
 static void dcdb_ensure_cluster_id(dfsm_t *dfsm, gpointer data) {
     g_return_if_fail(dfsm != NULL);
     g_return_if_fail(data != NULL);
@@ -1110,14 +1120,14 @@ static void dcdb_ensure_cluster_id(dfsm_t *dfsm, gpointer data) {
 
     if (state == CLUSTER_ID_MISSING &&
         dcdb_send_fuse_message_full(
-            dfsm, DCDB_MESSAGE_CFS_CREATE, CFS_CLUSTER_ID_FN, NULL, NULL, 0, 0, 0, NULL
+            dfsm, DCDB_MESSAGE_CFS_CREATE, CFS_CLUSTER_ID_FN, NULL, NULL, 0, 0, 0, NULL, FALSE
         ) != CS_OK) {
         return;
     }
 
     if (dcdb_send_fuse_message_full(
             dfsm, DCDB_MESSAGE_CFS_WRITE, CFS_CLUSTER_ID_FN, NULL, cluster_id_gen.pending_id,
-            CLUSTER_ID_FILE_SIZE, 0, 1, NULL
+            CLUSTER_ID_FILE_SIZE, 0, 1, NULL, FALSE
         ) != CS_OK) {
         return;
     }

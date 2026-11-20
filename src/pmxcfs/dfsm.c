@@ -330,8 +330,8 @@ cs_error_t dfsm_send_message(dfsm_t *dfsm, uint16_t msgtype, struct iovec *iov, 
     return dfsm_send_message_sync(dfsm, msgtype, iov, len, NULL);
 }
 
-cs_error_t dfsm_send_message_sync(
-    dfsm_t *dfsm, uint16_t msgtype, struct iovec *iov, int len, dfsm_result_t *rp
+static cs_error_t dfsm_send_normal_message(
+    dfsm_t *dfsm, uint16_t msgtype, struct iovec *iov, int len, dfsm_result_t *rp, int retry
 ) {
     g_return_val_if_fail(dfsm != NULL, CS_ERR_INVALID_PARAM);
     g_return_val_if_fail(!len || iov != NULL, CS_ERR_INVALID_PARAM);
@@ -374,7 +374,7 @@ cs_error_t dfsm_send_message_sync(
     }
 
     gboolean maybe_sent;
-    cs_error_t result = dfsm_send_message_full(dfsm, real_iov, len + 1, 1, &maybe_sent);
+    cs_error_t result = dfsm_send_message_full(dfsm, real_iov, len + 1, retry, &maybe_sent);
 
     if (result != CS_OK && rp) {
         g_hash_table_remove(dfsm->results, &rp->msgcount);
@@ -402,6 +402,16 @@ cs_error_t dfsm_send_message_sync(
     }
 
     return CS_OK;
+}
+
+cs_error_t dfsm_send_message_sync(
+    dfsm_t *dfsm, uint16_t msgtype, struct iovec *iov, int len, dfsm_result_t *rp
+) {
+    return dfsm_send_normal_message(dfsm, msgtype, iov, len, rp, 1);
+}
+
+cs_error_t dfsm_send_message_once(dfsm_t *dfsm, uint16_t msgtype, struct iovec *iov, int len) {
+    return dfsm_send_normal_message(dfsm, msgtype, iov, len, NULL, 0);
 }
 
 static gboolean dfsm_send_checksum(dfsm_t *dfsm) {

@@ -52,8 +52,10 @@ typedef struct {
 
 static GQueue packets = G_QUEUE_INIT;
 
-/* the send with this number fails, counted from 1 since send_nr got reset, 0 for none */
+/* the send with this number fails with fail_send_result, counted from 1 since send_nr got reset, 0
+ * for none */
 static int fail_send_nr;
+static cs_error_t fail_send_result;
 static int send_nr;
 
 typedef struct {
@@ -113,7 +115,7 @@ cs_error_t cpg_mcast_joined(
     dfsm_t *sender = (dfsm_t *)(uintptr_t)handle;
 
     if (++send_nr == fail_send_nr) {
-        return CS_ERR_LIBRARY;
+        return fail_send_result;
     }
 
     packet_t *p = g_new0(packet_t, 1);
@@ -620,8 +622,9 @@ START_TEST(test_pending_id_reused) {
 END_TEST
 
 /* A failed send leaves no ID, or the empty file of an interrupted creation, and causes no event.
- * The next timer tick tries again. fail_nr is the send of the attempt that fails. */
-static void send_fails(int fail_nr, gboolean with_empty_file) {
+ * The next timer tick tries again. fail_nr is the send of the attempt that fails with result. Under
+ * flow control, the send is not retried at once either, as that would hold up the loop thread. */
+static void send_fails(int fail_nr, gboolean with_empty_file, cs_error_t result) {
     memdb_t *dbs[] = {open_db("1.db"), open_db("2.db")};
     if (with_empty_file) {
         ck_assert(memdb_create(dbs[0], "cluster-id", 3, 100) == 0);
@@ -639,6 +642,7 @@ static void send_fails(int fail_nr, gboolean with_empty_file) {
     set_quorum(1, view, 2);
     send_nr = 0;
     fail_send_nr = fail_nr;
+    fail_send_result = result;
     tick(nodes, 2);
     fail_send_nr = 0;
     ck_assert(send_nr == fail_nr);
@@ -654,13 +658,19 @@ static void send_fails(int fail_nr, gboolean with_empty_file) {
     stop_nodes(nodes, dbs, 2);
 }
 
-START_TEST(test_create_send_fails) { send_fails(1, FALSE); }
+START_TEST(test_create_send_fails) { send_fails(1, FALSE, CS_ERR_LIBRARY); }
 END_TEST
 
-START_TEST(test_write_send_fails) { send_fails(2, FALSE); }
+START_TEST(test_write_send_fails) { send_fails(2, FALSE, CS_ERR_LIBRARY); }
 END_TEST
 
-START_TEST(test_write_send_fails_with_empty_file) { send_fails(1, TRUE); }
+START_TEST(test_write_send_fails_with_empty_file) { send_fails(1, TRUE, CS_ERR_LIBRARY); }
+END_TEST
+
+START_TEST(test_create_send_flow_control) { send_fails(1, FALSE, CS_ERR_TRY_AGAIN); }
+END_TEST
+
+START_TEST(test_write_send_flow_control) { send_fails(2, FALSE, CS_ERR_TRY_AGAIN); }
 END_TEST
 
 /* The lowest node leaves after its CREATE got delivered, but before its WRITE. The remaining
@@ -768,7 +778,7 @@ START_TEST(test_removed_directory) {
     enter(nodes[0]);
     ck_assert(
         dcdb_send_fuse_message_full(
-            nodes[0], DCDB_MESSAGE_CFS_DELETE, "cluster-id", NULL, NULL, 0, 0, 0, NULL
+            nodes[0], DCDB_MESSAGE_CFS_DELETE, "cluster-id", NULL, NULL, 0, 0, 0, NULL, TRUE
         ) == CS_OK
     );
     pump(nodes, 1);
@@ -797,7 +807,7 @@ START_TEST(test_overwritten_id) {
     enter(nodes[1]);
     ck_assert(
         dcdb_send_fuse_message_full(
-            nodes[1], DCDB_MESSAGE_CFS_WRITE, "cluster-id", NULL, "bogus\n", 6, 0, 1, NULL
+            nodes[1], DCDB_MESSAGE_CFS_WRITE, "cluster-id", NULL, "bogus\n", 6, 0, 1, NULL, TRUE
         ) == CS_OK
     );
     pump(nodes, 2);
@@ -859,6 +869,8 @@ int main(void) {
     add_test(s, test_create_send_fails, "create_send_fails");
     add_test(s, test_write_send_fails, "write_send_fails");
     add_test(s, test_write_send_fails_with_empty_file, "write_send_fails_with_empty_file");
+    add_test(s, test_create_send_flow_control, "create_send_flow_control");
+    add_test(s, test_write_send_flow_control, "write_send_flow_control");
     add_test(s, test_generator_leaves_before_write, "generator_leaves_before_write");
     add_test(s, test_lowest_repairs_empty_file, "lowest_repairs_empty_file");
     add_test(s, test_lowest_replaces_short_id, "lowest_replaces_short_id");
