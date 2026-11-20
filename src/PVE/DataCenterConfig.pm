@@ -619,7 +619,7 @@ my $datacenter_schema = {
             maxLength => 64 * 1024,
             description =>
                 "Consent text that is displayed before logging in. Needs to be base64 encoded.",
-            pattern => "[A-Za-z0-9\+\/]+\={0,2}",
+            pattern => "[A-Za-z0-9\+\/]*\={0,2}",
         },
         location => {
             type => 'string',
