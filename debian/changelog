@@ -1,3 +1,18 @@
+pve-cluster (9.1.15) trixie; urgency=medium
+
+  * pmxcfs: when sending the new cluster ID fails because corosync
+    applies flow control, try again on the next timer tick. Retrying at
+    once could block the event loop of the node with the lowest ID for
+    up to ten seconds per message, delaying the handling of quorum and
+    membership changes.
+
+  * datacenter config: allow setting an empty 'consent-text' again.
+    Since requiring base64 encoding, clearing the text failed with a
+    pattern error, and an existing empty value caused a warning on each
+    read of the configuration.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 20 Nov 2026 13:33:52 +0100
+
 pve-cluster (9.1.14) trixie; urgency=medium
 
   * cfs: observe the multipath configuration files
