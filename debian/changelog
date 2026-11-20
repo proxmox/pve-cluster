@@ -1,3 +1,13 @@
+pve-cluster (9.1.14) trixie; urgency=medium
+
+  * cfs: observe the multipath configuration files
+    '/etc/pve/multipath.cfg' and '/etc/pve/multipath-overrides.conf' of
+    the cluster-wide multipath management, so that pmxcfs tracks their
+    versions and readers can cache the parsed configuration until it
+    changes.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 20 Nov 2026 04:28:30 +0100
+
 pve-cluster (9.1.13) trixie; urgency=medium
 
   * pmxcfs: give every cluster and every standalone node a cluster ID, a random
