@@ -4,7 +4,7 @@ cpgtest: cpgtest.c
 	gcc -Wall cpgtest.c $(shell pkg-config --cflags --libs libcpg libqb) -o cpgtest
 
 .PHONY: check install clean distclean
-check: corosync-parser-test test-mac-prefix test-token-policy test-cluster-id
+check: corosync-parser-test test-mac-prefix test-token-policy test-cluster-id test-next-id
 
 .PHONY: corosync-parser-test
 corosync-parser-test:
@@ -21,6 +21,10 @@ test-token-policy:
 .PHONY: test-cluster-id
 test-cluster-id:
 	perl test_cluster_id.pl
+
+.PHONY: test-next-id
+test-next-id:
+	perl test_next_id.pl
 
 distclean: clean
 clean:
