@@ -1002,6 +1002,23 @@ sub get_node_pvecfg_version {
     return $version_info->{version};
 }
 
+# Returns the highest manager version that any cluster node broadcast, or undef if none did. Offline
+# nodes are included with the last version they broadcast. Like pvecfg_min_version, this only
+# compares major, minor and release, so '9.3.0~1' and '9.3.0' rank the same.
+sub get_highest_pvecfg_version {
+    my $nodes_version_info = get_node_kv('version-info');
+
+    my $highest;
+    for my $raw (values $nodes_version_info->%*) {
+        my $version = eval { decode_json($raw)->{version} } // next;
+        my ($major, $minor, $release) = $version =~ m/^(\d+)\.(\d+)(?:[.-](\d+))?/ or next;
+        next if defined($highest) && pvecfg_min_version($highest, $major, $minor, $release // 0);
+        $highest = $version;
+    }
+
+    return $highest;
+}
+
 sub node_pvecfg_version_at_least {
     my ($node, $major, $minor, $release) = @_;
 
