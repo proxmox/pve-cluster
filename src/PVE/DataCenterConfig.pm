@@ -767,7 +767,8 @@ sub write_datacenter_config {
         my $lower = int($next_id->{lower} // $next_id_format->{lower}->{default});
         my $upper = int($next_id->{upper} // $next_id_format->{upper}->{default});
 
-        die "lower ($lower) <= upper ($upper) boundary rule broken\n" if $lower > $upper;
+        die "next-id: upper boundary ($upper) must be greater than lower boundary ($lower)\n"
+            if $lower >= $upper;
 
         $cfg->{'next-id'} = PVE::JSONSchema::print_property_string($next_id, $next_id_format);
     }
