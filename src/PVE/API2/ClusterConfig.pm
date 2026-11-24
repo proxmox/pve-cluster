@@ -569,7 +569,7 @@ __PACKAGE__->register_method({
                 },
             },
             preferred_node => get_standard_option('pve-node'),
-            pve_version => {
+            'pve-version' => {
                 type => 'string',
                 description => "The highest Proxmox VE manager version of all cluster nodes.",
                 optional => 1,
@@ -613,7 +613,7 @@ __PACKAGE__->register_method({
 
         # informational only, so do not fail if the version info cannot be queried
         my $version = eval { PVE::Cluster::get_highest_pvecfg_version() };
-        $res->{pve_version} = $version if defined($version);
+        $res->{'pve-version'} = $version if defined($version);
 
         return $res;
     },
