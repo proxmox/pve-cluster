@@ -1,3 +1,34 @@
+pve-cluster (9.1.16) trixie; urgency=medium
+
+  * api: join info: include the highest Proxmox VE version that the cluster
+    nodes report. This lets the join dialog warn about joining a node with a
+    different version, for example one freshly installed from a newer ISO
+    into a cluster that was not upgraded yet.
+
+  * datacenter config: next-id: reject a range with equal boundaries, also if
+    one of them is left at its default, as was already done for a lower
+    boundary above the upper one. As the upper boundary is exclusive, such a
+    range contains no guest ID, so requesting the next free guest ID always
+    failed, and with 'enforce' set every guest ID was rejected. An existing
+    range like that still loads, but saving any datacenter option fails until
+    'next-id' is fixed or removed.
+
+  * cluster setup: when creating or joining a cluster, which sets
+    'PermitRootLogin yes' in the sshd configuration:
+    - also replace a first 'PermitRootLogin' option that is indented or
+      written in a different case, like an unindented one already was.
+      Before, it stayed in front of the appended 'PermitRootLogin yes', and as
+      sshd uses the first one, a 'no' there broke cluster joins and ZFS
+      replication.
+    - only consider the first option in the global section, before the first
+      'Match' block, like sshd does. Before, a 'PermitRootLogin yes' after a
+      'no' or inside a 'Match' block counted as set, and a missing option was
+      appended at the end of the file, where it became part of the last
+      'Match' block.
+    - keep the file permissions instead of resetting them to 0644.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 24 Nov 2026 08:16:16 +0100
+
 pve-cluster (9.1.15) trixie; urgency=medium
 
   * pmxcfs: when sending the new cluster ID fails because corosync
