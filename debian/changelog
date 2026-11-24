@@ -1,3 +1,10 @@
+pve-cluster (9.1.17) trixie; urgency=medium
+
+  * api: join info: rename the 'pve_version' property that 9.1.16 added to
+    'pve-version', as new API properties use kebab-case.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 24 Nov 2026 09:11:01 +0100
+
 pve-cluster (9.1.16) trixie; urgency=medium
 
   * api: join info: include the highest Proxmox VE version that the cluster
